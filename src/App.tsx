@@ -4,6 +4,7 @@ import { Layout } from './components/Layout';
 import { LandingPage } from './pages/LandingPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ConnectionsPage } from './pages/ConnectionsPage';
+import { ConnectionDetailsPage } from './pages/ConnectionDetailsPage';
 import { PipelinesListPage } from './pages/pipelines/PipelinesListPage';
 import { PipelineEditorPage } from './pages/pipelines/PipelineEditorPage';
 import { JobsPage } from './pages/JobsPage';
@@ -22,6 +23,7 @@ function App() {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/connections" element={<ConnectionsPage />} />
+                <Route path="/connections/:id" element={<ConnectionDetailsPage />} />
                 <Route path="/pipelines" element={<PipelinesListPage />} />
                 <Route path="/pipelines/:id" element={<PipelineEditorPage />} />
                 <Route path="/jobs" element={<JobsPage />} />

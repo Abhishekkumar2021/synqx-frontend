@@ -4,52 +4,40 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { getPipelines, getJobs, getConnections } from '../lib/api';
 import { subHours, format } from 'date-fns';
+import { Skeleton } from '../components/ui/skeleton';
 
 export const DashboardPage: React.FC = () => {
-    const { data: pipelines } = useQuery({ queryKey: ['pipelines'], queryFn: getPipelines });
-    const { data: jobs } = useQuery({ queryKey: ['jobs'], queryFn: () => getJobs() }); // Fetch recent jobs
-    const { data: connections } = useQuery({ queryKey: ['connections'], queryFn: getConnections });
+    const { data: pipelines, isLoading: loadingPipelines } = useQuery({ queryKey: ['pipelines'], queryFn: getPipelines });
+    const { data: jobs, isLoading: loadingJobs } = useQuery({ queryKey: ['jobs'], queryFn: () => getJobs() }); 
+    const { data: connections, isLoading: loadingConnections } = useQuery({ queryKey: ['connections'], queryFn: getConnections });
 
     // Calculate Stats
     const totalPipelines = pipelines?.length || 0;
     const activeRuns = jobs?.filter(j => j.status === 'running').length || 0;
     const totalConnections = connections?.length || 0;
     
-    // Calculate Success Rate (last 100 jobs)
     const completedJobs = jobs?.filter(j => j.status === 'completed' || j.status === 'failed') || [];
     const successRate = completedJobs.length > 0 
         ? Math.round((completedJobs.filter(j => j.status === 'completed').length / completedJobs.length) * 100) 
         : 0;
 
-    // Chart Data (Last 24 Hours)
-    // Group jobs by hour
+    const isLoading = loadingPipelines || loadingJobs || loadingConnections;
+
     const chartData = React.useMemo(() => {
         if (!jobs) return [];
         const now = new Date();
         
         const buckets: Record<string, { success: number, failed: number }> = {};
         
-        // Initialize buckets
-        for (let i = 0; i <= 24; i+=4) { // Every 4 hours
+        for (let i = 0; i <= 24; i+=4) {
              const t = subHours(now, 24 - i);
              const key = format(t, 'HH:mm');
              buckets[key] = { success: 0, failed: 0 };
         }
 
-        // Fill with real data if available
-        // Note: This is a rough client-side aggregation. Real apps should do this on backend.
-        // Since we likely don't have enough data in a fresh app, it might look empty.
-        // I will keep the "mock" data structure logic but try to fill it.
-        // Actually, for a better demo "look", if real data is empty, I might fallback to the static data 
-        // BUT the user explicitly said "do not mock... if there is no API... mock and let me know".
-        // I'll stick to real data. If it's empty, the chart is empty.
-        
         return Object.entries(buckets).map(([name, val]) => ({ name, ...val }));
     }, [jobs]);
 
-    // Fallback for chart if empty to show *something* or just show empty state?
-    // User said "mock and let me know".
-    // I'll add a note if using mock data.
     const useMockChart = !jobs || jobs.length === 0;
     const finalChartData = useMockChart ? [
         { name: '00:00', success: 0, failed: 0 },
@@ -64,10 +52,21 @@ export const DashboardPage: React.FC = () => {
         <div className="space-y-6">
             <h2 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h2>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <StatsCard title="Total Pipelines" value={totalPipelines.toString()} subtext="Active workflows" />
-                <StatsCard title="Active Runs" value={activeRuns.toString()} subtext="Currently executing" />
-                <StatsCard title="Connections" value={totalConnections.toString()} subtext="Data sources" />
-                <StatsCard title="Success Rate" value={`${successRate}%`} subtext="Last 100 runs" />
+                {isLoading ? (
+                    <>
+                        <Skeleton className="h-[120px] rounded-xl" />
+                        <Skeleton className="h-[120px] rounded-xl" />
+                        <Skeleton className="h-[120px] rounded-xl" />
+                        <Skeleton className="h-[120px] rounded-xl" />
+                    </>
+                ) : (
+                    <>
+                        <StatsCard title="Total Pipelines" value={totalPipelines.toString()} subtext="Active workflows" />
+                        <StatsCard title="Active Runs" value={activeRuns.toString()} subtext="Currently executing" />
+                        <StatsCard title="Connections" value={totalConnections.toString()} subtext="Data sources" />
+                        <StatsCard title="Success Rate" value={`${successRate}%`} subtext="Last 100 runs" />
+                    </>
+                )}
             </div>
             
             <Card className="border-border bg-card">
@@ -76,33 +75,51 @@ export const DashboardPage: React.FC = () => {
                     {useMockChart && <p className="text-xs text-muted-foreground">(No run data available yet)</p>}
                 </CardHeader>
                 <CardContent>
-                    <div className="h-[300px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart
-                                data={finalChartData}
-                                margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
-                            >
-                                <defs>
-                                    <linearGradient id="colorSuccess" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor="hsl(var(--chart-2))" stopOpacity={0}/>
-                                    </linearGradient>
-                                    <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="hsl(var(--destructive))" stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor="hsl(var(--destructive))" stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                                <Tooltip 
-                                    contentStyle={{ backgroundColor: 'hsl(var(--popover))', borderColor: 'hsl(var(--border))', borderRadius: 'var(--radius)' }}
-                                    itemStyle={{ color: 'hsl(var(--popover-foreground))' }}
-                                />
-                                <Area type="monotone" dataKey="success" stroke="hsl(var(--chart-2))" fillOpacity={1} fill="url(#colorSuccess)" strokeWidth={2} />
-                                <Area type="monotone" dataKey="failed" stroke="hsl(var(--destructive))" fillOpacity={1} fill="url(#colorFailed)" strokeWidth={2} />
-                            </AreaChart>
-                        </ResponsiveContainer>
+                    <div className="h-[300px] w-full min-h-[300px]">
+                        {loadingJobs ? (
+                            <Skeleton className="w-full h-full" />
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart
+                                    data={finalChartData}
+                                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                                >
+                                    <defs>
+                                        <linearGradient id="colorSuccess" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                                        </linearGradient>
+                                        <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis 
+                                        dataKey="name" 
+                                        stroke="#888888" 
+                                        fontSize={12} 
+                                        tickLine={false} 
+                                        axisLine={false} 
+                                        tickMargin={10}
+                                    />
+                                    <YAxis 
+                                        stroke="#888888" 
+                                        fontSize={12} 
+                                        tickLine={false} 
+                                        axisLine={false} 
+                                        tickFormatter={(value) => `${value}`} 
+                                    />
+                                    <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', borderRadius: '0.5rem', color: '#f3f4f6' }}
+                                        itemStyle={{ color: '#e5e7eb' }}
+                                        cursor={{ stroke: '#4b5563', strokeWidth: 1 }}
+                                    />
+                                    <Area type="monotone" dataKey="success" stroke="#22c55e" fillOpacity={1} fill="url(#colorSuccess)" strokeWidth={2} />
+                                    <Area type="monotone" dataKey="failed" stroke="#ef4444" fillOpacity={1} fill="url(#colorFailed)" strokeWidth={2} />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        )}
                     </div>
                 </CardContent>
             </Card>

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -11,16 +11,28 @@ import {
   type Edge,
   type Node,
   BackgroundVariant,
-  Panel
+  Panel,
+  type NodeTypes,
+  ReactFlowProvider
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button } from '../../components/ui/button';
 import { Plus, Save, Play, ArrowLeft, Loader2, Layout } from 'lucide-react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { getPipeline, triggerPipeline, type PipelineNode, type PipelineEdge as ApiEdge } from '../../lib/api';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { 
+    getPipeline, 
+    triggerPipeline, 
+    createPipelineVersion, 
+    publishPipelineVersion,
+    type PipelineNode as ApiNode, 
+    type PipelineEdge as ApiEdge 
+} from '../../lib/api';
 import dagre from 'dagre';
 import { toast } from 'sonner';
+
+import PipelineNode from '../../components/PipelineNode';
+import { NodeProperties } from '../../components/NodeProperties';
 
 // --- Auto Layout Helper ---
 const dagreGraph = new dagre.graphlib.Graph();
@@ -30,7 +42,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
     dagreGraph.setGraph({ rankdir: 'LR' });
 
     nodes.forEach((node) => {
-        dagreGraph.setNode(node.id, { width: 180, height: 60 }); // Approx node dimensions
+        dagreGraph.setNode(node.id, { width: 220, height: 100 }); // Adjusted for custom node size
     });
 
     edges.forEach((edge) => {
@@ -44,8 +56,8 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
         return {
             ...node,
             position: {
-                x: nodeWithPosition.x - 90, // center offset
-                y: nodeWithPosition.y - 30,
+                x: nodeWithPosition.x - 110,
+                y: nodeWithPosition.y - 50,
             },
         };
     });
@@ -53,20 +65,37 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
     return { nodes: layoutedNodes, edges };
 };
 
-
 export const PipelineEditorPage: React.FC = () => {
+    return (
+        <ReactFlowProvider>
+            <PipelineEditorContent />
+        </ReactFlowProvider>
+    );
+}
+
+const PipelineEditorContent: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isNew = id === 'new';
+  const queryClient = useQueryClient();
   
   // Fetch pipeline data
-  const { data: pipeline, isLoading } = useQuery({ 
+  const { data: pipeline, isLoading } = useQuery({  
       queryKey: ['pipeline', id], 
       queryFn: () => getPipeline(parseInt(id!)), 
       enabled: !isNew 
   });
 
+  const nodeTypes = useMemo<NodeTypes>(() => ({
+    source: PipelineNode,
+    transform: PipelineNode,
+    destination: PipelineNode,
+    api: PipelineNode,
+    default: PipelineNode
+  }), []);
+
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   // Transform API data to React Flow
   useEffect(() => {
@@ -74,12 +103,15 @@ export const PipelineEditorPage: React.FC = () => {
         const version = pipeline.published_version;
         
         // Map Nodes
-        const flowNodes: Node[] = version.nodes.map((n: PipelineNode) => ({
-            id: n.node_id, // Use node_id string from backend
-            type: n.operator_type === 'source' ? 'input' : n.operator_type === 'destination' ? 'output' : 'default',
-            data: { label: n.name },
-            position: n.config?.ui?.position || { x: 0, y: 0 }, // Check if position exists in config
-            className: 'bg-card border-border text-foreground w-[180px] p-2 rounded-md shadow-sm text-center font-medium border'
+        const flowNodes: Node[] = version.nodes.map((n: ApiNode) => ({
+            id: n.node_id, 
+            type: n.operator_type || 'default', // map operator_type to node type
+            data: { 
+                label: n.name, 
+                config: n.config,
+                type: n.operator_type 
+            },
+            position: n.config?.ui?.position || { x: 0, y: 0 },
         }));
 
         // Map Edges
@@ -110,14 +142,15 @@ export const PipelineEditorPage: React.FC = () => {
   );
 
   const onAddNode = () => {
-      const newNodeId = `node_${nodes.length + 1}`;
+      const newNodeId = `node_${nodes.length + 1}_${Date.now()}`;
       const newNode: Node = {
           id: newNodeId,
-          position: { x: Math.random() * 200, y: Math.random() * 200 },
-          data: { label: `New Node` },
-          className: 'bg-card border-border text-foreground w-[180px] p-2 rounded-md shadow-sm text-center font-medium border'
+          type: 'default',
+          position: { x: Math.random() * 400, y: Math.random() * 400 },
+          data: { label: `New Node`, type: 'default', config: {} },
       };
       setNodes((nds) => nds.concat(newNode));
+      setSelectedNodeId(newNodeId);
   };
 
   const onLayout = useCallback(() => {
@@ -126,11 +159,87 @@ export const PipelineEditorPage: React.FC = () => {
       setEdges([...layouted.edges]);
   }, [nodes, edges, setNodes, setEdges]);
 
+  // Handle Node Selection
+  const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
+      setSelectedNodeId(node.id);
+  }, []);
+
+  const onPaneClick = useCallback(() => {
+      setSelectedNodeId(null);
+  }, []);
+
+  // Update Node Data from Properties Panel
+  const updateNodeData = (id: string, newData: any) => {
+      setNodes((nds) => nds.map((node) => {
+          if (node.id === id) {
+              return {
+                  ...node,
+                  type: newData.type, // Update React Flow type
+                  data: {
+                      ...node.data,
+                      ...newData
+                  }
+              };
+          }
+          return node;
+      }));
+  };
+
+  const deleteNode = (id: string) => {
+      setNodes((nds) => nds.filter((n) => n.id !== id));
+      setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
+      setSelectedNodeId(null);
+  };
+
   // Mutations
   const runMutation = useMutation({
       mutationFn: () => triggerPipeline(parseInt(id!)),
       onSuccess: () => toast.success("Pipeline execution triggered"),
       onError: () => toast.error("Failed to trigger pipeline")
+  });
+
+  const saveMutation = useMutation({
+      mutationFn: async () => {
+          if (isNew) return; 
+          
+          // Transform back to API format
+          const apiNodes = nodes.map(n => ({
+              node_id: n.id,
+              name: n.data.label,
+              operator_type: n.data.type,
+              config: {
+                  ...(n.data.config as object),
+                  ui: { position: n.position }
+              },
+              order_index: 0, // Default
+              operator_class: 'generic' 
+          }));
+
+          const apiEdges = edges.map(e => ({
+              from_node_id: e.source,
+              to_node_id: e.target
+          }));
+
+          const versionPayload = {
+              nodes: apiNodes,
+              edges: apiEdges,
+              version_notes: "Updated via UI"
+          };
+
+          // 1. Create Version
+          const newVersion = await createPipelineVersion(parseInt(id!), versionPayload);
+          
+          // 2. Publish Version
+          await publishPipelineVersion(parseInt(id!), newVersion.id);
+      },
+      onSuccess: () => {
+          toast.success("Pipeline saved and published");
+          queryClient.invalidateQueries({ queryKey: ['pipeline', id] });
+      },
+      onError: (e) => {
+          console.error(e);
+          toast.error("Failed to save pipeline");
+      }
   });
 
   if (isLoading) return (
@@ -139,8 +248,10 @@ export const PipelineEditorPage: React.FC = () => {
       </div>
   );
 
+  const selectedNode = nodes.find(n => n.id === selectedNodeId) || null;
+
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] gap-4 animate-in fade-in">
+    <div className="flex flex-col h-[calc(100vh-8rem)] gap-4 animate-in fade-in relative">
       <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
               <Link to="/pipelines">
@@ -172,7 +283,7 @@ export const PipelineEditorPage: React.FC = () => {
                     <Play className="mr-2 h-4 w-4" /> Run
                 </Button>
             )}
-             <Button>
+             <Button onClick={() => saveMutation.mutate()} isLoading={saveMutation.isPending}>
                 <Save className="mr-2 h-4 w-4" /> Save
             </Button>
           </div>
@@ -185,6 +296,9 @@ export const PipelineEditorPage: React.FC = () => {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          nodeTypes={nodeTypes}
+          onNodeClick={onNodeClick}
+          onPaneClick={onPaneClick}
           colorMode="system" 
           fitView
           minZoom={0.1}
@@ -198,6 +312,16 @@ export const PipelineEditorPage: React.FC = () => {
              {nodes.length} nodes, {edges.length} edges
           </Panel>
         </ReactFlow>
+
+        {/* Properties Panel */}
+        {selectedNode && (
+            <NodeProperties 
+                node={selectedNode} 
+                onClose={() => setSelectedNodeId(null)} 
+                onUpdate={updateNodeData}
+                onDelete={deleteNode}
+            />
+        )}
       </div>
     </div>
   );

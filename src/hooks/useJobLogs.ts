@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { getJobLogs } from '../lib/api';
 
 export interface LogMessage {
   type: 'job_log' | 'step_log';
@@ -16,10 +17,29 @@ export function useJobLogs(jobId: number | null) {
   const [isConnected, setIsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
+  // Fetch initial logs (history)
+  useEffect(() => {
+    if (!jobId) {
+        setLogs([]);
+        return;
+    }
+
+    const fetchHistory = async () => {
+        try {
+            const history = await getJobLogs(jobId);
+            setLogs(history);
+        } catch (e) {
+            console.error("Failed to fetch log history", e);
+        }
+    };
+
+    fetchHistory();
+  }, [jobId]);
+
+  // Connect WebSocket for real-time updates
   useEffect(() => {
     if (!jobId) return;
 
-    // TODO: Make URL configurable via env vars
     const wsUrl = `ws://localhost:8000/api/v1/ws/jobs/${jobId}`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
@@ -32,7 +52,11 @@ export function useJobLogs(jobId: number | null) {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        setLogs((prev) => [...prev, data]);
+        setLogs((prev) => {
+            // Avoid duplicates if message ID exists
+            if (prev.some(l => l.id === data.id)) return prev;
+            return [...prev, data];
+        });
       } catch (err) {
         console.error('Failed to parse log message', err);
       }

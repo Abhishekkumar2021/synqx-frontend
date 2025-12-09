@@ -17,7 +17,7 @@ export const LandingPage: React.FC = () => {
                     <a href="#features" className="hover:text-foreground transition-colors">Features</a>
                     <a href="#integrations" className="hover:text-foreground transition-colors">Integrations</a>
                     <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
-                    <a href="#docs" className="hover:text-foreground transition-colors">Docs</a>
+                    <a href="http://localhost:3000" className="hover:text-foreground transition-colors" target="_blank" rel="noopener noreferrer">Docs</a>
                 </nav>
                 <div className="flex items-center gap-4">
                     <ModeToggle />
@@ -47,9 +47,11 @@ export const LandingPage: React.FC = () => {
                                     Start Building Free <ArrowRight className="ml-2 h-4 w-4" />
                                 </Button>
                             </Link>
-                            <Button variant="outline" size="lg" className="h-12 px-8 text-base">
-                                View Documentation
-                            </Button>
+                            <a href="http://localhost:3000" target="_blank" rel="noopener noreferrer">
+                                <Button variant="outline" size="lg" className="h-12 px-8 text-base">
+                                    View Documentation
+                                </Button>
+                            </a>
                         </div>
                         
                         {/* Hero Image / Dashboard Preview */}
