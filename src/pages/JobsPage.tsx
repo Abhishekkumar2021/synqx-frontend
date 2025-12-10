@@ -1,186 +1,221 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getJobs, type Job } from '../lib/api';
-import { Card, CardHeader, CardTitle } from '../components/ui/card';
-import { Skeleton } from '../components/ui/skeleton';
+import { getJobs, type Job } from '@/lib/api';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { JobLogViewer } from '@/components/JobLogViewer';
+import { formatDistanceToNow, differenceInSeconds } from 'date-fns';
 import { 
-    Clock, 
-    PlayCircle, 
-    CheckCircle2, 
-    XCircle, 
-    Loader2, 
-    AlertCircle,
-    History
+    Clock, CheckCircle2, XCircle, Loader2, History,
+    Search, Filter, Terminal, Calendar, Timer,
+    GitBranch, RefreshCw, ChevronRight
 } from 'lucide-react';
-import { JobLogViewer } from '../components/JobLogViewer';
-import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const StatusBadge = ({ status }: { status: string }) => {
-    const variants: Record<string, string> = {
-        pending: "bg-muted text-muted-foreground border-border",
-        queued: "bg-blue-500/10 text-blue-600 border-blue-200",
-        running: "bg-blue-500/15 text-blue-600 border-blue-500/20 animate-pulse",
-        completed: "bg-green-500/15 text-green-600 border-green-500/20",
-        success: "bg-green-500/15 text-green-600 border-green-500/20",
-        failed: "bg-destructive/15 text-destructive border-destructive/20",
-        cancelled: "bg-yellow-500/15 text-yellow-600 border-yellow-500/20",
-    };
-    
-    const icons: Record<string, React.ReactNode> = {
-        completed: <CheckCircle2 className="w-3 h-3 mr-1" />,
-        success: <CheckCircle2 className="w-3 h-3 mr-1" />,
-        failed: <XCircle className="w-3 h-3 mr-1" />,
-        running: <Loader2 className="w-3 h-3 mr-1 animate-spin" />,
-        pending: <Clock className="w-3 h-3 mr-1" />,
-    };
+    const styles = useMemo(() => {
+        switch (status?.toLowerCase()) {
+            case 'completed':
+            case 'success': return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400";
+            case 'failed':
+            case 'error': return "bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400";
+            case 'running': return "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400 animate-pulse";
+            case 'queued': return "bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:text-yellow-400";
+            default: return "bg-muted text-muted-foreground border-border";
+        }
+    }, [status]);
+
+    const icon = useMemo(() => {
+        switch (status?.toLowerCase()) {
+            case 'running': return <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />;
+            case 'failed': return <XCircle className="w-3 h-3 mr-1.5" />;
+            case 'success': 
+            case 'completed': return <CheckCircle2 className="w-3 h-3 mr-1.5" />;
+            default: return <Clock className="w-3 h-3 mr-1.5" />;
+        }
+    }, [status]);
 
     return (
-        <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${variants[status] || variants.pending}`}>
-            {icons[status]}
-            <span className="capitalize">{status}</span>
+        <span className={cn("inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide transition-colors", styles)}>
+            {icon} {status}
         </span>
     )
 }
 
 export const JobsPage: React.FC = () => {
-  const [selectedJobId, setSelectedJobId] = React.useState<number | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+  const [filter, setFilter] = useState('');
 
-  const { data: jobs, isLoading } = useQuery({
+  const { data: jobs, isLoading, refetch } = useQuery({
     queryKey: ['jobs'],
     queryFn: () => getJobs(),
     refetchInterval: 3000, 
   });
 
-  const selectedJob = jobs?.find((j: Job) => j.id === selectedJobId);
+  const selectedJob = useMemo(() => jobs?.find((j: Job) => j.id === selectedJobId), [jobs, selectedJobId]);
+
+  const filteredJobs = useMemo(() => {
+    if (!jobs) return [];
+    if (!filter) return jobs;
+    return jobs.filter((j: Job) => 
+        j.id.toString().includes(filter) || 
+        j.status.toLowerCase().includes(filter.toLowerCase())
+    );
+  }, [jobs, filter]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 animate-in fade-in duration-500">
-       <div className="flex items-center justify-between shrink-0">
-        <div>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">Jobs & Runs</h2>
-            <p className="text-muted-foreground mt-1">Global execution history across all pipelines.</p>
-        </div>
+    // FIX 1: Exact height calculation taking Header (64px) + Padding (64px) + Buffer into account
+    // min-h-0 is crucial for nested scrolling to work in Flex/Grid
+    <div className="flex flex-col h-[calc(100vh-10rem)] gap-4 animate-in fade-in duration-500 overflow-hidden">
+       
+       {/* Page Header */}
+       <div className="flex items-center justify-between shrink-0 px-1">
+            <div className="space-y-1">
+                <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+                    <History className="h-6 w-6 text-primary" />
+                    Execution History
+                </h2>
+                <p className="text-sm text-muted-foreground hidden sm:block">
+                    Monitor pipeline runs, debug logs, and audit execution times.
+                </p>
+            </div>
+            <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => refetch()}>
+                    <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                    Refresh
+                </Button>
+            </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
-        {/* Run List (Left Pane) */}
-        <Card className="lg:col-span-4 flex flex-col overflow-hidden border-border bg-card shadow-lg h-full">
-            <CardHeader className="py-3 px-4 border-b border-border bg-muted/20">
-                <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                        <History className="h-4 w-4" /> Recent Runs
-                    </CardTitle>
-                    <Badge variant="outline" className="text-[10px] font-normal">
-                        {jobs?.length || 0} Total
-                    </Badge>
+      {/* Main Content Grid - min-h-0 prevents overflow */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
+        
+        {/* --- LEFT PANE: Run List --- */}
+        <div className="lg:col-span-4 flex flex-col h-full bg-card rounded-lg border shadow-sm overflow-hidden min-h-0">
+            {/* List Toolbar */}
+            <div className="p-3 border-b bg-muted/20 space-y-3 shrink-0">
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                        placeholder="Filter runs..." 
+                        className="pl-8 h-9 text-sm"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
+                    />
                 </div>
-            </CardHeader>
-            <div className="flex-1 overflow-y-auto p-2 space-y-2 scrollbar-thin scrollbar-thumb-border">
+                <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                    <span>{filteredJobs.length} results</span>
+                    <Button variant="ghost" size="icon" className="h-5 w-5">
+                        <Filter className="h-3 w-3" />
+                    </Button>
+                </div>
+            </div>
+
+            {/* Scrollable List */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin scrollbar-thumb-border">
                 {isLoading ? (
                     Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="flex flex-col gap-2 p-3 rounded-lg border border-border bg-card/50">
-                            <div className="flex items-center justify-between">
-                                <Skeleton className="h-4 w-24" />
-                                <Skeleton className="h-5 w-16 rounded-full" />
-                            </div>
-                            <div className="flex items-center justify-between mt-1">
-                                <Skeleton className="h-3 w-32" />
-                                <Skeleton className="h-4 w-12 rounded" />
-                            </div>
+                        <div key={i} className="p-3 rounded-md border bg-muted/10 space-y-2">
+                            <div className="flex justify-between"><Skeleton className="h-4 w-20" /><Skeleton className="h-4 w-12" /></div>
+                            <Skeleton className="h-3 w-32" />
                         </div>
                     ))
                 ) : (
-                    <>
-                        {jobs?.map((job: Job) => (
-                            <div 
-                                key={job.id} 
-                                onClick={() => setSelectedJobId(job.id)}
-                                className={`
-                                    group relative flex flex-col gap-2 p-3 rounded-lg border transition-all cursor-pointer
-                                    ${selectedJobId === job.id 
-                                        ? 'bg-primary/5 border-primary ring-1 ring-primary/20 shadow-sm' 
-                                        : 'bg-card border-border hover:border-primary/40 hover:bg-muted/30'
-                                    }
-                                `}
-                            >
-                                {/* Status Bar Indicator */}
-                                <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-lg transition-colors ${
-                                    (job.status as string) === 'success' || job.status === 'completed' ? 'bg-green-500' :
-                                    job.status === 'failed' ? 'bg-destructive' :
-                                    job.status === 'running' ? 'bg-blue-500' : 'bg-muted'
-                                }`} />
+                    filteredJobs.map((job: Job) => (
+                        <div 
+                            key={job.id} 
+                            onClick={() => setSelectedJobId(job.id)}
+                            className={cn(
+                                "group relative flex flex-col gap-1.5 p-3 rounded-md border transition-all cursor-pointer select-none",
+                                selectedJobId === job.id 
+                                    ? "bg-accent border-primary/50 ring-1 ring-primary/20" 
+                                    : "bg-card border-transparent hover:bg-muted/50 hover:border-border"
+                            )}
+                        >
+                            {selectedJobId === job.id && (
+                                <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-md bg-primary" />
+                            )}
 
-                                <div className="flex items-center justify-between pl-2">
-                                    <span className="text-sm font-medium flex items-center gap-2">
-                                        Run #{job.id}
-                                    </span>
-                                    <StatusBadge status={job.status} />
-                                </div>
-                                <div className="flex items-center justify-between text-xs text-muted-foreground pl-2 mt-1">
-                                     <div className="flex items-center gap-1.5" title={job.started_at}>
-                                        <Clock className="h-3 w-3" />
-                                        {job.started_at ? formatDistanceToNow(new Date(job.started_at), { addSuffix: true }) : 'Queued'}
-                                    </div>
-                                    <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-[10px]">
-                                        PIPE-{job.pipeline_id}
-                                    </span>
-                                </div>
+                            <div className="flex items-center justify-between pl-2">
+                                <span className={cn(
+                                    "text-sm font-semibold font-mono", 
+                                    selectedJobId === job.id ? "text-primary" : "text-foreground"
+                                )}>
+                                    #{job.id}
+                                </span>
+                                <span className="text-xs text-muted-foreground tabular-nums">
+                                    {job.started_at ? formatDistanceToNow(new Date(job.started_at), { addSuffix: true }) : ''}
+                                </span>
                             </div>
-                        ))}
-                        {(!jobs || jobs.length === 0) && (
-                            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
-                                <AlertCircle className="h-8 w-8 opacity-20" />
-                                <span className="text-sm">No runs found</span>
+
+                            <div className="flex items-center justify-between pl-2">
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <GitBranch className="h-3 w-3" />
+                                    <span>Pipeline-{job.pipeline_id}</span>
+                                </div>
+                                <StatusBadge status={job.status} />
                             </div>
-                        )}
-                    </>
+                        </div>
+                    ))
                 )}
             </div>
-        </Card>
+        </div>
 
-        {/* Detail View (Right Pane) */}
-        <Card className="lg:col-span-8 flex flex-col overflow-hidden border-border bg-card shadow-lg h-full relative">
+        {/* --- RIGHT PANE: Details & Logs --- */}
+        <div className="lg:col-span-8 flex flex-col h-full bg-card rounded-lg border shadow-sm overflow-hidden relative min-h-0">
             {selectedJobId ? (
                 <>
-                    <CardHeader className="py-3 px-4 border-b border-border bg-muted/20 flex flex-row items-center justify-between shrink-0">
-                        <div className="flex flex-col gap-0.5">
-                            <div className="flex items-center gap-3">
-                                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                                    Log Stream
-                                </CardTitle>
-                                <Badge variant="outline" className="font-mono text-[10px]">
-                                    ID: {selectedJobId}
-                                </Badge>
+                    {/* Job Metadata Header */}
+                    <div className="px-4 py-3 border-b bg-muted/10 shrink-0">
+                        <div className="flex items-start justify-between">
+                            <div className="flex flex-col gap-1">
+                                <h3 className="text-lg font-semibold flex items-center gap-2">
+                                    Execution #{selectedJobId}
+                                </h3>
+                                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-1.5">
+                                        <Calendar className="h-3.5 w-3.5" />
+                                        {selectedJob?.started_at ? new Date(selectedJob.started_at).toLocaleDateString() : '-'}
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <Timer className="h-3.5 w-3.5" />
+                                        {selectedJob?.finished_at && selectedJob?.started_at
+                                            ? `${differenceInSeconds(new Date(selectedJob.finished_at), new Date(selectedJob.started_at))}s`
+                                            : 'In Progress'}
+                                    </div>
+                                </div>
                             </div>
-                            <span className="text-xs text-muted-foreground">
-                                Pipeline ID: {selectedJob?.pipeline_id} • Trigger: {selectedJob?.trigger_type || 'Manual'}
-                            </span>
+                            
+                            <div className="flex gap-2">
+                                {selectedJob?.status === 'running' && (
+                                    <Button variant="destructive" size="sm" className="h-8">Stop</Button>
+                                )}
+                                <Button variant="secondary" size="sm" className="h-8 gap-1">
+                                    Pipeline <ChevronRight className="h-3 w-3" />
+                                </Button>
+                            </div>
                         </div>
-                        <div className="flex gap-2">
-                             {selectedJob?.status === 'running' && (
-                                <Button variant="destructive" size="sm" className="h-7 text-xs">Stop Run</Button>
-                             )}
-                        </div>
-                    </CardHeader>
+                    </div>
                     
-                    <div className="flex-1 bg-[#0d1117] p-0 overflow-hidden relative font-mono text-sm">
+                    {/* Log Viewer Container - Takes remaining height */}
+                    <div className="flex-1 bg-[#0c0c0c] relative min-h-0 overflow-hidden">
                          <JobLogViewer initialJobId={selectedJobId} hideControls={true} />
                     </div>
                 </>
             ) : (
-                <div className="h-full flex flex-col items-center justify-center text-muted-foreground bg-muted/5 p-8 text-center">
-                    <div className="h-20 w-20 rounded-full bg-muted/20 flex items-center justify-center mb-6 animate-pulse">
-                        <PlayCircle className="h-10 w-10 opacity-40" />
+                /* Empty State */
+                <div className="h-full flex flex-col items-center justify-center text-muted-foreground bg-muted/5 p-8 text-center animate-in fade-in zoom-in-95">
+                    <div className="h-24 w-24 rounded-full bg-muted/20 flex items-center justify-center mb-6 ring-8 ring-muted/5">
+                        <Terminal className="h-10 w-10 opacity-30 text-primary" />
                     </div>
-                    <h3 className="text-xl font-semibold text-foreground/80 mb-2">Ready to inspect</h3>
-                    <p className="max-w-sm text-sm">
-                        Select an execution from the history list to view live logs, step details, and debugging information.
+                    <h3 className="text-xl font-bold text-foreground mb-2">Select a Run</h3>
+                    <p className="max-w-sm text-sm text-muted-foreground/80 leading-relaxed">
+                        Click on an execution from the list on the left to inspect live logs.
                     </p>
                 </div>
             )}
-        </Card>
+        </div>
       </div>
     </div>
   );

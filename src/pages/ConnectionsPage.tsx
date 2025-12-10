@@ -1,526 +1,524 @@
-import React from 'react';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/incompatible-library */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getConnections, createConnection, deleteConnection, type ConnectionCreate, testConnection } from '../lib/api';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Skeleton } from '../components/ui/skeleton';
-import { 
-    Plus, 
-    Trash2, 
-    Database, 
-    ExternalLink, 
-    Server,
-    CheckCircle2,
-    XCircle,
-    HardDrive, // Local File Icon
-    Cloud, // S3
-    Server as ApiServer // REST API
+import { getConnections, createConnection, deleteConnection, testConnection, type ConnectionCreate } from '@/lib/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import {
+    Plus, Trash2, Database, ExternalLink, Server,
+    CheckCircle2, XCircle, HardDrive, Cloud,
+    Globe, Lock, FileJson, ShieldCheck, Search,
+    LayoutGrid, List, MoreHorizontal, Plug, Pencil,
+    RefreshCw
 } from 'lucide-react';
-import { FormProvider, useForm, type FieldPath } from 'react-hook-form';
+import { FormProvider, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '../components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { cn } from '@/lib/utils';
+import {
+    Dialog, DialogContent, DialogDescription, DialogHeader,
+    DialogTitle, DialogFooter
+} from "@/components/ui/dialog";
+import {
+    DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+    DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-// --- Frontend representation of Backend Connector Configs ---
-interface ConnectorField {
+// --- Metadata & Schemas ---
+interface ConnectorMetadata {
+    id: string;
     name: string;
-    label: string;
-    type: 'text' | 'password' | 'number' | 'select' | 'textarea';
-    required: boolean;
-    placeholder?: string;
-    defaultValue?: string | number;
-    options?: { label: string; value: string }[];
-    dependency?: { field: string; value: string | boolean; }; // e.g. show if auth_type is basic
-}
-
-interface ConnectorSchema {
     description: string;
-    fields: ConnectorField[];
+    icon: React.ReactNode;
+    category: 'Database' | 'Warehouse' | 'File' | 'API';
+    popular?: boolean;
 }
 
-const CONNECTOR_CONFIG_SCHEMAS: Record<string, ConnectorSchema> = {
+const CONNECTOR_META: Record<string, ConnectorMetadata> = {
+    postgresql: { id: 'postgresql', name: 'PostgreSQL', description: 'Reliable open-source object-relational database.', icon: <Database className="text-blue-500" />, category: 'Database', popular: true },
+    mysql: { id: 'mysql', name: 'MySQL', description: 'The world\'s most popular open-source database.', icon: <Database className="text-sky-600" />, category: 'Database' },
+    snowflake: { id: 'snowflake', name: 'Snowflake', description: 'Cloud-native data warehouse.', icon: <Cloud className="text-cyan-400" />, category: 'Warehouse', popular: true },
+    mongodb: { id: 'mongodb', name: 'MongoDB', description: 'Source-available cross-platform document database.', icon: <FileJson className="text-emerald-500" />, category: 'Database' },
+    local_file: { id: 'local_file', name: 'Local File', description: 'Read/Write CSV, JSON, and Parquet files.', icon: <HardDrive className="text-orange-500" />, category: 'File' },
+    s3: { id: 's3', name: 'Amazon S3', description: 'Scalable object storage in the AWS cloud.', icon: <Cloud className="text-yellow-500" />, category: 'File', popular: true },
+    rest_api: { id: 'rest_api', name: 'REST API', description: 'Connect to any HTTP/REST endpoint.', icon: <Globe className="text-purple-500" />, category: 'API' },
+};
+
+const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
     postgresql: {
-        description: "Configuration for PostgreSQL database connections.",
         fields: [
             { name: "host", label: "Host", type: "text", required: true, placeholder: "localhost" },
             { name: "port", label: "Port", type: "number", required: true, defaultValue: 5432 },
-            { name: "database", label: "Database", type: "text", required: true, placeholder: "mydb" },
-            { name: "username", label: "Username", type: "text", required: true, placeholder: "user" },
-            { name: "password", label: "Password", type: "password", required: true, placeholder: "password" },
-            { name: "db_schema", label: "Schema", type: "text", required: false, defaultValue: "public" },
+            { name: "database", label: "Database Name", type: "text", required: true },
+            { name: "username", label: "Username", type: "text", required: true },
+            { name: "password", label: "Password", type: "password", required: true },
+            { name: "ssl", label: "SSL Mode", type: "select", options: [{ label: "Disable", value: "disable" }, { label: "Require", value: "require" }], defaultValue: "require" }
         ]
     },
-    mysql: { // Assuming similar to postgres
-        description: "Configuration for MySQL database connections.",
+    mysql: {
         fields: [
             { name: "host", label: "Host", type: "text", required: true, placeholder: "localhost" },
             { name: "port", label: "Port", type: "number", required: true, defaultValue: 3306 },
-            { name: "database", label: "Database", type: "text", required: true, placeholder: "mydb" },
-            { name: "username", label: "Username", type: "text", required: true, placeholder: "user" },
-            { name: "password", label: "Password", type: "password", required: true, placeholder: "password" },
-        ]
-    },
-    snowflake: {
-        description: "Configuration for Snowflake data warehouse connections.",
-        fields: [
-            { name: "account", label: "Account", type: "text", required: true, placeholder: "xy12345.us-east-1" },
-            { name: "user", label: "User", type: "text", required: true, placeholder: "SNOWFLAKE_USER" },
-            { name: "password", label: "Password", type: "password", required: true, placeholder: "password" },
-            { name: "warehouse", label: "Warehouse", type: "text", required: true, placeholder: "COMPUTE_WH" },
-            { name: "database", label: "Database", type: "text", required: true, placeholder: "SNOWFLAKE_DB" },
-            { name: "schema", label: "Schema", type: "text", required: false, defaultValue: "PUBLIC" },
-        ]
-    },
-    mongodb: {
-        description: "Configuration for MongoDB database connections.",
-        fields: [
-            { name: "host", label: "Host", type: "text", required: false, placeholder: "localhost" },
-            { name: "port", label: "Port", type: "number", required: false, defaultValue: 27017 },
-            { name: "database", label: "Database", type: "text", required: true, placeholder: "mydb" },
-            { name: "username", label: "Username", type: "text", required: false, placeholder: "mongo_user" },
-            { name: "password", label: "Password", type: "password", required: false, placeholder: "mongo_password" },
-            { name: "connection_string", label: "Connection String", type: "text", required: false, placeholder: "mongodb://user:pass@host:port/db" },
-        ]
-    },
-    local_file: {
-        description: "Configuration for local file system access.",
-        fields: [
-            { name: "base_path", label: "Base Path", type: "text", required: true, placeholder: "/var/data/files" },
-        ]
-    },
-    s3: { // Placeholder, assuming similar to local file but with AWS creds
-        description: "Configuration for Amazon S3 object storage.",
-        fields: [
-            { name: "bucket_name", label: "Bucket Name", type: "text", required: true, placeholder: "my-s3-bucket" },
-            { name: "aws_access_key_id", label: "AWS Access Key ID", type: "password", required: true },
-            { name: "aws_secret_access_key", label: "AWS Secret Access Key", type: "password", required: true },
-            { name: "region_name", label: "Region", type: "text", required: false, placeholder: "us-east-1" },
+            { name: "database", label: "Database Name", type: "text", required: true },
+            { name: "username", label: "Username", type: "text", required: true },
+            { name: "password", label: "Password", type: "password", required: true },
         ]
     },
     rest_api: {
-        description: "Configuration for generic REST API connections.",
         fields: [
-            { name: "base_url", label: "Base URL", type: "text", required: true, placeholder: "https://api.example.com" },
-            { name: "auth_type", label: "Auth Type", type: "select", required: true, defaultValue: "none",
+            { name: "base_url", label: "Base URL", type: "text", required: true, placeholder: "https://api.example.com/v1" },
+            {
+                name: "auth_type", label: "Authentication", type: "select", required: true, defaultValue: "none",
                 options: [
-                    { label: "None", value: "none" },
-                    { label: "Basic Auth", value: "basic" },
+                    { label: "No Auth", value: "none" },
                     { label: "Bearer Token", value: "bearer" },
+                    { label: "Basic Auth", value: "basic" },
                     { label: "API Key", value: "api_key" },
                 ]
             },
+            { name: "token", label: "Bearer Token", type: "password", required: true, dependency: { field: "auth_type", value: "bearer" } },
             { name: "username", label: "Username", type: "text", required: true, dependency: { field: "auth_type", value: "basic" } },
             { name: "password", label: "Password", type: "password", required: true, dependency: { field: "auth_type", value: "basic" } },
-            { name: "token", label: "Bearer Token", type: "password", required: true, dependency: { field: "auth_type", value: "bearer" } },
-            { name: "api_key_name", label: "API Key Name", type: "text", required: true, dependency: { field: "auth_type", value: "api_key" }, placeholder: "X-API-Key" },
-            { name: "api_key_value", label: "API Key Value", type: "password", required: true, dependency: { field: "auth_type", value: "api_key" } },
-            { name: "api_key_in", label: "API Key In", type: "select", required: true, defaultValue: "header", dependency: { field: "auth_type", value: "api_key" },
-                options: [
-                    { label: "Header", value: "header" },
-                    { label: "Query", value: "query" },
-                ]
-            },
         ]
-    }
+    },
+    // Fallbacks
+    snowflake: { fields: [] }, s3: { fields: [] }, mongodb: { fields: [] }, local_file: { fields: [] }
 };
 
-const CONNECTOR_ICONS: Record<string, React.ReactNode> = {
-    postgresql: <Database className="h-5 w-5 text-chart-1" />,
-    mysql: <Database className="h-5 w-5 text-chart-2" />,
-    snowflake: <Cloud className="h-5 w-5 text-chart-3" />,
-    mongodb: <Database className="h-5 w-5 text-chart-4" />, // Use another DB icon
-    local_file: <HardDrive className="h-5 w-5 text-chart-5" />,
-    s3: <Cloud className="h-5 w-5 text-chart-1" />,
-    rest_api: <ApiServer className="h-5 w-5 text-chart-2" />,
-    default: <Server className="h-5 w-5 text-muted-foreground" />
-};
-
-// --- Form Validation Schema ---
 const connectionSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters"),
-  type: z.string().min(1, "Connection type is required"),
-  description: z.string().optional(),
-  config: z.record(z.string(), z.any()), // config will be dynamically validated on backend
+    name: z.string().min(3, "Name must be at least 3 characters"),
+    type: z.string().min(1, "Connection type is required"),
+    description: z.string().optional(),
+    config: z.record(z.string(), z.any()),
 });
 
 type ConnectionFormValues = z.infer<typeof connectionSchema>;
 
-export const ConnectionsPage: React.FC = () => {
-  const queryClient = useQueryClient();
-  const [isCreating, setIsCreating] = React.useState(false);
-  const [testingId, setTestingId] = React.useState<number | null>(null);
+// --- Status Badge Component ---
+const ConnectionStatusBadge = ({ status }: { status: string }) => {
+    const variants: any = {
+        active: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400",
+        error: "bg-rose-500/10 text-rose-600 border-rose-500/20 dark:text-rose-400",
+        inactive: "bg-muted text-muted-foreground border-border",
+        testing: "bg-blue-500/10 text-blue-600 border-blue-500/20 animate-pulse",
+    };
 
-  const { data: connections, isLoading, error } = useQuery({
-    queryKey: ['connections'],
-    queryFn: getConnections,
-  });
+    const icons: any = {
+        active: <CheckCircle2 className="w-3 h-3 mr-1.5" />,
+        error: <XCircle className="w-3 h-3 mr-1.5" />,
+        inactive: <Plug className="w-3 h-3 mr-1.5" />,
+        testing: <RefreshCw className="w-3 h-3 mr-1.5 animate-spin" />
+    };
 
-  const createMutation = useMutation({
-    mutationFn: (data: ConnectionFormValues) => createConnection(data as ConnectionCreate),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['connections'] });
-      setIsCreating(false);
-      toast.success('Connection created successfully');
-    },
-    onError: (e: any) => {
-        toast.error('Failed to create connection', { description: e.response?.data?.detail?.message || e.message });
-    }
-  });
+    const s = (status || 'inactive').toLowerCase();
+    const style = variants[s] || variants.inactive;
+    const icon = icons[s] || icons.inactive;
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteConnection,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['connections'] });
-      toast.success('Connection deleted');
-    },
-  });
-
-  const handleTestConnection = async (id: number) => {
-      setTestingId(id);
-      try {
-          const result = await testConnection(id, {});
-          if (result.success) {
-              toast.success("Connection Successful", { description: result.message, icon: <CheckCircle2 className="text-green-500"/> });
-          } else {
-              toast.error("Connection Failed", { description: result.message, icon: <XCircle className="text-destructive"/> });
-          }
-      } catch (e: any) {
-          toast.error("Test Error", { description: e.message || "Unknown error" });
-      } finally {
-          setTestingId(null);
-      }
-  };
-
-  if (error) return <div className="text-destructive p-8">Error loading connections</div>;
-
-  return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-            <h2 className="text-3xl font-bold tracking-tight text-foreground">Connections</h2>
-            <p className="text-muted-foreground mt-1">Manage your data sources and destinations.</p>
-        </div>
-        <Button onClick={() => setIsCreating(!isCreating)} className="shadow-lg hover:shadow-primary/20">
-            <Plus className="mr-2 h-4 w-4" /> New Connection
-        </Button>
-      </div>
-
-      {isCreating && (
-        <CreateConnectionForm 
-            onSubmit={createMutation.mutate} 
-            onCancel={() => setIsCreating(false)}
-            isLoading={createMutation.isPending}
-        />
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {!isLoading && connections?.length === 0 && (
-             <div className="col-span-full flex flex-col items-center justify-center py-12 text-center text-muted-foreground border-2 border-dashed border-border rounded-xl bg-muted/10">
-                <div className="rounded-full bg-muted p-4 mb-4">
-                    <Server className="h-8 w-8 text-muted-foreground/50" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground">No connections yet</h3>
-                <p className="max-w-sm mt-2 mb-6 text-sm">Create your first connection to start building ETL pipelines.</p>
-                <Button onClick={() => setIsCreating(true)} variant="outline">
-                    Create Connection
-                </Button>
-            </div>
-        )}
-        {isLoading ? (
-            Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-[200px] rounded-lg border border-border bg-card p-6 space-y-4 shadow-sm">
-                    <div className="flex justify-between items-center">
-                        <Skeleton className="h-6 w-32" />
-                        <Skeleton className="h-8 w-8 rounded-full" />
-                    </div>
-                    <Skeleton className="h-5 w-24 rounded-full" />
-                    <Skeleton className="h-16 w-full" />
-                    <div className="flex justify-between pt-2">
-                        <Skeleton className="h-8 w-20" />
-                        <Skeleton className="h-8 w-8" />
-                    </div>
-                </div>
-            ))
-        ) : (
-            connections?.map((conn) => (
-            <Card key={conn.id} className="group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-border bg-card hover:bg-accent/5">
-                <div className={`absolute top-0 left-0 w-1 h-full ${conn.status === 'active' ? 'bg-green-500' : 'bg-muted-foreground'} opacity-50 group-hover:opacity-100 transition-opacity`} />
-                
-                <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                        <div className="space-y-1">
-                            <CardTitle className="text-lg font-medium group-hover:text-primary transition-colors">
-                                <Link to={`/connections/${conn.id}`} className="hover:underline decoration-primary/50 underline-offset-4">
-                                    {conn.name}
-                                </Link>
-                            </CardTitle>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase font-semibold tracking-wider">
-                                {CONNECTOR_ICONS[conn.type] || CONNECTOR_ICONS.default}
-                                {conn.type}
-                            </div>
-                        </div>
-                        {/* Status Indicator Dot */}
-                        <div className={`w-2 h-2 rounded-full ${conn.status === 'active' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-muted-foreground'}`} />
-                    </div>
-                </CardHeader>
-                
-                <CardContent>
-                    <p className="text-sm text-muted-foreground mb-6 line-clamp-2 h-10 leading-relaxed">
-                        {conn.description || "No description provided."}
-                    </p>
-                    
-                    <div className="flex items-center justify-between pt-4 border-t border-border">
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="text-xs h-8 bg-transparent border-input hover:bg-accent hover:text-accent-foreground"
-                            onClick={() => handleTestConnection(conn.id)}
-                            isLoading={testingId === conn.id}
-                        >
-                            {testingId !== conn.id && <ExternalLink className="mr-2 h-3 w-3" />}
-                            Test
-                        </Button>
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-8 w-8 transition-colors"
-                            onClick={() => {
-                                toast('Are you sure?', {
-                                    action: {
-                                        label: 'Delete',
-                                        onClick: () => deleteMutation.mutate(conn.id)
-                                    },
-                                })
-                            }}
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-            ))
-        )}
-      </div>
-    </div>
-  );
+    return (
+        <Badge variant="outline" className={cn("px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide border", style)}>
+            {icon} {status || 'Unknown'}
+        </Badge>
+    );
 };
 
-const CreateConnectionForm: React.FC<{ 
-    onSubmit: (data: ConnectionFormValues) => void; 
-    onCancel: () => void;
-    isLoading: boolean;
-}> = ({ onSubmit, onCancel, isLoading }) => {
-    const form = useForm<ConnectionFormValues>({
-        resolver: zodResolver(connectionSchema),
-        defaultValues: {
-            name: "",
-            type: "postgresql", // Default to postgres
-            description: "",
-            config: {},
+// --- MAIN PAGE ---
+export const ConnectionsPage: React.FC = () => {
+    const queryClient = useQueryClient();
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [editingConnection, setEditingConnection] = useState<any | null>(null);
+    const [testingId, setTestingId] = useState<number | null>(null);
+    const [filter, setFilter] = useState('');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+    const { data: connections, isLoading, error } = useQuery({
+        queryKey: ['connections'],
+        queryFn: getConnections,
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: deleteConnection,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['connections'] });
+            toast.success('Connection deleted');
         },
     });
 
-    const selectedConnectorType = form.watch("type");
-    const connectorSchema = CONNECTOR_CONFIG_SCHEMAS[selectedConnectorType];
+    const handleEdit = (connection: any) => {
+        setEditingConnection(connection);
+        setIsDialogOpen(true);
+    };
 
-    // Dynamically set default values for config fields when connector type changes
-    React.useEffect(() => {
-        if (connectorSchema) {
-            const newConfigDefaults: Record<string, any> = {};
-            connectorSchema.fields.forEach(field => {
-                if (field.defaultValue !== undefined) {
-                    newConfigDefaults[field.name] = field.defaultValue;
-                }
-            });
-            form.setValue("config", newConfigDefaults);
-        }
-    }, [selectedConnectorType]);
+    const handleCreate = () => {
+        setEditingConnection(null);
+        setIsDialogOpen(true);
+    };
 
+    const handleDelete = (id: number) => {
+        toast('Are you sure you want to delete this connection?', {
+            action: {
+                label: 'Delete',
+                onClick: () => deleteMutation.mutate(id)
+            },
+            cancel: { label: 'Cancel', onClick: () => { } },
+            duration: 5000,
+        });
+    };
 
-    const renderField = (field: ConnectorField) => {
-        // Handle dependencies
-        if (field.dependency) {
-            const dependentFieldValue = form.watch(`config.${field.dependency.field}`);
-            if (dependentFieldValue !== field.dependency.value) {
-                return null; // Don't render if dependency not met
-            }
-        }
-
-        const fieldName = `config.${field.name}`;
-        
-        switch (field.type) {
-            case "select":
-                return (
-                    <FormField
-                        control={form.control}
-                        name={fieldName as FieldPath<ConnectionFormValues>} // Cast to specific field name if necessary for Zod
-                        key={fieldName}
-                        render={({ field: formField }) => (
-                            <FormItem>
-                                <FormLabel>{field.label}</FormLabel>
-                                <Select onValueChange={formField.onChange} defaultValue={formField.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder={`Select a ${field.label.toLowerCase()}`} />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {field.options?.map(option => (
-                                            <SelectItem key={option.value} value={option.value}>
-                                                {option.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                );
-            case "textarea":
-                 return (
-                    <FormField
-                        control={form.control}
-                        name={fieldName as FieldPath<ConnectionFormValues>}
-                        key={fieldName}
-                        render={({ field: formField }) => (
-                            <FormItem>
-                                <FormLabel>{field.label}</FormLabel>
-                                <FormControl>
-                                    <textarea
-                                        {...formField}
-                                        placeholder={field.placeholder}
-                                        className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                 );
-            default: // text, password, number
-                return (
-                    <FormField
-                        control={form.control}
-                        name={fieldName as FieldPath<ConnectionFormValues>} // Temporary cast. Zod's .deepPartial() might help here.
-                        key={fieldName}
-                        render={({ field: formField }) => (
-                            <FormItem>
-                                <FormLabel>{field.label}</FormLabel>
-                                <FormControl>
-                                    <Input
-                                        type={field.type === 'number' ? 'text' : field.type} // HTML type number can cause issues with empty string; handle manually or coerce
-                                        inputMode={field.type === 'number' ? 'numeric' : undefined}
-                                        {...formField}
-                                        value={formField.value ?? ""} // Ensure controlled component
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            formField.onChange(field.type === 'number' ? (val === "" ? undefined : Number(val)) : val);
-                                        }}
-                                        placeholder={field.placeholder}
-                                        required={field.required}
-                                    />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                );
+    const handleTest = async (id: number) => {
+        setTestingId(id);
+        try {
+            await new Promise(resolve => setTimeout(resolve, 800)); // UX delay
+            const res = await testConnection(id, {});
+            if (res.success) toast.success("Connection Healthy", { icon: <ShieldCheck className="text-emerald-500" /> });
+            else toast.error("Connection Failed", { description: res.message });
+        } catch (e) {
+            toast.error("Network Error during test");
+        } finally {
+            setTestingId(null);
         }
     };
 
+    const filteredConnections = useMemo(() => {
+        if (!connections) return [];
+        return connections.filter(c =>
+            c.name.toLowerCase().includes(filter.toLowerCase()) ||
+            c.type.toLowerCase().includes(filter.toLowerCase())
+        );
+    }, [connections, filter]);
+
+    if (error) return <div className="p-8 text-destructive">Failed to load connections.</div>;
+
     return (
-        <Card className="mb-8 border-primary/20 bg-muted/30 animate-in slide-in-from-top-4 duration-300">
-            <CardHeader>
-                <CardTitle>Add New Connection</CardTitle>
-                <CardDescription>{connectorSchema?.description || "Configure a new data source or destination."}</CardDescription>
-            </CardHeader>
-            <CardContent>
-            <FormProvider {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Connection Name</FormLabel>
-                                    <FormControl>
-                                        <Input {...field} placeholder="My New Data Source" />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+        <div className="flex flex-col h-[calc(100vh-10rem)] gap-4 animate-in fade-in duration-500">
+
+            {/* Header */}
+            <div className="flex items-center justify-between shrink-0 px-1">
+                <div className="space-y-1">
+                    <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                        <Database className="h-6 w-6 text-primary" />
+                        Connections
+                    </h2>
+                    <p className="text-sm text-muted-foreground hidden sm:block">
+                        Manage your data sources and destinations.
+                    </p>
+                </div>
+
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <Button size="sm" className="shadow-md shadow-primary/20" onClick={handleCreate}>
+                        <Plus className="mr-2 h-4 w-4" /> New Connection
+                    </Button>
+                    <DialogContent className="max-w-5xl h-[650px] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-xl">
+                        <CreateConnectionFlow
+                            initialData={editingConnection}
+                            onClose={() => setIsDialogOpen(false)}
                         />
+                    </DialogContent>
+                </Dialog>
+            </div>
 
-                        <FormField
-                            control={form.control}
-                            name="type"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Connection Type</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a connector type" />
-                                            </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {Object.entries(CONNECTOR_CONFIG_SCHEMAS).map(([key]) => (
-                                            <SelectItem key={key} value={key}>
-                                                <div className="flex items-center gap-2">
-                                                    {CONNECTOR_ICONS[key] || CONNECTOR_ICONS.default}
-                                                    {key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
+            {/* Main Content Area */}
+            <div className="flex-1 min-h-0 flex flex-col bg-card rounded-lg border shadow-sm overflow-hidden">
 
-                        {/* Dynamically rendered config fields */}
-                        {selectedConnectorType && connectorSchema && (
-                            <div className="space-y-4 pt-2">
-                                <h3 className="text-md font-semibold text-foreground mt-4">Configuration Details</h3>
-                                {connectorSchema.fields.map(field => renderField(field))}
-                            </div>
-                        )}
-                        
-                        <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Description (Optional)</FormLabel>
-                                    <FormControl>
-                                        <textarea
-                                            {...field}
-                                            placeholder="A brief description of this connection"
-                                            className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
+                {/* Toolbar */}
+                <div className="p-3 border-b bg-muted/20 flex gap-3 items-center justify-between shrink-0">
+                    <div className="relative w-full max-w-sm">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search connections..."
+                            className="pl-8 h-9 text-sm bg-background"
+                            value={filter}
+                            onChange={(e) => setFilter(e.target.value)}
                         />
-
-                        <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
-                            <Button type="button" variant="ghost" onClick={onCancel}>
-                                Cancel
-                            </Button>
-                            <Button type="submit" isLoading={isLoading}>
-                                Create Connection
-                            </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="flex bg-background border rounded-md p-0.5">
+                            <Button variant="ghost" size="icon" className={cn("h-7 w-7 rounded-sm", viewMode === 'grid' && "bg-muted shadow-sm")} onClick={() => setViewMode('grid')}><LayoutGrid className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className={cn("h-7 w-7 rounded-sm", viewMode === 'list' && "bg-muted shadow-sm")} onClick={() => setViewMode('list')}><List className="h-4 w-4" /></Button>
                         </div>
-                    </form>
-                </FormProvider>
-            </CardContent>
-        </Card>
+                    </div>
+                </div>
+
+                {/* Scrollable Content Area */}
+                <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-border">
+                    <div className={cn("grid gap-4", viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1")}>
+                        {isLoading ? (
+                            Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-lg" />)
+                        ) : filteredConnections.length === 0 ? (
+                            <div className="col-span-full h-[400px] flex flex-col items-center justify-center text-muted-foreground bg-muted/5 rounded-lg border border-dashed">
+                                <Plug className="h-10 w-10 opacity-20 mb-4" />
+                                <h3 className="text-lg font-medium text-foreground">No connections found</h3>
+                                <p className="text-sm max-w-xs text-center mt-1">Connect your first database or API.</p>
+                                <Button variant="outline" className="mt-6" onClick={handleCreate}>Add Connection</Button>
+                            </div>
+                        ) : (
+                            filteredConnections.map((conn) => {
+                                const meta = CONNECTOR_META[conn.type] || { icon: <Server className="text-muted-foreground" />, name: conn.type };
+                                // Conditional Border Color based on status
+                                const statusColor = conn.status === 'error' ? 'hover:border-rose-500/50' : 'hover:border-primary/50';
+
+                                return (
+                                    <div
+                                        key={conn.id}
+                                        className={cn(
+                                            "group relative flex flex-col bg-background border transition-all hover:shadow-md",
+                                            statusColor,
+                                            viewMode === 'grid' ? "rounded-xl p-5" : "rounded-lg p-4 flex-row items-center gap-4"
+                                        )}
+                                    >
+                                        <div className={cn("flex justify-between items-start", viewMode === 'list' && "w-[250px] shrink-0")}>
+                                            <div className="flex items-center gap-3">
+                                                <div className="h-10 w-10 rounded-lg bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                                                    {React.cloneElement(meta.icon as React.ReactElement<any>, { className: "h-6 w-6" })}
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-semibold text-sm truncate max-w-[140px]">{conn.name}</h3>
+                                                    <p className="text-xs text-muted-foreground capitalize">{meta.name}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className={cn("flex-1", viewMode === 'grid' ? "mt-4 mb-4" : "px-4 border-l")}>
+                                            {viewMode === 'grid' && (
+                                                <p className="text-xs text-muted-foreground line-clamp-2 h-8 leading-relaxed">
+                                                    {conn.description || "No description provided."}
+                                                </p>
+                                            )}
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <ConnectionStatusBadge status={conn.status || 'active'} />
+                                                <span className="text-[10px] text-muted-foreground font-mono">ID: {conn.id}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className={cn("flex items-center gap-2", viewMode === 'grid' ? "pt-3 border-t mt-auto" : "ml-auto border-l pl-4")}>
+                                            <Button
+                                                variant="ghost" size="sm"
+                                                className={cn("text-xs h-7 hover:bg-muted", viewMode === 'grid' && "flex-1")}
+                                                onClick={() => handleTest(conn.id)}
+                                                disabled={testingId === conn.id}
+                                            >
+                                                {testingId === conn.id ? <div className="animate-spin mr-2">⟳</div> : <ExternalLink className="mr-2 h-3 w-3" />}
+                                                Test
+                                            </Button>
+
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><MoreHorizontal className="h-4 w-4" /></Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem className="text-xs" onClick={() => handleEdit(conn)}>
+                                                        <Pencil className="mr-2 h-3 w-3" /> Edit Configuration
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem className="text-xs text-destructive focus:text-destructive" onClick={() => handleDelete(conn.id)}>
+                                                        <Trash2 className="mr-2 h-3 w-3" /> Delete Connection
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
     );
 };
+
+// --- Create/Edit Flow ---
+const CreateConnectionFlow = ({ initialData, onClose }: { initialData?: any, onClose: () => void }) => {
+    const isEditMode = !!initialData;
+    const [step, setStep] = useState<'select' | 'configure'>('select');
+    const [selectedType, setSelectedType] = useState<string | null>(initialData?.type || null);
+    const queryClient = useQueryClient();
+
+    // If we have initial data, skip selection step
+    useEffect(() => {
+        if (initialData?.type) {
+            setSelectedType(initialData.type);
+            setStep('configure');
+        }
+    }, [initialData]);
+
+    const form = useForm<ConnectionFormValues>({
+        resolver: zodResolver(connectionSchema),
+        defaultValues: {
+            name: initialData?.name || '',
+            description: initialData?.description || '',
+            type: initialData?.type || '',
+            config: initialData?.config || {}
+        }
+    });
+
+    const configValues = form.watch('config') || {};
+
+
+    const mutation = useMutation({
+        mutationFn: (data: ConnectionFormValues) =>
+            createConnection(data as ConnectionCreate),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['connections'] });
+            toast.success(`Connection ${isEditMode ? 'updated' : 'created'} successfully`);
+            onClose();
+        },
+        onError: (_err: any) => toast.error(`Failed to ${isEditMode ? 'update' : 'create'} connection`)
+    });
+
+    const handleSelect = (type: string) => {
+        setSelectedType(type);
+        form.setValue('type', type);
+        // Load defaults only if creating fresh
+        if (!isEditMode) {
+            const schema = CONNECTOR_CONFIG_SCHEMAS[type];
+            if (schema) {
+                const defaults: any = {};
+                schema.fields?.forEach((f: any) => { if (f.defaultValue) defaults[f.name] = f.defaultValue; });
+                form.setValue('config', defaults);
+            }
+        }
+        setStep('configure');
+    };
+
+    // Step 1: Select Type
+    if (step === 'select' && !isEditMode) {
+        return (
+            <div className="flex flex-col h-full bg-background">
+                <DialogHeader className="px-6 py-4 border-b bg-muted/10 shrink-0">
+                    <DialogTitle>Select Connector</DialogTitle>
+                    <DialogDescription>Choose a source or destination to get started.</DialogDescription>
+                </DialogHeader>
+                <div className="flex-1 overflow-y-auto p-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {Object.entries(CONNECTOR_META).map(([key, meta]) => (
+                            <button
+                                key={key}
+                                onClick={() => handleSelect(key)}
+                                className="group flex flex-col items-center gap-3 p-4 rounded-xl border bg-card hover:border-primary/50 hover:shadow-md transition-all text-center relative overflow-hidden"
+                            >
+                                <div className="absolute inset-0 bg-linear-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="p-3 bg-muted rounded-full group-hover:bg-primary/10 transition-colors z-10">
+                                    {React.cloneElement(meta.icon as React.ReactElement<any>, { className: "h-8 w-8" })}
+                                </div>
+                                <div className="z-10">
+                                    <h4 className="font-semibold text-sm">{meta.name}</h4>
+                                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{meta.category}</span>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Step 2: Configure
+    const meta = selectedType ? CONNECTOR_META[selectedType] : null;
+    const schema = selectedType ? CONNECTOR_CONFIG_SCHEMAS[selectedType] : null;
+
+    return (
+        <div className="flex h-full">
+            <div className="w-[280px] bg-muted/30 border-r p-6 hidden md:flex flex-col gap-6 shrink-0">
+                <div>
+                    {!isEditMode && (
+                        <Button variant="ghost" size="sm" className="-ml-2 mb-4 text-muted-foreground" onClick={() => setStep('select')}>
+                            &larr; Back to Selection
+                        </Button>
+                    )}
+                    <div className="h-14 w-14 bg-background border rounded-xl flex items-center justify-center mb-4 shadow-sm">
+                        {React.cloneElement(meta?.icon as React.ReactElement<any>, { className: "h-8 w-8" })}
+                    </div>
+                    <h3 className="text-xl font-bold">{isEditMode ? 'Edit' : 'Configure'} {meta?.name}</h3>
+                    <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{meta?.description}</p>
+                </div>
+                <div className="mt-auto space-y-4">
+                    <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-600 dark:text-blue-400">
+                        <strong>Security Note:</strong> Credentials are encrypted at rest using AES-256 before storage.
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex-1 flex flex-col h-full bg-background min-w-0">
+                <DialogHeader className="px-6 py-4 border-b shrink-0">
+                    <DialogTitle>{isEditMode ? `Edit ${initialData.name}` : 'Connection Details'}</DialogTitle>
+                </DialogHeader>
+                <div className="flex-1 overflow-y-auto p-6">
+                    <FormProvider {...form}>
+                        <form id="conn-form" onSubmit={form.handleSubmit((d) => mutation.mutate(d))} className="space-y-6 max-w-lg mx-auto">
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs">1</span>
+                                    General
+                                </h4>
+                                <FormField control={form.control} name="name" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Name</FormLabel>
+                                        <FormControl><Input {...field} placeholder="e.g. Production DB" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                                <FormField control={form.control} name="description" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Description</FormLabel>
+                                        <FormControl><Input {...field} placeholder="Optional description" /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )} />
+                            </div>
+                            <div className="border-t border-dashed" />
+                            <div className="space-y-4">
+                                <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs">2</span>
+                                    Config
+                                </h4>
+                                {schema?.fields?.map((field: any) => {
+                                    if (field.dependency) {
+                                        const depVal = configValues[field.dependency.field];
+                                        if (depVal !== field.dependency.value) return null;
+                                    }
+                                    return (
+                                        <FormField key={field.name} control={form.control} name={`config.${field.name}`} render={({ field: f }) => (
+                                            <FormItem>
+                                                <FormLabel>{field.label}</FormLabel>
+                                                <FormControl>
+                                                    {field.type === 'select' ? (
+                                                        <Select onValueChange={f.onChange} defaultValue={f.value}>
+                                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                                            <SelectContent>
+                                                                {field.options?.map((o: any) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    ) : (
+                                                        <div className="relative">
+                                                            <Input {...f} type={field.type} placeholder={field.placeholder} className={field.type === 'password' ? 'pl-9' : ''} />
+                                                            {field.type === 'password' && <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />}
+                                                        </div>
+                                                    )}
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )} />
+                                    );
+                                })}
+                            </div>
+                        </form>
+                    </FormProvider>
+                </div>
+                <DialogFooter className="p-4 border-t bg-muted/5 shrink-0">
+                    <Button variant="ghost" onClick={onClose} className="mr-auto">Cancel</Button>
+                    <Button form="conn-form" type="submit" disabled={mutation.isPending}>
+                        {mutation.isPending && <div className="animate-spin mr-2">⟳</div>}
+                        {isEditMode ? 'Update Connection' : 'Save Connection'}
+                    </Button>
+                </DialogFooter>
+            </div>
+        </div>
+    );
+}
