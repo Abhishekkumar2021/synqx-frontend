@@ -11,34 +11,143 @@ import {
     Database, 
     ExternalLink, 
     Server,
-    Globe,
-    FileText,
     CheckCircle2,
-    XCircle
+    XCircle,
+    HardDrive, // Local File Icon
+    Cloud, // S3
+    Server as ApiServer // REST API
 } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { FormProvider, useForm, type FieldPath } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '../components/ui/form';
 
+// --- Frontend representation of Backend Connector Configs ---
+interface ConnectorField {
+    name: string;
+    label: string;
+    type: 'text' | 'password' | 'number' | 'select' | 'textarea';
+    required: boolean;
+    placeholder?: string;
+    defaultValue?: string | number;
+    options?: { label: string; value: string }[];
+    dependency?: { field: string; value: string | boolean; }; // e.g. show if auth_type is basic
+}
+
+interface ConnectorSchema {
+    description: string;
+    fields: ConnectorField[];
+}
+
+const CONNECTOR_CONFIG_SCHEMAS: Record<string, ConnectorSchema> = {
+    postgresql: {
+        description: "Configuration for PostgreSQL database connections.",
+        fields: [
+            { name: "host", label: "Host", type: "text", required: true, placeholder: "localhost" },
+            { name: "port", label: "Port", type: "number", required: true, defaultValue: 5432 },
+            { name: "database", label: "Database", type: "text", required: true, placeholder: "mydb" },
+            { name: "username", label: "Username", type: "text", required: true, placeholder: "user" },
+            { name: "password", label: "Password", type: "password", required: true, placeholder: "password" },
+            { name: "db_schema", label: "Schema", type: "text", required: false, defaultValue: "public" },
+        ]
+    },
+    mysql: { // Assuming similar to postgres
+        description: "Configuration for MySQL database connections.",
+        fields: [
+            { name: "host", label: "Host", type: "text", required: true, placeholder: "localhost" },
+            { name: "port", label: "Port", type: "number", required: true, defaultValue: 3306 },
+            { name: "database", label: "Database", type: "text", required: true, placeholder: "mydb" },
+            { name: "username", label: "Username", type: "text", required: true, placeholder: "user" },
+            { name: "password", label: "Password", type: "password", required: true, placeholder: "password" },
+        ]
+    },
+    snowflake: {
+        description: "Configuration for Snowflake data warehouse connections.",
+        fields: [
+            { name: "account", label: "Account", type: "text", required: true, placeholder: "xy12345.us-east-1" },
+            { name: "user", label: "User", type: "text", required: true, placeholder: "SNOWFLAKE_USER" },
+            { name: "password", label: "Password", type: "password", required: true, placeholder: "password" },
+            { name: "warehouse", label: "Warehouse", type: "text", required: true, placeholder: "COMPUTE_WH" },
+            { name: "database", label: "Database", type: "text", required: true, placeholder: "SNOWFLAKE_DB" },
+            { name: "schema", label: "Schema", type: "text", required: false, defaultValue: "PUBLIC" },
+        ]
+    },
+    mongodb: {
+        description: "Configuration for MongoDB database connections.",
+        fields: [
+            { name: "host", label: "Host", type: "text", required: false, placeholder: "localhost" },
+            { name: "port", label: "Port", type: "number", required: false, defaultValue: 27017 },
+            { name: "database", label: "Database", type: "text", required: true, placeholder: "mydb" },
+            { name: "username", label: "Username", type: "text", required: false, placeholder: "mongo_user" },
+            { name: "password", label: "Password", type: "password", required: false, placeholder: "mongo_password" },
+            { name: "connection_string", label: "Connection String", type: "text", required: false, placeholder: "mongodb://user:pass@host:port/db" },
+        ]
+    },
+    local_file: {
+        description: "Configuration for local file system access.",
+        fields: [
+            { name: "base_path", label: "Base Path", type: "text", required: true, placeholder: "/var/data/files" },
+        ]
+    },
+    s3: { // Placeholder, assuming similar to local file but with AWS creds
+        description: "Configuration for Amazon S3 object storage.",
+        fields: [
+            { name: "bucket_name", label: "Bucket Name", type: "text", required: true, placeholder: "my-s3-bucket" },
+            { name: "aws_access_key_id", label: "AWS Access Key ID", type: "password", required: true },
+            { name: "aws_secret_access_key", label: "AWS Secret Access Key", type: "password", required: true },
+            { name: "region_name", label: "Region", type: "text", required: false, placeholder: "us-east-1" },
+        ]
+    },
+    rest_api: {
+        description: "Configuration for generic REST API connections.",
+        fields: [
+            { name: "base_url", label: "Base URL", type: "text", required: true, placeholder: "https://api.example.com" },
+            { name: "auth_type", label: "Auth Type", type: "select", required: true, defaultValue: "none",
+                options: [
+                    { label: "None", value: "none" },
+                    { label: "Basic Auth", value: "basic" },
+                    { label: "Bearer Token", value: "bearer" },
+                    { label: "API Key", value: "api_key" },
+                ]
+            },
+            { name: "username", label: "Username", type: "text", required: true, dependency: { field: "auth_type", value: "basic" } },
+            { name: "password", label: "Password", type: "password", required: true, dependency: { field: "auth_type", value: "basic" } },
+            { name: "token", label: "Bearer Token", type: "password", required: true, dependency: { field: "auth_type", value: "bearer" } },
+            { name: "api_key_name", label: "API Key Name", type: "text", required: true, dependency: { field: "auth_type", value: "api_key" }, placeholder: "X-API-Key" },
+            { name: "api_key_value", label: "API Key Value", type: "password", required: true, dependency: { field: "auth_type", value: "api_key" } },
+            { name: "api_key_in", label: "API Key In", type: "select", required: true, defaultValue: "header", dependency: { field: "auth_type", value: "api_key" },
+                options: [
+                    { label: "Header", value: "header" },
+                    { label: "Query", value: "query" },
+                ]
+            },
+        ]
+    }
+};
+
+const CONNECTOR_ICONS: Record<string, React.ReactNode> = {
+    postgresql: <Database className="h-5 w-5 text-chart-1" />,
+    mysql: <Database className="h-5 w-5 text-chart-2" />,
+    snowflake: <Cloud className="h-5 w-5 text-chart-3" />,
+    mongodb: <Database className="h-5 w-5 text-chart-4" />, // Use another DB icon
+    local_file: <HardDrive className="h-5 w-5 text-chart-5" />,
+    s3: <Cloud className="h-5 w-5 text-chart-1" />,
+    rest_api: <ApiServer className="h-5 w-5 text-chart-2" />,
+    default: <Server className="h-5 w-5 text-muted-foreground" />
+};
+
+// --- Form Validation Schema ---
 const connectionSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
-  type: z.string(),
-  connection_url: z.string().min(5, "URL is too short"),
-  description: z.string().optional()
+  type: z.string().min(1, "Connection type is required"),
+  description: z.string().optional(),
+  config: z.record(z.string(), z.any()), // config will be dynamically validated on backend
 });
 
 type ConnectionFormValues = z.infer<typeof connectionSchema>;
-
-const CONNECTOR_ICONS: Record<string, React.ReactNode> = {
-    postgres: <Database className="h-5 w-5 text-blue-500 dark:text-blue-400" />,
-    mysql: <Database className="h-5 w-5 text-orange-500 dark:text-orange-400" />,
-    snowflake: <Globe className="h-5 w-5 text-cyan-500 dark:text-cyan-400" />,
-    s3: <FileText className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />,
-    rest_api: <Globe className="h-5 w-5 text-purple-500 dark:text-purple-400" />,
-    default: <Server className="h-5 w-5 text-muted-foreground" />
-};
 
 export const ConnectionsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -57,8 +166,8 @@ export const ConnectionsPage: React.FC = () => {
       setIsCreating(false);
       toast.success('Connection created successfully');
     },
-    onError: () => {
-        toast.error('Failed to create connection');
+    onError: (e: any) => {
+        toast.error('Failed to create connection', { description: e.response?.data?.detail?.message || e.message });
     }
   });
 
@@ -102,13 +211,25 @@ export const ConnectionsPage: React.FC = () => {
 
       {isCreating && (
         <CreateConnectionForm 
-            onSubmit={(data) => createMutation.mutate(data)} 
+            onSubmit={createMutation.mutate} 
             onCancel={() => setIsCreating(false)}
             isLoading={createMutation.isPending}
         />
       )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {!isLoading && connections?.length === 0 && (
+             <div className="col-span-full flex flex-col items-center justify-center py-12 text-center text-muted-foreground border-2 border-dashed border-border rounded-xl bg-muted/10">
+                <div className="rounded-full bg-muted p-4 mb-4">
+                    <Server className="h-8 w-8 text-muted-foreground/50" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">No connections yet</h3>
+                <p className="max-w-sm mt-2 mb-6 text-sm">Create your first connection to start building ETL pipelines.</p>
+                <Button onClick={() => setIsCreating(true)} variant="outline">
+                    Create Connection
+                </Button>
+            </div>
+        )}
         {isLoading ? (
             Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="h-[200px] rounded-lg border border-border bg-card p-6 space-y-4 shadow-sm">
@@ -137,7 +258,7 @@ export const ConnectionsPage: React.FC = () => {
                                     {conn.name}
                                 </Link>
                             </CardTitle>
-                            <div className="text-xs text-muted-foreground uppercase font-semibold tracking-wider flex items-center gap-2">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground uppercase font-semibold tracking-wider">
                                 {CONNECTOR_ICONS[conn.type] || CONNECTOR_ICONS.default}
                                 {conn.type}
                             </div>
@@ -193,51 +314,213 @@ const CreateConnectionForm: React.FC<{
     onCancel: () => void;
     isLoading: boolean;
 }> = ({ onSubmit, onCancel, isLoading }) => {
-    const { register, handleSubmit, formState: { errors } } = useForm<ConnectionFormValues>({
-        resolver: zodResolver(connectionSchema)
+    const form = useForm<ConnectionFormValues>({
+        resolver: zodResolver(connectionSchema),
+        defaultValues: {
+            name: "",
+            type: "postgresql", // Default to postgres
+            description: "",
+            config: {},
+        },
     });
+
+    const selectedConnectorType = form.watch("type");
+    const connectorSchema = CONNECTOR_CONFIG_SCHEMAS[selectedConnectorType];
+
+    // Dynamically set default values for config fields when connector type changes
+    React.useEffect(() => {
+        if (connectorSchema) {
+            const newConfigDefaults: Record<string, any> = {};
+            connectorSchema.fields.forEach(field => {
+                if (field.defaultValue !== undefined) {
+                    newConfigDefaults[field.name] = field.defaultValue;
+                }
+            });
+            form.setValue("config", newConfigDefaults);
+        }
+    }, [selectedConnectorType]);
+
+
+    const renderField = (field: ConnectorField) => {
+        // Handle dependencies
+        if (field.dependency) {
+            const dependentFieldValue = form.watch(`config.${field.dependency.field}`);
+            if (dependentFieldValue !== field.dependency.value) {
+                return null; // Don't render if dependency not met
+            }
+        }
+
+        const fieldName = `config.${field.name}`;
+        
+        switch (field.type) {
+            case "select":
+                return (
+                    <FormField
+                        control={form.control}
+                        name={fieldName as FieldPath<ConnectionFormValues>} // Cast to specific field name if necessary for Zod
+                        key={fieldName}
+                        render={({ field: formField }) => (
+                            <FormItem>
+                                <FormLabel>{field.label}</FormLabel>
+                                <Select onValueChange={formField.onChange} defaultValue={formField.value}>
+                                    <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={`Select a ${field.label.toLowerCase()}`} />
+                                        </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {field.options?.map(option => (
+                                            <SelectItem key={option.value} value={option.value}>
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                );
+            case "textarea":
+                 return (
+                    <FormField
+                        control={form.control}
+                        name={fieldName as FieldPath<ConnectionFormValues>}
+                        key={fieldName}
+                        render={({ field: formField }) => (
+                            <FormItem>
+                                <FormLabel>{field.label}</FormLabel>
+                                <FormControl>
+                                    <textarea
+                                        {...formField}
+                                        placeholder={field.placeholder}
+                                        className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                 );
+            default: // text, password, number
+                return (
+                    <FormField
+                        control={form.control}
+                        name={fieldName as FieldPath<ConnectionFormValues>} // Temporary cast. Zod's .deepPartial() might help here.
+                        key={fieldName}
+                        render={({ field: formField }) => (
+                            <FormItem>
+                                <FormLabel>{field.label}</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        type={field.type === 'number' ? 'text' : field.type} // HTML type number can cause issues with empty string; handle manually or coerce
+                                        inputMode={field.type === 'number' ? 'numeric' : undefined}
+                                        {...formField}
+                                        value={formField.value ?? ""} // Ensure controlled component
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            formField.onChange(field.type === 'number' ? (val === "" ? undefined : Number(val)) : val);
+                                        }}
+                                        placeholder={field.placeholder}
+                                        required={field.required}
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                );
+        }
+    };
 
     return (
         <Card className="mb-8 border-primary/20 bg-muted/30 animate-in slide-in-from-top-4 duration-300">
             <CardHeader>
                 <CardTitle>Add New Connection</CardTitle>
-                <CardDescription>Configure a new data source or destination.</CardDescription>
+                <CardDescription>{connectorSchema?.description || "Configure a new data source or destination."}</CardDescription>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-foreground">Name</label>
-                            <Input {...register("name")} placeholder="My Postgres DB" className={errors.name ? 'border-destructive' : ''} />
-                            {errors.name && <span className="text-destructive text-xs">{errors.name.message}</span>}
+            <FormProvider {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="name"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Connection Name</FormLabel>
+                                    <FormControl>
+                                        <Input {...field} placeholder="My New Data Source" />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="type"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Connection Type</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a connector type" />
+                                            </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                        {Object.entries(CONNECTOR_CONFIG_SCHEMAS).map(([key]) => (
+                                            <SelectItem key={key} value={key}>
+                                                <div className="flex items-center gap-2">
+                                                    {CONNECTOR_ICONS[key] || CONNECTOR_ICONS.default}
+                                                    {key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' ')}
+                                                </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                        {/* Dynamically rendered config fields */}
+                        {selectedConnectorType && connectorSchema && (
+                            <div className="space-y-4 pt-2">
+                                <h3 className="text-md font-semibold text-foreground mt-4">Configuration Details</h3>
+                                {connectorSchema.fields.map(field => renderField(field))}
+                            </div>
+                        )}
+                        
+                        <FormField
+                            control={form.control}
+                            name="description"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Description (Optional)</FormLabel>
+                                    <FormControl>
+                                        <textarea
+                                            {...field}
+                                            placeholder="A brief description of this connection"
+                                            className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                        />
+                                    </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
+                            <Button type="button" variant="ghost" onClick={onCancel}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" isLoading={isLoading}>
+                                Create Connection
+                            </Button>
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-foreground">Type</label>
-                            <select {...register("type")} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                                <option value="postgres">PostgreSQL</option>
-                                <option value="mysql">MySQL</option>
-                                <option value="snowflake">Snowflake</option>
-                                <option value="bigquery">BigQuery</option>
-                                <option value="s3">Amazon S3</option>
-                                <option value="rest_api">REST API</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-foreground">Connection URL / Config</label>
-                        <Input {...register("connection_url")} type="password" placeholder="postgresql://user:pass@localhost:5432/db" className={errors.connection_url ? 'border-destructive' : ''} />
-                        {errors.connection_url && <span className="text-destructive text-xs">{errors.connection_url.message}</span>}
-                    </div>
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-foreground">Description</label>
-                        <Input {...register("description")} placeholder="Production database..." />
-                    </div>
-                    <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
-                        <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
-                        <Button type="submit" isLoading={isLoading}>Create Connection</Button>
-                    </div>
-                </form>
+                    </form>
+                </FormProvider>
             </CardContent>
         </Card>
-    )
-}
+    );
+};

@@ -40,9 +40,8 @@ export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ 
         if (pipeline && open) {
             setValue('name', pipeline.name);
             setValue('description', pipeline.description || '');
-            // @ts-ignore - schedule_enabled missing in frontend type but exists in backend
-            setValue('schedule_enabled', pipeline.schedule_enabled || !!pipeline.schedule_interval);
-            setValue('schedule_cron', pipeline.schedule_interval || '* * * * *');
+            setValue('schedule_enabled', pipeline.schedule_enabled || false); // Default to false if undefined
+            setValue('schedule_cron', pipeline.schedule_cron || '* * * * *');
         }
     }, [pipeline, open, setValue]);
 

@@ -9,9 +9,10 @@ import {
     discoverAssetSchema, 
     getAssetSchemaVersions,
     type Asset,
-    type ConnectionTestResult
+    type ConnectionTestResult,
+    type SchemaVersion
 } from '../lib/api';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Skeleton } from '../components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
@@ -22,11 +23,15 @@ import {
     Search, 
     Table as TableIcon, 
     FileJson, 
-    Hash
+    Hash,
+    MoreHorizontal
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '../components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 
 export const ConnectionDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -55,7 +60,7 @@ export const ConnectionDetailsPage: React.FC = () => {
     const discoverMutation = useMutation({
         mutationFn: () => discoverAssets(connectionId),
         onSuccess: (data: any) => {
-            toast.success(`Discovered ${data.discovered_count} assets`);
+            toast.success(`Discovered ${data.length || 0} assets`); // Data might not have discovered_count
             queryClient.invalidateQueries({ queryKey: ['assets', connectionId] });
         },
         onError: () => toast.error("Discovery failed")
@@ -76,12 +81,15 @@ export const ConnectionDetailsPage: React.FC = () => {
                     </Link>
                     <div>
                         <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                            <Database className="h-6 w-6 text-blue-400" />
+                            <Database className="h-6 w-6 text-primary" />
                             {connection.name}
                         </h2>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                             <Badge variant="outline" className="text-xs uppercase">{connection.type}</Badge>
                             <span>ID: {connection.id}</span>
+                            <Badge variant={connection.status === 'active' ? 'default' : 'secondary'} className="capitalize">
+                                {connection.status || 'unknown'}
+                            </Badge>
                         </div>
                     </div>
                 </div>
@@ -103,42 +111,57 @@ export const ConnectionDetailsPage: React.FC = () => {
                 </TabsList>
 
                 <TabsContent value="assets" className="space-y-4 mt-4">
-                    <div className="flex justify-between items-center bg-card p-4 rounded-lg border border-border">
-                        <div>
-                            <h3 className="text-lg font-medium">Discovered Assets</h3>
-                            <p className="text-sm text-muted-foreground">Tables, views, or files found in this connection.</p>
-                        </div>
-                        <Button 
-                            onClick={() => discoverMutation.mutate()} 
-                            isLoading={discoverMutation.isPending}
-                            variant="secondary"
-                        >
-                            <RefreshCw className="mr-2 h-4 w-4" /> 
-                            {discoverMutation.isPending ? 'Scanning...' : 'Scan for Assets'}
-                        </Button>
-                    </div>
-
-                    {loadingAssets ? (
-                        <div className="space-y-2">
-                            {[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
-                        </div>
-                    ) : assets && assets.length > 0 ? (
-                        <div className="grid gap-4">
-                            {assets.map((asset: Asset) => (
-                                <AssetCard key={asset.id} asset={asset} connectionId={connectionId} />
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-12 border border-dashed rounded-lg text-muted-foreground">
-                            <Search className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                            <p>No assets discovered yet.</p>
-                            <p className="text-sm">Click "Scan for Assets" to populate this list.</p>
-                        </div>
-                    )}
+                    <Card className="bg-card/50 backdrop-blur-sm shadow-xl border-border/50">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                            <div>
+                                <CardTitle className="text-lg font-medium">Discovered Assets</CardTitle>
+                                <CardDescription className="text-muted-foreground">Tables, views, or files found in this connection.</CardDescription>
+                            </div>
+                            <Button 
+                                onClick={() => discoverMutation.mutate()} 
+                                isLoading={discoverMutation.isPending}
+                                variant="secondary"
+                                size="sm"
+                            >
+                                <RefreshCw className="mr-2 h-4 w-4" /> 
+                                {discoverMutation.isPending ? 'Scanning...' : 'Scan for Assets'}
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            {loadingAssets ? (
+                                <div className="space-y-2 p-4">
+                                    {[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}
+                                </div>
+                            ) : assets && assets.length > 0 ? (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="w-[200px]">Name</TableHead>
+                                            <TableHead>Type</TableHead>
+                                            <TableHead>Schema Version</TableHead>
+                                            <TableHead>Last Updated</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {assets.map((asset: Asset) => (
+                                            <AssetTableRow key={asset.id} asset={asset} connectionId={connectionId} />
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            ) : (
+                                <div className="text-center py-12 text-muted-foreground">
+                                    <Search className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                                    <p>No assets discovered yet.</p>
+                                    <p className="text-sm">Click "Scan for Assets" to populate this list.</p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
                 <TabsContent value="configuration">
-                    <Card>
+                    <Card className="bg-card/50 backdrop-blur-sm shadow-xl border-border/50">
                         <CardHeader>
                             <CardTitle>Connection Configuration</CardTitle>
                         </CardHeader>
@@ -146,15 +169,33 @@ export const ConnectionDetailsPage: React.FC = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <span className="text-sm font-medium text-muted-foreground">Connection URL</span>
-                                    <div className="font-mono text-sm bg-muted p-2 rounded truncate">
+                                    <div className="font-mono text-sm bg-muted p-2 rounded truncate border border-border/50">
                                         {connection.connection_url ? '••••••••••••••••' : 'N/A'}
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <span className="text-sm font-medium text-muted-foreground">Created At</span>
-                                    <div className="text-sm">
-                                        {connection.created_at ? new Date(connection.created_at).toLocaleString() : '-'}
+                                    <span className="text-sm font-medium text-muted-foreground">Type</span>
+                                    <div className="text-sm bg-muted p-2 rounded border border-border/50">
+                                        {connection.type}
                                     </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="text-sm font-medium text-muted-foreground">Created At</span>
+                                    <div className="text-sm bg-muted p-2 rounded border border-border/50">
+                                        {connection.created_at ? format(new Date(connection.created_at), 'MMM dd, yyyy HH:mm') : '-'}
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <span className="text-sm font-medium text-muted-foreground">Updated At</span>
+                                    <div className="text-sm bg-muted p-2 rounded border border-border/50">
+                                        {connection.updated_at ? format(new Date(connection.updated_at), 'MMM dd, yyyy HH:mm') : '-'}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="space-y-1">
+                                <span className="text-sm font-medium text-muted-foreground">Description</span>
+                                <div className="text-sm bg-muted p-2 rounded border border-border/50 min-h-[40px]">
+                                    {connection.description || 'No description provided.'}
                                 </div>
                             </div>
                         </CardContent>
@@ -165,95 +206,110 @@ export const ConnectionDetailsPage: React.FC = () => {
     );
 };
 
-const AssetCard: React.FC<{ asset: Asset, connectionId: number }> = ({ asset, connectionId }) => {
-    const [expanded, setExpanded] = React.useState(false);
+interface AssetTableRowProps {
+    asset: Asset;
+    connectionId: number;
+}
+
+const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionId }) => {
+    const [isSchemaDialogOpen, setIsSchemaDialogOpen] = React.useState(false);
+    const queryClient = useQueryClient();
+
     const { data: schemaVersions, isLoading: loadingSchema } = useQuery({
         queryKey: ['schema', asset.id],
         queryFn: () => getAssetSchemaVersions(connectionId, asset.id),
-        enabled: expanded
+        enabled: isSchemaDialogOpen, // Fetch if dialog is open
     });
 
     const inferMutation = useMutation({
         mutationFn: () => discoverAssetSchema(connectionId, asset.id),
         onSuccess: () => {
             toast.success("Schema inference complete");
-        }
+            queryClient.invalidateQueries({ queryKey: ['schema', asset.id] });
+            queryClient.invalidateQueries({ queryKey: ['assets', connectionId] }); // To update schema version badge
+        },
+        onError: () => toast.error("Schema inference failed")
     });
 
     return (
-        <Card className="overflow-hidden transition-all duration-200">
-            <div 
-                className="p-4 flex items-center justify-between cursor-pointer hover:bg-muted/50"
-                onClick={() => setExpanded(!expanded)}
-            >
-                <div className="flex items-center gap-3">
-                    <div className="bg-primary/10 p-2 rounded-full">
-                        <TableIcon className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                        <h4 className="font-medium text-sm">{asset.name}</h4>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>{asset.asset_type}</span>
-                            <span>•</span>
-                            <span>Last updated {formatDistanceToNow(new Date(asset.updated_at), { addSuffix: true })}</span>
-                        </div>
-                    </div>
+        <TableRow>
+            <TableCell className="font-medium">
+                <div className="flex items-center gap-2">
+                    <TableIcon className="h-4 w-4 text-muted-foreground" />
+                    {asset.name}
                 </div>
-                <div className="flex items-center gap-4">
-                    {asset.current_schema_version ? (
-                        <Badge variant="secondary" className="text-xs">
-                            <Hash className="h-3 w-3 mr-1" /> v{asset.current_schema_version}
-                        </Badge>
-                    ) : (
-                        <Badge variant="outline" className="text-xs text-yellow-500 border-yellow-500/20">
-                            No Schema
-                        </Badge>
-                    )}
-                </div>
-            </div>
-
-            {expanded && (
-                <div className="border-t border-border bg-muted/10 p-4 space-y-4 animate-in slide-in-from-top-2">
-                    <div className="flex justify-between items-center">
-                        <h5 className="text-sm font-semibold flex items-center gap-2">
-                            <FileJson className="h-4 w-4" /> Schema History
-                        </h5>
-                        <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={(e: React.MouseEvent) => {
-                                e.stopPropagation();
-                                inferMutation.mutate();
-                            }}
-                            isLoading={inferMutation.isPending}
-                        >
-                            Infer Schema
+            </TableCell>
+            <TableCell className="capitalize">{asset.asset_type}</TableCell>
+            <TableCell>
+                {asset.current_schema_version ? (
+                    <Badge variant="secondary" className="text-xs">
+                        <Hash className="h-3 w-3 mr-1" /> v{asset.current_schema_version}
+                    </Badge>
+                ) : (
+                    <Badge variant="outline" className="text-xs text-yellow-500 border-yellow-500/20">
+                        No Schema
+                    </Badge>
+                )}
+            </TableCell>
+            <TableCell className="text-muted-foreground text-sm">
+                {asset.updated_at ? formatDistanceToNow(new Date(asset.updated_at), { addSuffix: true }) : 'N/A'}
+            </TableCell>
+            <TableCell className="text-right">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
                         </Button>
-                    </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Asset Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => inferMutation.mutate()} disabled={inferMutation.isPending}>
+                            <RefreshCw className="mr-2 h-4 w-4" /> Infer Schema
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setIsSchemaDialogOpen(true)}>
+                            <FileJson className="mr-2 h-4 w-4" /> View Schema
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
 
-                    {loadingSchema ? (
-                        <Skeleton className="h-20 w-full" />
-                    ) : schemaVersions && schemaVersions.length > 0 ? (
-                        <div className="space-y-2">
-                            {schemaVersions.map((v: any) => (
-                                <div key={v.id} className="text-xs border rounded p-2 bg-background font-mono">
-                                    <div className="flex justify-between text-muted-foreground mb-1">
-                                        <span>Version {v.version}</span>
-                                        <span>{new Date(v.discovered_at).toLocaleDateString()}</span>
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                        <pre>{JSON.stringify(v.json_schema, null, 2)}</pre>
-                                    </div>
+                {/* Schema Dialog */}
+                <Dialog open={isSchemaDialogOpen} onOpenChange={setIsSchemaDialogOpen}>
+                    <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle>Schema for "{asset.name}"</DialogTitle>
+                            <DialogDescription>
+                                Current schema version and historical changes.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            {loadingSchema ? (
+                                <Skeleton className="h-40 w-full" />
+                            ) : schemaVersions && schemaVersions.length > 0 ? (
+                                schemaVersions.map((v: SchemaVersion) => (
+                                    <Card key={v.id} className="bg-muted/20 border-border/50">
+                                        <CardHeader className="flex flex-row items-center justify-between p-3 pb-2">
+                                            <h5 className="text-sm font-semibold">Version {v.version}</h5>
+                                            <span className="text-xs text-muted-foreground">
+                                                {format(new Date(v.discovered_at), 'MMM dd, yyyy HH:mm')}
+                                            </span>
+                                        </CardHeader>
+                                        <CardContent className="pt-0 pb-3 px-3">
+                                            <pre className="text-xs bg-background/50 p-2 rounded-md overflow-x-auto border border-border/50">
+                                                <code>{JSON.stringify(v.json_schema, null, 2)}</code>
+                                            </pre>
+                                        </CardContent>
+                                    </Card>
+                                ))
+                            ) : (
+                                <div className="text-sm text-muted-foreground text-center py-4">
+                                    No schema versions recorded.
                                 </div>
-                            ))}
+                            )}
                         </div>
-                    ) : (
-                        <div className="text-sm text-muted-foreground text-center py-4">
-                            No schema versions recorded. Click "Infer Schema" to analyze the data structure.
-                        </div>
-                    )}
-                </div>
-            )}
-        </Card>
+                    </DialogContent>
+                </Dialog>
+            </TableCell>
+        </TableRow>
     );
 };

@@ -25,7 +25,7 @@ export interface Connection {
 
 export interface ConnectionCreate {
   name: string;
-  connection_url: string;
+  config: Record<string, any>; // Updated to send dynamic config
   type: string;
   description?: string;
 }
@@ -34,7 +34,7 @@ export interface Pipeline {
   id: number;
   name: string;
   description?: string;
-  schedule_interval?: string; // cron expression
+  schedule_cron?: string; // cron expression
   schedule_enabled?: boolean;
   status: 'active' | 'paused' | 'draft';
   created_at?: string;

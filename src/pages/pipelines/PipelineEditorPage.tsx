@@ -42,7 +42,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
     dagreGraph.setGraph({ rankdir: 'LR' });
 
     nodes.forEach((node) => {
-        dagreGraph.setNode(node.id, { width: 220, height: 100 }); // Adjusted for custom node size
+        dagreGraph.setNode(node.id, { width: 250, height: 140 }); // Adjusted for custom node size (Beast Mode)
     });
 
     edges.forEach((edge) => {
@@ -109,7 +109,8 @@ const PipelineEditorContent: React.FC = () => {
             data: { 
                 label: n.name, 
                 config: n.config,
-                type: n.operator_type 
+                type: n.operator_type,
+                operator_class: n.operator_class
             },
             position: n.config?.ui?.position || { x: 0, y: 0 },
         }));
@@ -212,7 +213,7 @@ const PipelineEditorContent: React.FC = () => {
                   ui: { position: n.position }
               },
               order_index: 0, // Default
-              operator_class: 'generic' 
+              operator_class: n.data.operator_class || 'pandas_transform' 
           }));
 
           const apiEdges = edges.map(e => ({
@@ -299,14 +300,38 @@ const PipelineEditorContent: React.FC = () => {
           nodeTypes={nodeTypes}
           onNodeClick={onNodeClick}
           onPaneClick={onPaneClick}
-          colorMode="system" 
+          colorMode="dark" 
           fitView
           minZoom={0.1}
           maxZoom={1.5}
+          defaultEdgeOptions={{
+            type: 'smoothstep', 
+            animated: true, 
+            style: { 
+                stroke: 'var(--primary)', 
+                strokeWidth: 2,
+                filter: 'drop-shadow(0 0 3px var(--primary))' // Glow effect on edges
+            }
+          }}
+          connectionLineStyle={{
+            stroke: 'var(--primary)',
+            strokeWidth: 2,
+            strokeDasharray: '5,5'
+          }}
         >
-          <Controls className="bg-card border-border fill-foreground text-foreground shadow-sm" />
-          <MiniMap className="bg-card border-border" nodeColor={() => 'hsl(var(--primary))'} maskColor="rgba(0,0,0,0.1)" />
-          <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+          <Controls className="bg-card/50 border-border fill-foreground text-foreground shadow-sm backdrop-blur-md" />
+          <MiniMap 
+            className="bg-card/50 border-border backdrop-blur-md rounded-lg overflow-hidden" 
+            nodeColor={() => 'var(--primary)'} 
+            maskColor="rgba(0,0,0,0.3)" 
+          />
+          <Background 
+            variant={BackgroundVariant.Dots} 
+            gap={30} 
+            size={2} 
+            color="var(--muted-foreground)" 
+            className="opacity-20"
+          />
           
           <Panel position="top-right" className="bg-card/80 p-2 rounded-md border border-border backdrop-blur-sm text-xs text-muted-foreground">
              {nodes.length} nodes, {edges.length} edges
