@@ -9,7 +9,8 @@ import { formatDistanceToNow, differenceInSeconds } from 'date-fns';
 import {
     Clock, CheckCircle2, XCircle, Loader2, History,
     Search, Filter, Terminal, Calendar, Timer,
-    GitBranch, RefreshCw, ChevronRight} from 'lucide-react';
+    GitBranch, RefreshCw, ChevronRight
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -115,49 +116,54 @@ export const JobsPage: React.FC = () => {
                     </div>
 
                     {/* List Items */}
-                    <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar bg-card">
                         {isLoading ? (
-                            Array.from({ length: 6 }).map((_, i) => (
-                                <div key={i} className="p-4 rounded-lg border border-border/40 bg-card/50 space-y-3 mb-2">
-                                    <div className="flex justify-between"><Skeleton className="h-4 w-20" /><Skeleton className="h-4 w-12" /></div>
-                                    <Skeleton className="h-3 w-32" />
-                                </div>
-                            ))
+                            <div className="p-2 space-y-2">
+                                {Array.from({ length: 6 }).map((_, i) => (
+                                    <div key={i} className="p-4 rounded-lg border border-border/40 bg-card/50 space-y-3">
+                                        <div className="flex justify-between"><Skeleton className="h-4 w-20" /><Skeleton className="h-4 w-12" /></div>
+                                        <Skeleton className="h-3 w-32" />
+                                    </div>
+                                ))}
+                            </div>
                         ) : (
-                            filteredJobs.map((job: Job) => (
-                                <div
-                                    key={job.id}
-                                    onClick={() => setSelectedJobId(job.id)}
-                                    className={cn(
-                                        "group relative flex flex-col gap-2 p-3.5 rounded-lg border transition-all cursor-pointer",
-                                        selectedJobId === job.id
-                                            ? "bg-primary/5 border-primary/40 shadow-[0_0_15px_-5px_var(--color-primary)]"
-                                            : "bg-card border-transparent hover:bg-muted/40 hover:border-border/60"
-                                    )}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <span className={cn(
-                                                "text-sm font-bold font-mono tracking-tight",
-                                                selectedJobId === job.id ? "text-primary" : "text-foreground"
-                                            )}>
-                                                #{job.id}
+                            // Added "divide-y" here for separators
+                            <div className="divide-y divide-border/50">
+                                {filteredJobs.map((job: Job) => (
+                                    <div
+                                        key={job.id}
+                                        onClick={() => setSelectedJobId(job.id)}
+                                        className={cn(
+                                            "group relative flex flex-col gap-2 p-4 transition-all cursor-pointer hover:bg-muted/30",
+                                            selectedJobId === job.id
+                                                ? "bg-primary/5 border-l-4 border-l-primary pl-[13px]" // Left accent border for active
+                                                : "border-l-4 border-l-transparent pl-[13px]"
+                                        )}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <span className={cn(
+                                                    "text-sm font-bold font-mono tracking-tight",
+                                                    selectedJobId === job.id ? "text-primary" : "text-foreground"
+                                                )}>
+                                                    #{job.id}
+                                                </span>
+                                            </div>
+                                            <span className="text-[10px] text-muted-foreground font-medium tabular-nums">
+                                                {job.started_at ? formatDistanceToNow(new Date(job.started_at), { addSuffix: true }) : ''}
                                             </span>
                                         </div>
-                                        <span className="text-[10px] text-muted-foreground font-medium tabular-nums">
-                                            {job.started_at ? formatDistanceToNow(new Date(job.started_at), { addSuffix: true }) : ''}
-                                        </span>
-                                    </div>
 
-                                    <div className="flex items-center justify-between mt-1">
-                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground group-hover:text-foreground transition-colors">
-                                            <GitBranch className="h-3 w-3 opacity-70" />
-                                            <span>Pipeline-{job.pipeline_id}</span>
+                                        <div className="flex items-center justify-between mt-1">
+                                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                                                <GitBranch className="h-3 w-3 opacity-70" />
+                                                <span>Pipeline-{job.pipeline_id}</span>
+                                            </div>
+                                            <StatusBadge status={job.status} />
                                         </div>
-                                        <StatusBadge status={job.status} />
                                     </div>
-                                </div>
-                            ))
+                                ))}
+                            </div>
                         )}
                     </div>
                 </div>
@@ -203,10 +209,8 @@ export const JobsPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* The actual log component */}
-                            <div className="flex-1 overflow-hidden">
-                                <JobLogViewer initialJobId={selectedJobId} hideControls={true} />
-                            </div>
+
+                            <JobLogViewer initialJobId={selectedJobId} hideControls={true} />
                         </>
                     ) : (
                         /* Empty State */
