@@ -120,7 +120,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                             "flex flex-col items-start overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out",
                             isSidebarCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
                         )}>
-                            <span className="text-sm font-medium truncate w-32 text-left">Jane Doe</span>
+                            <span className="text-sm font-medium truncate w-32 text-left">Abhishek Kumar</span>
                             <span className="text-xs text-muted-foreground truncate w-32 text-left">Admin Workspace</span>
                         </div>
                     </button>
@@ -186,7 +186,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </header>
         
         <main className="flex-1 overflow-auto bg-muted/5 p-4 md:p-8 scrollbar-thin scrollbar-thumb-border">
-          <div className="mx-auto max-w-7xl animate-in fade-in-5 slide-in-from-bottom-2 duration-500">
+          <div className="mx-auto max-w-8xl animate-in fade-in-5 slide-in-from-bottom-2 duration-500">
             {children}
           </div>
         </main>
@@ -249,6 +249,7 @@ interface NavItemProps {
   onClick?: () => void;
 }
 
+// FIX: Removed the nested NavLink. We use the render prop of the SINGLE NavLink to access `isActive`.
 const NavItem: React.FC<NavItemProps> = ({ to, icon, label, collapsed, onClick }) => {
   return (
     <NavLink
@@ -257,7 +258,6 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, collapsed, onClick }
       className={({ isActive }) =>
         cn(
           "flex items-center rounded-md py-2 transition-all duration-200 group relative min-h-10",
-          // Pixel Perfect Centering Logic
           collapsed ? "justify-center px-2" : "justify-start px-3 gap-3",
           isActive
             ? "bg-primary/10 text-primary"
@@ -265,35 +265,36 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label, collapsed, onClick }
         )
       }
     >
-      <span className={cn(
-          "flex items-center justify-center transition-transform duration-200 shrink-0", 
-          // Icon sizing and animation
-          collapsed && "group-hover:scale-110",
-          "[&>svg]:h-5 [&>svg]:w-5"
-      )}>
-          {icon}
-      </span>
-      
-      <span className={cn(
-          "whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out",
-          collapsed ? "w-0 opacity-0" : "w-auto opacity-100"
-      )}>
-          {label}
-      </span>
+      {({ isActive }) => (
+        <>
+            <span className={cn(
+                "flex items-center justify-center transition-transform duration-200 shrink-0", 
+                collapsed && "group-hover:scale-110",
+                "[&>svg]:h-5 [&>svg]:w-5"
+            )}>
+                {icon}
+            </span>
+            
+            <span className={cn(
+                "whitespace-nowrap overflow-hidden transition-all duration-300 ease-in-out",
+                collapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+            )}>
+                {label}
+            </span>
 
-      {/* Tooltip for collapsed state */}
-      {collapsed && (
-          <span className="absolute left-full ml-2 rounded-md bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
-              {label}
-          </span>
+            {/* Tooltip for collapsed state */}
+            {collapsed && (
+                <span className="absolute left-full ml-2 rounded-md bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50 pointer-events-none">
+                    {label}
+                </span>
+            )}
+            
+            {/* Active Bar - Now inside the children, using the parent's `isActive` state */}
+            {isActive && (
+                <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-primary" />
+            )}
+        </>
       )}
-      
-      {/* Active Bar */}
-      <NavLink to={to} tabIndex={-1} aria-hidden="true">
-          {({ isActive }) => isActive && (
-              <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-full bg-primary" />
-          )}
-      </NavLink>
     </NavLink>
   );
 };

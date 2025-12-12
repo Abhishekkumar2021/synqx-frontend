@@ -1,105 +1,258 @@
 import React, { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { Database, ArrowRightLeft, FileOutput, Server, Settings, Zap } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { 
+  Database, 
+  ArrowRightLeft, 
+  HardDriveUpload, 
+  Server, 
+  Settings2, 
+  MoreHorizontal,
+  Loader2,
+  Play,
+  Copy,
+  Trash2
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-// Node Types and their Icons
-const NODE_ICONS: Record<string, React.ElementType> = {
-  source: Database,
-  transform: ArrowRightLeft,
-  destination: FileOutput,
-  api: Server,
-  default: Settings,
-};
+// --- Types ---
+interface PipelineNodeData extends Record<string, unknown> {
+    label: string;
+    type?: string;
+    status?: 'idle' | 'running' | 'success' | 'error';
+    rowsProcessed?: number;
+    error?: string;
+}
 
-// Colors mapping to our new theme variables and providing subtle glow classes
-const NODE_STYLES: Record<string, { iconColor: string, badgeBg: string, glowColor: string }> = {
+// --- Visual Configuration ---
+const NODE_CONFIG: Record<string, { icon: React.ElementType, color: string, label: string }> = {
   source: { 
-      iconColor: 'text-chart-1', // Primary chart color
-      badgeBg: 'bg-chart-1/10',
-      glowColor: 'shadow-chart-1/20' // Subtle glow
+      icon: Database, 
+      color: "blue", 
+      label: "Source" 
   },
   transform: { 
-      iconColor: 'text-chart-2', // Secondary chart color
-      badgeBg: 'bg-chart-2/10',
-      glowColor: 'shadow-chart-2/20'
+      icon: ArrowRightLeft, 
+      color: "purple", 
+      label: "Transform" 
   },
   destination: { 
-      iconColor: 'text-chart-3', // Tertiary chart color
-      badgeBg: 'bg-chart-3/10',
-      glowColor: 'shadow-chart-3/20'
+      icon: HardDriveUpload, 
+      color: "emerald", 
+      label: "Sink" 
+  },
+  sink: { 
+      icon: HardDriveUpload, 
+      color: "emerald", 
+      label: "Sink" 
   },
   api: { 
-      iconColor: 'text-chart-4', // Another chart color
-      badgeBg: 'bg-chart-4/10',
-      glowColor: 'shadow-chart-4/20'
+      icon: Server, 
+      color: "amber", 
+      label: "API" 
   },
   default: { 
-      iconColor: 'text-muted-foreground',
-      badgeBg: 'bg-muted-foreground/10',
-      glowColor: 'shadow-muted-foreground/10'
+      icon: Settings2, 
+      color: "primary", 
+      label: "Node" 
   },
 };
 
 const PipelineNode = ({ data, selected }: NodeProps) => {
-  const type = (data.type as string) || 'default';
-  const Icon = NODE_ICONS[type] || NODE_ICONS.default;
-  const style = NODE_STYLES[type] || NODE_STYLES.default;
+  const nodeData = data as PipelineNodeData;
+  const type = nodeData.type || 'default';
+  const config = NODE_CONFIG[type] || NODE_CONFIG.default;
+  const Icon = config.icon;
   
-  // Bulb Color Logic (subtle glow from glow-primary)
-  const bulbColor = selected ? "bg-primary shadow-[0_0_8px_var(--glow-primary)] subtle-glow" : "bg-muted-foreground/30";
+  const status = nodeData.status || 'idle';
+  const isRunning = status === 'running';
+  const isError = status === 'error';
+  const isSuccess = status === 'success';
+
+  // Dynamic Styles
+  const colorStyles = {
+      blue: {
+          border: "border-blue-500/50",
+          ring: "ring-blue-500/40",
+          text: "text-blue-500",
+          bg: "bg-blue-500/10",
+          shadow: "shadow-blue-500/20"
+      },
+      purple: {
+          border: "border-purple-500/50",
+          ring: "ring-purple-500/40",
+          text: "text-purple-500",
+          bg: "bg-purple-500/10",
+          shadow: "shadow-purple-500/20"
+      },
+      emerald: {
+          border: "border-emerald-500/50",
+          ring: "ring-emerald-500/40",
+          text: "text-emerald-500",
+          bg: "bg-emerald-500/10",
+          shadow: "shadow-emerald-500/20"
+      },
+      amber: {
+          border: "border-amber-500/50",
+          ring: "ring-amber-500/40",
+          text: "text-amber-500",
+          bg: "bg-amber-500/10",
+          shadow: "shadow-amber-500/20"
+      },
+      primary: {
+          border: "border-primary/50",
+          ring: "ring-primary/40",
+          text: "text-primary",
+          bg: "bg-primary/10",
+          shadow: "shadow-primary/20"
+      }
+  }[config.color] || { 
+      border: "border-border", ring: "ring-primary", text: "text-foreground", bg: "bg-muted", shadow: "" 
+  };
 
   return (
     <div
       className={cn(
-        "group relative flex min-w-[220px] flex-col rounded-xl border border-border/50 bg-card/60 backdrop-blur-xl p-0 transition-all duration-300 shadow-lg",
-        selected ? "border-primary/70 ring-1 ring-primary/50 shadow-xl " + style.glowColor + " translate-y-[-2px] subtle-glow" : "hover:border-primary/30 hover:shadow-xl"
+        "group relative flex min-w-[260px] flex-col rounded-xl border bg-card/95 backdrop-blur-md transition-all duration-300",
+        // Selection State
+        selected 
+            ? cn("ring-1 ring-offset-2 ring-offset-background shadow-xl scale-[1.02]", colorStyles.border, colorStyles.ring, colorStyles.shadow) 
+            : "border-border/60 hover:border-primary/30 hover:shadow-lg hover:-translate-y-0.5",
+        // Error State Override
+        isError && "border-destructive/60 shadow-destructive/10 ring-destructive/20"
       )}
     >
-      {/* Header / Top Bar */}
-      <div className="flex items-center gap-3 p-3 border-b border-border/50 bg-gradient-to-b from-card/70 to-card/50 rounded-t-xl">
-        <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg border border-border/50 bg-background/20 shadow-inner", style.iconColor)}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="flex flex-col min-w-0 flex-1">
-            <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-foreground truncate pr-2" title={data.label as string}>
-                    {data.label as string}
-                </span>
-                {/* Bulb Effect */}
-                <div className={cn("h-2.5 w-2.5 rounded-full transition-all duration-500", bulbColor)} />
+      {/* Removed the decorative top strip here */}
+
+      {/* --- Header --- */}
+      <div className="flex items-start justify-between p-4 pb-2">
+        <div className="flex items-center gap-3 min-w-0">
+            {/* Icon Box */}
+            <div className={cn(
+                "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-transparent transition-all duration-300",
+                colorStyles.bg,
+                selected ? "border-current/20" : "",
+                isRunning && "animate-pulse"
+            )}>
+                {isRunning ? (
+                    <Loader2 className={cn("h-5 w-5 animate-spin", colorStyles.text)} />
+                ) : (
+                    <Icon className={cn("h-5 w-5", colorStyles.text)} />
+                )}
             </div>
-          <span className={cn("text-[10px] font-medium uppercase tracking-widest mt-0.5", style.iconColor)}>
-            {type}
-          </span>
+            
+            {/* Labels */}
+            <div className="flex flex-col min-w-0">
+                <span className="text-sm font-bold text-foreground truncate pr-1" title={nodeData.label}>
+                    {nodeData.label}
+                </span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                    {config.label}
+                </span>
+            </div>
         </div>
+
+        {/* Action Menu */}
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-7 w-7 -mr-2 text-muted-foreground/50 hover:text-foreground data-[state=open]:text-foreground"
+                >
+                    <MoreHorizontal className="h-4 w-4" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuLabel>Node Actions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                    <Settings2 className="mr-2 h-3.5 w-3.5" /> Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                    <Play className="mr-2 h-3.5 w-3.5" /> Run Node
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                    <Copy className="mr-2 h-3.5 w-3.5" /> Duplicate
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive focus:text-destructive">
+                    <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {/* Body / Content Area (Optional stats or status can go here later) */}
-      <div className="p-3">
-         <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5 opacity-60">
-                <Zap className="h-3 w-3" />
-                <span>Ready</span>
-            </span>
-            <span className="font-mono opacity-40 text-[10px]">ID: {String(data.id || '---')}</span>
-         </div>
-      </div>
+      {/* --- Body / Metrics --- */}
+      {(status !== 'idle' || nodeData.rowsProcessed) && (
+          <div className="px-4 pb-4 pt-1">
+             <div className="flex items-center justify-between pt-3 border-t border-border/40">
+                
+                {/* Status Badge */}
+                <Badge variant="outline" className={cn(
+                    "h-5 text-[9px] px-1.5 border-0 font-bold tracking-wide uppercase bg-muted/50",
+                    isRunning && "bg-blue-500/10 text-blue-500 animate-pulse border-blue-500/20",
+                    isSuccess && "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
+                    isError && "bg-destructive/10 text-destructive border-destructive/20"
+                )}>
+                    {isRunning && "Running"}
+                    {isSuccess && "Success"}
+                    {isError && "Failed"}
+                </Badge>
 
-      {/* Handles - Styled as Ports */}
+                {/* Data Metric */}
+                {typeof nodeData.rowsProcessed === 'number' && (
+                    <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
+                        {nodeData.rowsProcessed.toLocaleString()} rows
+                    </span>
+                )}
+             </div>
+             
+             {/* Error Message (if failed) */}
+             {isError && nodeData.error && (
+                 <div className="mt-2 text-[10px] text-destructive bg-destructive/5 p-1.5 rounded border border-destructive/10 truncate">
+                     {nodeData.error}
+                 </div>
+             )}
+          </div>
+      )}
+
+      {/* --- Connection Ports --- */}
+      
       {type !== 'source' && (
         <Handle
           type="target"
           position={Position.Left}
-          className="!h-4 !w-3 !rounded-sm !-translate-x-[50%] !border-none !bg-muted-foreground/30 transition-all hover:!bg-primary hover:!w-4 hover:!shadow-sm hover:!shadow-primary/40"
+          className={cn(
+            "w-3! h-6! rounded-[2px]! border-2! bg-background! transition-all z-50",
+            selected 
+                ? "border-primary! bg-primary!" 
+                : "border-muted-foreground/40! hover:border-primary! hover:bg-primary/50!"
+          )}
+          style={{ left: -9 }}
         />
       )}
       
-      {type !== 'destination' && (
+      {type !== 'destination' && type !== 'sink' && (
         <Handle
           type="source"
           position={Position.Right}
-          className="!h-4 !w-3 !rounded-sm !translate-x-[50%] !border-none !bg-muted-foreground/30 transition-all hover:!bg-primary hover:!w-4 hover:!shadow-sm hover:!shadow-primary/40"
+          className={cn(
+            "w-3! h-6! rounded-[2px]! border-2! bg-background! transition-all z-50",
+            selected 
+                ? "border-primary! bg-primary!" 
+                : "border-muted-foreground/40! hover:border-primary! hover:bg-primary/50!"
+          )}
+          style={{ right: -9 }}
         />
       )}
     </div>

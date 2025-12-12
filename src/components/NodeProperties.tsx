@@ -1,7 +1,23 @@
+/* eslint-disable react-hooks/incompatible-library */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { X, Trash2 } from 'lucide-react';
+import { 
+    X, Trash2, Save, Code, Sliders, 
+    Filter, Layers, ArrowRightLeft, 
+    Database, HardDriveUpload, PlayCircle,
+    Braces
+} from 'lucide-react';
 import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { ScrollArea } from './ui/scroll-area';
+import { Badge } from './ui/badge';
+import { Separator } from './ui/separator';
+import { cn } from '@/lib/utils';
 import { type Node } from '@xyflow/react';
 
 interface NodePropertiesProps {
@@ -13,20 +29,33 @@ interface NodePropertiesProps {
 
 interface FormData {
   label: string;
-  type: string; // operator_type
+  type: string;
   operator_class: string;
   config: string; // JSON string
   
-  // Dynamic fields
+  // Dynamic fields for visual editor
   filter_condition: string;
-  map_rename: string; // JSON or string representation
+  join_on: string;
+  join_type: string;
+  group_by: string;
+  drop_columns: string;
+}
+
+// Icon helper
+const getNodeIcon = (type: string) => {
+    switch(type) {
+        case 'source': return Database;
+        case 'transform': return ArrowRightLeft;
+        case 'sink': return HardDriveUpload;
+        default: return PlayCircle;
+    }
 }
 
 export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, onUpdate, onDelete }) => {
   const { register, handleSubmit, setValue, watch, getValues } = useForm<FormData>();
-  const [showJson, setShowJson] = useState(false);
+  const [activeTab, setActiveTab] = useState('settings');
 
-  // Watchers for conditional UI
+  // Watchers
   const nodeType = watch('type');
   const operatorClass = watch('operator_class');
 
@@ -39,33 +68,43 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
       setValue('operator_class', (node.data.operator_class as string) || 'pandas_transform');
       setValue('config', JSON.stringify(config, null, 2));
 
-      // Hydrate dynamic fields from config
+      // Hydrate visual fields from JSON config
       if (config.condition) setValue('filter_condition', config.condition);
-      // For map, we might want to handle it better, but for now just rely on JSON or generic
+      if (config.on) setValue('join_on', config.on);
+      if (config.how) setValue('join_type', config.how);
+      if (config.columns && Array.isArray(config.columns)) setValue('drop_columns', config.columns.join(', '));
+      if (config.group_by && Array.isArray(config.group_by)) setValue('group_by', config.group_by.join(', '));
     }
   }, [node, setValue]);
 
   if (!node) return null;
 
-  // Helper to sync dynamic fields to JSON config
-  const syncToConfig = (updates: Record<string, any>) => {
+  const Icon = getNodeIcon(node.type || 'default');
+
+  // Helper: Update the hidden JSON config based on visual inputs
+  const syncVisualToConfig = (updates: Record<string, any>) => {
       try {
           const currentConfig = JSON.parse(getValues('config') || '{}');
           const newConfig = { ...currentConfig, ...updates };
           setValue('config', JSON.stringify(newConfig, null, 2));
       } catch (e) {
-          // ignore invalid JSON for now
+          // Silent fail on invalid JSON during typing
       }
   };
 
   const onSubmit = (data: FormData) => {
     try {
-      let config = JSON.parse(data.config);
+      const config = JSON.parse(data.config);
       
-      // If using specific UI, override config values
+      // Merge visual fields based on type just before saving to be sure
       if (data.type === 'transform') {
-          if (data.operator_class === 'filter') {
-              config = { ...config, condition: data.filter_condition };
+          if (data.operator_class === 'filter') config.condition = data.filter_condition;
+          if (data.operator_class === 'join') {
+              config.on = data.join_on;
+              config.how = data.join_type;
+          }
+          if (data.operator_class === 'drop_columns') {
+              config.columns = data.drop_columns.split(',').map(s => s.trim()).filter(Boolean);
           }
       }
 
@@ -81,255 +120,206 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
   };
 
   return (
-    <div className="absolute right-0 top-0 h-full w-80 bg-card border-l border-border shadow-2xl p-4 flex flex-col gap-4 animate-in slide-in-from-right duration-200 z-10">
-      <div className="flex items-center justify-between border-b border-border pb-4">
-        <h3 className="font-semibold text-lg">Node Properties</h3>
-        <Button variant="ghost" size="icon" onClick={onClose}>
+    <div className="h-full flex flex-col bg-transparent">
+      {/* --- Header --- */}
+      <div className="flex items-center justify-between p-6 border-b border-border/50 bg-muted/5 shrink-0">
+        <div className="flex items-center gap-3">
+            <div className={cn(
+                "h-10 w-10 rounded-xl flex items-center justify-center border shadow-sm",
+                node.type === 'source' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
+                node.type === 'transform' ? "bg-purple-500/10 text-purple-500 border-purple-500/20" :
+                node.type === 'sink' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                "bg-primary/10 text-primary border-primary/20"
+            )}>
+                <Icon className="h-5 w-5" />
+            </div>
+            <div>
+                <h3 className="font-semibold text-lg leading-tight">Properties</h3>
+                <p className="text-xs text-muted-foreground font-mono">{node.id}</p>
+            </div>
+        </div>
+        <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-muted">
           <X className="h-4 w-4" />
         </Button>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col gap-4 overflow-y-auto">
-        {/* Name */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Name</label>
-          <input 
-            {...register('label', { required: true })}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          />
-        </div>
+      {/* --- Tabs & Content --- */}
+      <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+            <div className="px-6 pt-4 shrink-0">
+                <TabsList className="w-full grid grid-cols-2">
+                    <TabsTrigger value="settings" className="gap-2"><Sliders className="h-3.5 w-3.5"/> Settings</TabsTrigger>
+                    <TabsTrigger value="advanced" className="gap-2"><Code className="h-3.5 w-3.5"/> Advanced</TabsTrigger>
+                </TabsList>
+            </div>
 
-        {/* Node Type (Operator Type) */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Node Type</label>
-          <select 
-            {...register('type')}
-            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <option value="source">Source</option>
-            <option value="transform">Transform</option>
-            <option value="destination">Destination</option>
-          </select>
-        </div>
+            <ScrollArea className="flex-1">
+                <div className="p-6 space-y-6">
+                    
+                    {/* Common Fields */}
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Node Label</Label>
+                            <Input 
+                                {...register('label')} 
+                                className="bg-background/50 border-border/50 focus:border-primary/50" 
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Operator Type</Label>
+                            <select 
+                                {...register('type')}
+                                className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 appearance-none"
+                            >
+                                <option value="source">Source</option>
+                                <option value="transform">Transform</option>
+                                <option value="sink">Sink (Destination)</option>
+                            </select>
+                        </div>
+                    </div>
 
-        {/* TRANSFORM SPECIFIC UI */}
-        {nodeType === 'transform' && (
-            <div className="space-y-2 p-3 bg-muted/30 rounded-md border border-border/50">
-                <label className="text-sm font-medium text-primary">Processor</label>
-                <select 
-                    {...register('operator_class')}
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    <Separator className="bg-border/50" />
+
+                    {/* --- Visual Editor Tab --- */}
+                    <TabsContent value="settings" className="m-0 space-y-6 focus-visible:outline-none">
+                        
+                        {nodeType === 'transform' && (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <div className="space-y-2">
+                                    <Label className="text-primary font-semibold">Transformation Logic</Label>
+                                    <select 
+                                        {...register('operator_class')}
+                                        className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring"
+                                    >
+                                        <option value="pandas_transform">Generic (Custom Code)</option>
+                                        <option value="filter">Filter Rows</option>
+                                        <option value="join">Join / Merge</option>
+                                        <option value="aggregate">Aggregate / Group By</option>
+                                        <option value="drop_columns">Drop Columns</option>
+                                        <option value="deduplicate">Deduplicate</option>
+                                    </select>
+                                </div>
+
+                                {/* Dynamic Fields based on Operator Class */}
+                                <div className="p-4 rounded-xl border border-border/50 bg-muted/10 space-y-4">
+                                    
+                                    {operatorClass === 'filter' && (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Filter className="h-4 w-4 text-purple-500" />
+                                                <span className="text-sm font-medium">Filter Condition</span>
+                                            </div>
+                                            <Input 
+                                                {...register('filter_condition', { onChange: (e) => syncVisualToConfig({ condition: e.target.value })})}
+                                                placeholder="e.g. age > 18"
+                                                className="font-mono text-xs"
+                                            />
+                                            <p className="text-[10px] text-muted-foreground">Pandas query string format.</p>
+                                        </div>
+                                    )}
+
+                                    {operatorClass === 'join' && (
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <Layers className="h-4 w-4 text-purple-500" />
+                                                <span className="text-sm font-medium">Join Configuration</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Join Column</Label>
+                                                    <Input 
+                                                        {...register('join_on', { onChange: (e) => syncVisualToConfig({ on: e.target.value })})}
+                                                        placeholder="id"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label className="text-xs">Join Type</Label>
+                                                    <select 
+                                                        {...register('join_type', { onChange: (e) => syncVisualToConfig({ how: e.target.value })})}
+                                                        className="flex h-9 w-full rounded-md border border-input bg-background/50 px-3 py-1 text-sm shadow-sm"
+                                                    >
+                                                        <option value="left">Left</option>
+                                                        <option value="inner">Inner</option>
+                                                        <option value="outer">Full Outer</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {operatorClass === 'drop_columns' && (
+                                        <div className="space-y-2">
+                                            <Label>Columns to Drop</Label>
+                                            <Input 
+                                                {...register('drop_columns', { 
+                                                    onChange: (e) => syncVisualToConfig({ columns: e.target.value.split(',') })
+                                                })}
+                                                placeholder="col1, col2, _metadata"
+                                            />
+                                            <p className="text-[10px] text-muted-foreground">Comma separated list of column names.</p>
+                                        </div>
+                                    )}
+
+                                    {operatorClass === 'pandas_transform' && (
+                                        <div className="flex flex-col items-center justify-center p-4 text-center text-muted-foreground">
+                                            <Braces className="h-8 w-8 mb-2 opacity-50" />
+                                            <p className="text-xs">
+                                                Generic transformations are best configured via the 
+                                                <span className="text-primary font-medium cursor-pointer ml-1" onClick={() => setActiveTab('advanced')}>Advanced Tab</span>.
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {nodeType === 'source' && (
+                            <div className="p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 text-sm text-blue-200/80">
+                                <p>Source nodes are configured via the <strong>Connections</strong> page. Select the Connection ID in the Advanced tab.</p>
+                            </div>
+                        )}
+                    </TabsContent>
+
+                    {/* --- JSON Editor Tab --- */}
+                    <TabsContent value="advanced" className="m-0 h-full focus-visible:outline-none">
+                        <div className="space-y-2 h-full">
+                            <div className="flex items-center justify-between">
+                                <Label className="flex items-center gap-2">
+                                    <Code className="h-3.5 w-3.5 text-muted-foreground" /> Raw Configuration
+                                </Label>
+                                <Badge variant="outline" className="text-[10px] h-5">JSON</Badge>
+                            </div>
+                            <Textarea 
+                                {...register('config')}
+                                className="font-mono text-xs leading-relaxed min-h-[300px] resize-none bg-[#0c0c0c] border-border/50 text-gray-300"
+                                spellCheck={false}
+                            />
+                        </div>
+                    </TabsContent>
+                </div>
+            </ScrollArea>
+
+            {/* --- Footer Actions --- */}
+            <div className="p-6 border-t border-border/50 bg-background/50 backdrop-blur-md shrink-0 flex gap-3">
+                <Button type="submit" className="flex-1 shadow-lg shadow-primary/20">
+                    <Save className="mr-2 h-4 w-4" /> Apply Changes
+                </Button>
+                <Button 
+                    type="button" 
+                    variant="destructive" 
+                    size="icon" 
+                    className="shrink-0"
+                    onClick={() => {
+                        if(confirm('Delete this node? This cannot be undone.')) {
+                            onDelete(node.id);
+                            onClose();
+                        }
+                    }}
                 >
-                    <option value="pandas_transform">Generic (Pandas)</option>
-                    <option value="filter">Filter Rows</option>
-                    <option value="map">Map / Custom Expression</option>
-                    <option value="aggregate">Aggregate (Group By)</option>
-                    <option value="join">Join / Merge</option>
-                    <option value="rename_columns">Rename Columns</option>
-                    <option value="drop_columns">Drop Columns</option>
-                    <option value="deduplicate">Deduplicate Rows</option>
-                    <option value="fill_nulls">Fill Missing Values</option>
-                </select>
-
-                {operatorClass === 'filter' && (
-                    <div className="mt-2 space-y-1 animate-in fade-in">
-                        <label className="text-xs font-medium">Condition (Pandas Query)</label>
-                        <input 
-                            {...register('filter_condition', { 
-                                onChange: (e) => syncToConfig({ condition: e.target.value }) 
-                            })}
-                            placeholder="age > 30"
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        />
-                         <p className="text-[10px] text-muted-foreground">e.g., `amount &gt; 100`</p>
-                    </div>
-                )}
-
-                {operatorClass === 'aggregate' && (
-                     <div className="mt-2 space-y-3 animate-in fade-in">
-                        <div className="space-y-1">
-                            <label className="text-xs font-medium">Group By (comma separated)</label>
-                            <input 
-                                placeholder="category, region"
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                                onChange={(e) => syncToConfig({ group_by: e.target.value.split(',').map(s => s.trim()) })}
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-xs font-medium">Aggregates (JSON)</label>
-                            <textarea 
-                                placeholder='{"amount": "sum", "id": "count"}'
-                                className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
-                                onChange={(e) => {
-                                    try {
-                                        syncToConfig({ aggregates: JSON.parse(e.target.value) })
-                                    } catch(err) { /* ignore typing */ }
-                                }}
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {operatorClass === 'join' && (
-                     <div className="mt-2 space-y-3 animate-in fade-in">
-                        <div className="space-y-1">
-                            <label className="text-xs font-medium">Join On Column</label>
-                            <input 
-                                placeholder="user_id"
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                                onChange={(e) => syncToConfig({ on: e.target.value })}
-                            />
-                        </div>
-                         <div className="space-y-1">
-                            <label className="text-xs font-medium">Join Type</label>
-                            <select 
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                                onChange={(e) => syncToConfig({ how: e.target.value })}
-                            >
-                                <option value="left">Left Join</option>
-                                <option value="inner">Inner Join</option>
-                                <option value="outer">Full Outer</option>
-                            </select>
-                        </div>
-                    </div>
-                )}
-
-                {operatorClass === 'rename_columns' && (
-                    <div className="mt-2 space-y-1 animate-in fade-in">
-                        <label className="text-xs font-medium">Rename Map (JSON)</label>
-                        <textarea 
-                            placeholder='{"old_col": "new_col", "another_old": "another_new"}'
-                            className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
-                            onChange={(e) => {
-                                try {
-                                    syncToConfig({ rename_map: JSON.parse(e.target.value) })
-                                } catch(err) { /* ignore typing */ }
-                            }}
-                        />
-                        <p className="text-[10px] text-muted-foreground">e.g., {"{ \"customer_id\": \"cust_id\" }"}</p>
-                    </div>
-                )}
-
-                {operatorClass === 'drop_columns' && (
-                    <div className="mt-2 space-y-1 animate-in fade-in">
-                        <label className="text-xs font-medium">Columns to Drop (comma separated)</label>
-                        <input 
-                            placeholder="col1, col2, id"
-                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                            onChange={(e) => syncToConfig({ columns: e.target.value.split(',').map(s => s.trim()) })}
-                        />
-                        <p className="text-[10px] text-muted-foreground">e.g., `_source, _etl_metadata`</p>
-                    </div>
-                )}
-
-                {operatorClass === 'deduplicate' && (
-                    <div className="mt-2 space-y-3 animate-in fade-in">
-                        <div className="space-y-1">
-                            <label className="text-xs font-medium">Subset Columns (comma separated, optional)</label>
-                            <input 
-                                placeholder="col1, col2"
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                                onChange={(e) => {
-                                    const val = e.target.value.trim();
-                                    syncToConfig({ subset: val ? val.split(',').map(s => s.trim()) : null });
-                                }}
-                            />
-                            <p className="text-[10px] text-muted-foreground">Empty means deduplicate based on all columns.</p>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-xs font-medium">Keep Strategy</label>
-                            <select 
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                                onChange={(e) => syncToConfig({ keep: e.target.value })}
-                            >
-                                <option value="first">First Occurrence</option>
-                                <option value="last">Last Occurrence</option>
-                                <option value="False">Drop All Duplicates</option>
-                            </select>
-                        </div>
-                    </div>
-                )}
-
-                {operatorClass === 'fill_nulls' && (
-                    <div className="mt-2 space-y-3 animate-in fade-in">
-                        <div className="space-y-1">
-                            <label className="text-xs font-medium">Columns to Fill (comma separated, optional)</label>
-                            <input 
-                                placeholder="col1, col2"
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                                onChange={(e) => {
-                                    const val = e.target.value.trim();
-                                    syncToConfig({ subset: val ? val.split(',').map(s => s.trim()) : null });
-                                }}
-                            />
-                            <p className="text-[10px] text-muted-foreground">Empty means fill nulls in all columns.</p>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-xs font-medium">Fill Method</label>
-                            <select 
-                                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (val.startsWith('strategy:')) {
-                                        syncToConfig({ strategy: val.split(':')[1], value: undefined });
-                                    } else {
-                                        syncToConfig({ value: val, strategy: undefined });
-                                    }
-                                }}
-                            >
-                                <option value="">-- Select --</option>
-                                <option value="strategy:mean">Strategy: Mean</option>
-                                <option value="strategy:median">Strategy: Median</option>
-                                <option value="strategy:mode">Strategy: Mode</option>
-                                <option value="strategy:ffill">Strategy: Forward Fill</option>
-                                <option value="strategy:bfill">Strategy: Backward Fill</option>
-                                <option value="0">Value: 0</option>
-                                <option value="N/A">Value: N/A</option>
-                                <option value="-1">Value: -1</option>
-                            </select>
-                            <p className="text-[10px] text-muted-foreground">Select a strategy or specify a literal value.</p>
-                        </div>
-                    </div>
-                )}
+                    <Trash2 className="h-4 w-4" />
+                </Button>
             </div>
-        )}
-
-        {/* JSON Config Toggle */}
-        <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Advanced Configuration</label>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setShowJson(!showJson)}>
-                {showJson ? 'Hide' : 'Show'} JSON
-            </Button>
-        </div>
-
-        {showJson && (
-            <div className="space-y-2 flex-1 flex flex-col min-h-[200px]">
-            <textarea 
-                {...register('config')}
-                className="flex-1 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm font-mono shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
-                spellCheck={false}
-            />
-            </div>
-        )}
-
-        <div className="flex gap-2 pt-4 border-t border-border mt-auto">
-          <Button type="submit" className="flex-1">
-            Apply Changes
-          </Button>
-          <Button 
-            type="button" 
-            variant="destructive" 
-            size="icon" 
-            onClick={() => {
-                if(confirm('Delete this node?')) {
-                    onDelete(node.id);
-                    onClose();
-                }
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
+        </Tabs>
       </form>
     </div>
   );

@@ -6,217 +6,225 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { JobLogViewer } from '@/components/JobLogViewer';
 import { formatDistanceToNow, differenceInSeconds } from 'date-fns';
-import { 
+import {
     Clock, CheckCircle2, XCircle, Loader2, History,
     Search, Filter, Terminal, Calendar, Timer,
-    GitBranch, RefreshCw, ChevronRight
-} from 'lucide-react';
+    GitBranch, RefreshCw, ChevronRight} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const StatusBadge = ({ status }: { status: string }) => {
-    const styles = useMemo(() => {
-        switch (status?.toLowerCase()) {
-            case 'completed':
-            case 'success': return "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400";
-            case 'failed':
-            case 'error': return "bg-red-500/10 text-red-600 border-red-500/20 dark:text-red-400";
-            case 'running': return "bg-blue-500/10 text-blue-600 border-blue-500/20 dark:text-blue-400 animate-pulse";
-            case 'queued': return "bg-yellow-500/10 text-yellow-600 border-yellow-500/20 dark:text-yellow-400";
-            default: return "bg-muted text-muted-foreground border-border";
-        }
+    const config = useMemo(() => {
+        const s = status?.toLowerCase();
+        if (s === 'completed' || s === 'success') return { color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20", icon: CheckCircle2 };
+        if (s === 'failed' || s === 'error') return { color: "text-destructive", bg: "bg-destructive/10", border: "border-destructive/20", icon: XCircle };
+        if (s === 'running') return { color: "text-primary", bg: "bg-primary/10", border: "border-primary/20", icon: Loader2, animate: true };
+        return { color: "text-muted-foreground", bg: "bg-muted", border: "border-border", icon: Clock };
     }, [status]);
 
-    const icon = useMemo(() => {
-        switch (status?.toLowerCase()) {
-            case 'running': return <Loader2 className="w-3 h-3 mr-1.5 animate-spin" />;
-            case 'failed': return <XCircle className="w-3 h-3 mr-1.5" />;
-            case 'success': 
-            case 'completed': return <CheckCircle2 className="w-3 h-3 mr-1.5" />;
-            default: return <Clock className="w-3 h-3 mr-1.5" />;
-        }
-    }, [status]);
+    const Icon = config.icon;
 
     return (
-        <span className={cn("inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide transition-colors", styles)}>
-            {icon} {status}
+        <span className={cn(
+            "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border transition-all",
+            config.color, config.bg, config.border
+        )}>
+            <Icon className={cn("w-3 h-3", config.animate && "animate-spin")} />
+            {status}
         </span>
     )
 }
 
 export const JobsPage: React.FC = () => {
-  const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
-  const [filter, setFilter] = useState('');
+    const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+    const [filter, setFilter] = useState('');
 
-  const { data: jobs, isLoading, refetch } = useQuery({
-    queryKey: ['jobs'],
-    queryFn: () => getJobs(),
-    refetchInterval: 3000, 
-  });
+    const { data: jobs, isLoading, refetch, isRefetching } = useQuery({
+        queryKey: ['jobs'],
+        queryFn: () => getJobs(),
+        refetchInterval: 3000,
+    });
 
-  const selectedJob = useMemo(() => jobs?.find((j: Job) => j.id === selectedJobId), [jobs, selectedJobId]);
+    const selectedJob = useMemo(() => jobs?.find((j: Job) => j.id === selectedJobId), [jobs, selectedJobId]);
 
-  const filteredJobs = useMemo(() => {
-    if (!jobs) return [];
-    if (!filter) return jobs;
-    return jobs.filter((j: Job) => 
-        j.id.toString().includes(filter) || 
-        j.status.toLowerCase().includes(filter.toLowerCase())
-    );
-  }, [jobs, filter]);
+    const filteredJobs = useMemo(() => {
+        if (!jobs) return [];
+        if (!filter) return jobs;
+        return jobs.filter((j: Job) =>
+            j.id.toString().includes(filter) ||
+            j.status.toLowerCase().includes(filter.toLowerCase()) ||
+            j.pipeline_id.toString().includes(filter)
+        );
+    }, [jobs, filter]);
 
-  return (
-    // FIX 1: Exact height calculation taking Header (64px) + Padding (64px) + Buffer into account
-    // min-h-0 is crucial for nested scrolling to work in Flex/Grid
-    <div className="flex flex-col h-[calc(100vh-10rem)] gap-4 animate-in fade-in duration-500 overflow-hidden">
-       
-       {/* Page Header */}
-       <div className="flex items-center justify-between shrink-0 px-1">
-            <div className="space-y-1">
-                <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                    <History className="h-6 w-6 text-primary" />
-                    Execution History
-                </h2>
-                <p className="text-sm text-muted-foreground hidden sm:block">
-                    Monitor pipeline runs, debug logs, and audit execution times.
-                </p>
-            </div>
-            <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => refetch()}>
-                    <RefreshCw className="h-3.5 w-3.5 mr-2" />
-                    Refresh
-                </Button>
-            </div>
-      </div>
+    return (
+        <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 animate-in fade-in duration-500">
 
-      {/* Main Content Grid - min-h-0 prevents overflow */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
-        
-        {/* --- LEFT PANE: Run List --- */}
-        <div className="lg:col-span-4 flex flex-col h-full bg-card rounded-lg border shadow-sm overflow-hidden min-h-0">
-            {/* List Toolbar */}
-            <div className="p-3 border-b bg-muted/20 space-y-3 shrink-0">
-                <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                        placeholder="Filter runs..." 
-                        className="pl-8 h-9 text-sm"
-                        value={filter}
-                        onChange={(e) => setFilter(e.target.value)}
-                    />
+            {/* Header Section */}
+            <div className="flex items-center justify-between shrink-0">
+                <div className="space-y-1">
+                    <h2 className="text-2xl font-bold tracking-tight flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg ring-1 ring-primary/20">
+                            <History className="h-5 w-5 text-primary" />
+                        </div>
+                        Execution History
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                        Real-time monitoring and forensic logs for pipeline executions.
+                    </p>
                 </div>
-                <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-                    <span>{filteredJobs.length} results</span>
-                    <Button variant="ghost" size="icon" className="h-5 w-5">
-                        <Filter className="h-3 w-3" />
+                <div className="flex items-center gap-3">
+                    <div className="hidden md:flex items-center px-3 py-1 bg-muted/50 rounded-full border border-border/50 text-xs text-muted-foreground">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-2"></span>
+                        Live Updates
+                    </div>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => refetch()}
+                        className={cn("gap-2", isRefetching && "opacity-80")}
+                        disabled={isRefetching}
+                    >
+                        <RefreshCw className={cn("h-3.5 w-3.5", isRefetching && "animate-spin")} />
+                        Refresh
                     </Button>
                 </div>
             </div>
 
-            {/* Scrollable List */}
-            <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin scrollbar-thumb-border">
-                {isLoading ? (
-                    Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="p-3 rounded-md border bg-muted/10 space-y-2">
-                            <div className="flex justify-between"><Skeleton className="h-4 w-20" /><Skeleton className="h-4 w-12" /></div>
-                            <Skeleton className="h-3 w-32" />
+            {/* Main Grid Layout */}
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+
+                {/* --- LEFT PANEL: List --- */}
+                <div className="lg:col-span-4 flex flex-col h-full bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden">
+                    {/* Search Toolbar */}
+                    <div className="p-4 border-b border-border/50 bg-muted/5 space-y-4">
+                        <div className="relative group">
+                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                            <Input
+                                placeholder="Search by ID or Status..."
+                                className="pl-9 h-9 bg-background/50 focus:bg-background transition-all border-muted-foreground/20 focus:border-primary/50"
+                                value={filter}
+                                onChange={(e) => setFilter(e.target.value)}
+                            />
                         </div>
-                    ))
-                ) : (
-                    filteredJobs.map((job: Job) => (
-                        <div 
-                            key={job.id} 
-                            onClick={() => setSelectedJobId(job.id)}
-                            className={cn(
-                                "group relative flex flex-col gap-1.5 p-3 rounded-md border transition-all cursor-pointer select-none",
-                                selectedJobId === job.id 
-                                    ? "bg-accent border-primary/50 ring-1 ring-primary/20" 
-                                    : "bg-card border-transparent hover:bg-muted/50 hover:border-border"
-                            )}
-                        >
-                            {selectedJobId === job.id && (
-                                <div className="absolute left-0 top-2 bottom-2 w-1 rounded-r-md bg-primary" />
-                            )}
+                        <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+                            <span>{filteredJobs.length} Executions</span>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-primary">
+                                <Filter className="h-3 w-3" />
+                            </Button>
+                        </div>
+                    </div>
 
-                            <div className="flex items-center justify-between pl-2">
-                                <span className={cn(
-                                    "text-sm font-semibold font-mono", 
-                                    selectedJobId === job.id ? "text-primary" : "text-foreground"
-                                )}>
-                                    #{job.id}
-                                </span>
-                                <span className="text-xs text-muted-foreground tabular-nums">
-                                    {job.started_at ? formatDistanceToNow(new Date(job.started_at), { addSuffix: true }) : ''}
-                                </span>
-                            </div>
-
-                            <div className="flex items-center justify-between pl-2">
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                    <GitBranch className="h-3 w-3" />
-                                    <span>Pipeline-{job.pipeline_id}</span>
+                    {/* List Items */}
+                    <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+                        {isLoading ? (
+                            Array.from({ length: 6 }).map((_, i) => (
+                                <div key={i} className="p-4 rounded-lg border border-border/40 bg-card/50 space-y-3 mb-2">
+                                    <div className="flex justify-between"><Skeleton className="h-4 w-20" /><Skeleton className="h-4 w-12" /></div>
+                                    <Skeleton className="h-3 w-32" />
                                 </div>
-                                <StatusBadge status={job.status} />
+                            ))
+                        ) : (
+                            filteredJobs.map((job: Job) => (
+                                <div
+                                    key={job.id}
+                                    onClick={() => setSelectedJobId(job.id)}
+                                    className={cn(
+                                        "group relative flex flex-col gap-2 p-3.5 rounded-lg border transition-all cursor-pointer",
+                                        selectedJobId === job.id
+                                            ? "bg-primary/5 border-primary/40 shadow-[0_0_15px_-5px_var(--color-primary)]"
+                                            : "bg-card border-transparent hover:bg-muted/40 hover:border-border/60"
+                                    )}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className={cn(
+                                                "text-sm font-bold font-mono tracking-tight",
+                                                selectedJobId === job.id ? "text-primary" : "text-foreground"
+                                            )}>
+                                                #{job.id}
+                                            </span>
+                                        </div>
+                                        <span className="text-[10px] text-muted-foreground font-medium tabular-nums">
+                                            {job.started_at ? formatDistanceToNow(new Date(job.started_at), { addSuffix: true }) : ''}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex items-center justify-between mt-1">
+                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+                                            <GitBranch className="h-3 w-3 opacity-70" />
+                                            <span>Pipeline-{job.pipeline_id}</span>
+                                        </div>
+                                        <StatusBadge status={job.status} />
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* --- RIGHT PANEL: Details --- */}
+                <div className="lg:col-span-8 flex flex-col h-full bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden relative">
+                    {selectedJobId ? (
+                        <>
+                            {/* Active Job Header */}
+                            <div className="px-5 py-4 border-b border-border/50 bg-background/50 backdrop-blur-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-3">
+                                        <h3 className="text-lg font-bold flex items-center gap-2">
+                                            Execution #{selectedJobId}
+                                        </h3>
+                                        <StatusBadge status={selectedJob?.status || 'Unknown'} />
+                                    </div>
+                                    <div className="flex items-center gap-4 text-xs text-muted-foreground font-medium">
+                                        <div className="flex items-center gap-1.5">
+                                            <Calendar className="h-3.5 w-3.5 text-primary/70" />
+                                            {selectedJob?.started_at ? new Date(selectedJob.started_at).toLocaleString() : '-'}
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <Timer className="h-3.5 w-3.5 text-primary/70" />
+                                            Duration: <span className="text-foreground">
+                                                {selectedJob?.finished_at && selectedJob?.started_at
+                                                    ? `${differenceInSeconds(new Date(selectedJob.finished_at), new Date(selectedJob.started_at))}s`
+                                                    : 'Running...'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3">
+                                    {selectedJob?.status === 'running' && (
+                                        <Button variant="destructive" size="sm" className="h-8 shadow-sm">
+                                            Stop Execution
+                                        </Button>
+                                    )}
+                                    <Button variant="outline" size="sm" className="h-8 gap-2 border-border/50 hover:bg-muted">
+                                        View Pipeline <ChevronRight className="h-3 w-3" />
+                                    </Button>
+                                </div>
                             </div>
+
+                            {/* The actual log component */}
+                            <div className="flex-1 overflow-hidden">
+                                <JobLogViewer initialJobId={selectedJobId} hideControls={true} />
+                            </div>
+                        </>
+                    ) : (
+                        /* Empty State */
+                        <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-muted/5 animate-in fade-in zoom-in-95 duration-500">
+                            <div className="relative mb-6 group cursor-default">
+                                <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                                <div className="relative h-24 w-24 rounded-2xl bg-linear-to-br from-muted to-muted/50 border border-border shadow-inner flex items-center justify-center">
+                                    <Terminal className="h-10 w-10 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+                                </div>
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">Select an Execution</h3>
+                            <p className="max-w-xs text-sm text-muted-foreground leading-relaxed">
+                                Click on a job from the list to view detailed logs, metadata, and error traces.
+                            </p>
                         </div>
-                    ))
-                )}
+                    )}
+                </div>
             </div>
         </div>
-
-        {/* --- RIGHT PANE: Details & Logs --- */}
-        <div className="lg:col-span-8 flex flex-col h-full bg-card rounded-lg border shadow-sm overflow-hidden relative min-h-0">
-            {selectedJobId ? (
-                <>
-                    {/* Job Metadata Header */}
-                    <div className="px-4 py-3 border-b bg-muted/10 shrink-0">
-                        <div className="flex items-start justify-between">
-                            <div className="flex flex-col gap-1">
-                                <h3 className="text-lg font-semibold flex items-center gap-2">
-                                    Execution #{selectedJobId}
-                                </h3>
-                                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
-                                    <div className="flex items-center gap-1.5">
-                                        <Calendar className="h-3.5 w-3.5" />
-                                        {selectedJob?.started_at ? new Date(selectedJob.started_at).toLocaleDateString() : '-'}
-                                    </div>
-                                    <div className="flex items-center gap-1.5">
-                                        <Timer className="h-3.5 w-3.5" />
-                                        {selectedJob?.finished_at && selectedJob?.started_at
-                                            ? `${differenceInSeconds(new Date(selectedJob.finished_at), new Date(selectedJob.started_at))}s`
-                                            : 'In Progress'}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div className="flex gap-2">
-                                {selectedJob?.status === 'running' && (
-                                    <Button variant="destructive" size="sm" className="h-8">Stop</Button>
-                                )}
-                                <Button variant="secondary" size="sm" className="h-8 gap-1">
-                                    Pipeline <ChevronRight className="h-3 w-3" />
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* Log Viewer Container - Takes remaining height */}
-                    <div className="flex-1 bg-[#0c0c0c] relative min-h-0 overflow-hidden">
-                         <JobLogViewer initialJobId={selectedJobId} hideControls={true} />
-                    </div>
-                </>
-            ) : (
-                /* Empty State */
-                <div className="h-full flex flex-col items-center justify-center text-muted-foreground bg-muted/5 p-8 text-center animate-in fade-in zoom-in-95">
-                    <div className="h-24 w-24 rounded-full bg-muted/20 flex items-center justify-center mb-6 ring-8 ring-muted/5">
-                        <Terminal className="h-10 w-10 opacity-30 text-primary" />
-                    </div>
-                    <h3 className="text-xl font-bold text-foreground mb-2">Select a Run</h3>
-                    <p className="max-w-sm text-sm text-muted-foreground/80 leading-relaxed">
-                        Click on an execution from the list on the left to inspect live logs.
-                    </p>
-                </div>
-            )}
-        </div>
-      </div>
-    </div>
-  );
+    );
 };

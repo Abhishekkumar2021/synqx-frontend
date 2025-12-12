@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/incompatible-library */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -7,54 +7,86 @@ import { getConnections, createConnection, deleteConnection, testConnection, typ
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import {
     Plus, Trash2, Database, ExternalLink, Server,
     CheckCircle2, XCircle, HardDrive, Cloud,
     Globe, Lock, FileJson, ShieldCheck, Search,
-    LayoutGrid, List, MoreHorizontal, Plug, Pencil,
-    RefreshCw
-} from 'lucide-react';
-import { FormProvider, useForm } from 'react-hook-form';
+    LayoutGrid, List, Plug, Pencil,
+    RefreshCw, Link as LinkIcon, Settings2} from 'lucide-react';
+import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { 
+    Form,
+    FormControl, 
+    FormField, 
+    FormItem, 
+    FormMessage 
+} from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import {
-    Dialog, DialogContent, DialogDescription, DialogHeader,
-    DialogTitle, DialogFooter
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
 } from "@/components/ui/dialog";
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
     DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// --- Metadata & Schemas ---
 interface ConnectorMetadata {
     id: string;
     name: string;
     description: string;
     icon: React.ReactNode;
     category: 'Database' | 'Warehouse' | 'File' | 'API';
+    color: string;
     popular?: boolean;
 }
 
+const SafeIcon = ({ icon, className }: { icon: React.ReactNode, className?: string }) => {
+    if (React.isValidElement(icon)) {
+        return React.cloneElement(icon as React.ReactElement<any>, { className });
+    }
+    return <Server className={className} />;
+};
+
 const CONNECTOR_META: Record<string, ConnectorMetadata> = {
-    postgresql: { id: 'postgresql', name: 'PostgreSQL', description: 'Reliable open-source object-relational database.', icon: <Database className="text-blue-500" />, category: 'Database', popular: true },
-    mysql: { id: 'mysql', name: 'MySQL', description: 'The world\'s most popular open-source database.', icon: <Database className="text-sky-600" />, category: 'Database' },
-    snowflake: { id: 'snowflake', name: 'Snowflake', description: 'Cloud-native data warehouse.', icon: <Cloud className="text-cyan-400" />, category: 'Warehouse', popular: true },
-    mongodb: { id: 'mongodb', name: 'MongoDB', description: 'Source-available cross-platform document database.', icon: <FileJson className="text-emerald-500" />, category: 'Database' },
-    local_file: { id: 'local_file', name: 'Local File', description: 'Read/Write CSV, JSON, and Parquet files.', icon: <HardDrive className="text-orange-500" />, category: 'File' },
-    s3: { id: 's3', name: 'Amazon S3', description: 'Scalable object storage in the AWS cloud.', icon: <Cloud className="text-yellow-500" />, category: 'File', popular: true },
-    rest_api: { id: 'rest_api', name: 'REST API', description: 'Connect to any HTTP/REST endpoint.', icon: <Globe className="text-purple-500" />, category: 'API' },
+    postgresql: { 
+        id: 'postgresql', name: 'PostgreSQL', description: 'Advanced open-source relational database.', 
+        icon: <Database />, category: 'Database', color: "text-blue-500 bg-blue-500/10 border-blue-500/20", popular: true 
+    },
+    mysql: { 
+        id: 'mysql', name: 'MySQL', description: 'The world\'s most popular open-source database.', 
+        icon: <Database />, category: 'Database', color: "text-sky-500 bg-sky-500/10 border-sky-500/20" 
+    },
+    snowflake: { 
+        id: 'snowflake', name: 'Snowflake', description: 'Cloud-native data warehousing platform.', 
+        icon: <Cloud />, category: 'Warehouse', color: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20", popular: true 
+    },
+    mongodb: { 
+        id: 'mongodb', name: 'MongoDB', description: 'Source-available document database.', 
+        icon: <FileJson />, category: 'Database', color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" 
+    },
+    local_file: { 
+        id: 'local_file', name: 'Local File', description: 'Read CSV, JSON, and Parquet from disk.', 
+        icon: <HardDrive />, category: 'File', color: "text-amber-500 bg-amber-500/10 border-amber-500/20" 
+    },
+    s3: { 
+        id: 's3', name: 'Amazon S3', description: 'Scalable object storage in AWS.', 
+        icon: <Cloud />, category: 'File', color: "text-orange-500 bg-orange-500/10 border-orange-500/20", popular: true 
+    },
+    rest_api: { 
+        id: 'rest_api', name: 'REST API', description: 'Connect to generic HTTP endpoints.', 
+        icon: <Globe />, category: 'API', color: "text-purple-500 bg-purple-500/10 border-purple-500/20" 
+    },
 };
 
 const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
     postgresql: {
         fields: [
-            { name: "host", label: "Host", type: "text", required: true, placeholder: "localhost" },
+            { name: "host", label: "Host Address", type: "text", required: true, placeholder: "e.g. db.example.com" },
             { name: "port", label: "Port", type: "number", required: true, defaultValue: 5432 },
             { name: "database", label: "Database Name", type: "text", required: true },
             { name: "username", label: "Username", type: "text", required: true },
@@ -75,7 +107,7 @@ const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
         fields: [
             { name: "base_url", label: "Base URL", type: "text", required: true, placeholder: "https://api.example.com/v1" },
             {
-                name: "auth_type", label: "Authentication", type: "select", required: true, defaultValue: "none",
+                name: "auth_type", label: "Authentication Method", type: "select", required: true, defaultValue: "none",
                 options: [
                     { label: "No Auth", value: "none" },
                     { label: "Bearer Token", value: "bearer" },
@@ -88,7 +120,6 @@ const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
             { name: "password", label: "Password", type: "password", required: true, dependency: { field: "auth_type", value: "basic" } },
         ]
     },
-    // Fallbacks
     snowflake: { fields: [] }, s3: { fields: [] }, mongodb: { fields: [] }, local_file: { fields: [] }
 };
 
@@ -101,34 +132,30 @@ const connectionSchema = z.object({
 
 type ConnectionFormValues = z.infer<typeof connectionSchema>;
 
-// --- Status Badge Component ---
+// --- Components ---
+
 const ConnectionStatusBadge = ({ status }: { status: string }) => {
-    const variants: any = {
-        active: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400",
-        error: "bg-rose-500/10 text-rose-600 border-rose-500/20 dark:text-rose-400",
-        inactive: "bg-muted text-muted-foreground border-border",
-        testing: "bg-blue-500/10 text-blue-600 border-blue-500/20 animate-pulse",
-    };
+    const config = useMemo(() => {
+        const s = (status || 'inactive').toLowerCase();
+        if (s === 'active' || s === 'connected') return { color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20", icon: CheckCircle2 };
+        if (s === 'error' || s === 'failed') return { color: "text-destructive", bg: "bg-destructive/10", border: "border-destructive/20", icon: XCircle };
+        if (s === 'testing') return { color: "text-primary", bg: "bg-primary/10", border: "border-primary/20", icon: RefreshCw, animate: true };
+        return { color: "text-muted-foreground", bg: "bg-muted", border: "border-border", icon: Plug };
+    }, [status]);
 
-    const icons: any = {
-        active: <CheckCircle2 className="w-3 h-3 mr-1.5" />,
-        error: <XCircle className="w-3 h-3 mr-1.5" />,
-        inactive: <Plug className="w-3 h-3 mr-1.5" />,
-        testing: <RefreshCw className="w-3 h-3 mr-1.5 animate-spin" />
-    };
-
-    const s = (status || 'inactive').toLowerCase();
-    const style = variants[s] || variants.inactive;
-    const icon = icons[s] || icons.inactive;
+    const Icon = config.icon;
 
     return (
-        <Badge variant="outline" className={cn("px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide border", style)}>
-            {icon} {status || 'Unknown'}
-        </Badge>
+        <span className={cn(
+            "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border transition-all",
+            config.color, config.bg, config.border
+        )}>
+            <Icon className={cn("w-3 h-3", config.animate && "animate-spin")} />
+            {status || 'Unknown'}
+        </span>
     );
 };
 
-// --- MAIN PAGE ---
 export const ConnectionsPage: React.FC = () => {
     const queryClient = useQueryClient();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -146,7 +173,7 @@ export const ConnectionsPage: React.FC = () => {
         mutationFn: deleteConnection,
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['connections'] });
-            toast.success('Connection deleted');
+            toast.success('Connection deleted successfully');
         },
     });
 
@@ -161,22 +188,22 @@ export const ConnectionsPage: React.FC = () => {
     };
 
     const handleDelete = (id: number) => {
-        toast('Are you sure you want to delete this connection?', {
+        toast('Delete this connection?', {
+            description: "Pipelines using this connection may break.",
             action: {
                 label: 'Delete',
                 onClick: () => deleteMutation.mutate(id)
             },
             cancel: { label: 'Cancel', onClick: () => { } },
-            duration: 5000,
         });
     };
 
     const handleTest = async (id: number) => {
         setTestingId(id);
         try {
-            await new Promise(resolve => setTimeout(resolve, 800)); // UX delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
             const res = await testConnection(id, {});
-            if (res.success) toast.success("Connection Healthy", { icon: <ShieldCheck className="text-emerald-500" /> });
+            if (res.success) toast.success("Connection Healthy", { icon: <ShieldCheck className="h-4 w-4 text-emerald-500" /> });
             else toast.error("Connection Failed", { description: res.message });
         } catch (e) {
             toast.error("Network Error during test");
@@ -193,28 +220,38 @@ export const ConnectionsPage: React.FC = () => {
         );
     }, [connections, filter]);
 
-    if (error) return <div className="p-8 text-destructive">Failed to load connections.</div>;
+    if (error) return (
+        <div className="flex h-full items-center justify-center">
+            <div className="text-center space-y-2">
+                <XCircle className="h-8 w-8 text-destructive mx-auto" />
+                <h3 className="text-lg font-semibold">Failed to load connections</h3>
+                <p className="text-muted-foreground">Please check your network settings.</p>
+            </div>
+        </div>
+    );
 
     return (
-        <div className="flex flex-col h-[calc(100vh-10rem)] gap-4 animate-in fade-in duration-500">
+        <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 animate-in fade-in duration-500">
 
             {/* Header */}
-            <div className="flex items-center justify-between shrink-0 px-1">
+            <div className="flex items-center justify-between shrink-0">
                 <div className="space-y-1">
-                    <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                        <Database className="h-6 w-6 text-primary" />
+                    <h2 className="text-2xl font-bold tracking-tight flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg ring-1 ring-primary/20">
+                            <LinkIcon className="h-5 w-5 text-primary" />
+                        </div>
                         Connections
                     </h2>
-                    <p className="text-sm text-muted-foreground hidden sm:block">
-                        Manage your data sources and destinations.
+                    <p className="text-sm text-muted-foreground">
+                        Manage authentication and configuration for your data sources.
                     </p>
                 </div>
 
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <Button size="sm" className="shadow-md shadow-primary/20" onClick={handleCreate}>
+                    <Button size="sm" onClick={handleCreate} className="shadow-[0_0_15px_-5px_var(--color-primary)]">
                         <Plus className="mr-2 h-4 w-4" /> New Connection
                     </Button>
-                    <DialogContent className="max-w-5xl h-[650px] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-xl">
+                    <DialogContent className="max-w-5xl h-[700px] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-2xl border-border/50 bg-background/95 backdrop-blur-xl">
                         <CreateConnectionFlow
                             initialData={editingConnection}
                             onClose={() => setIsDialogOpen(false)}
@@ -223,101 +260,145 @@ export const ConnectionsPage: React.FC = () => {
                 </Dialog>
             </div>
 
-            {/* Main Content Area */}
-            <div className="flex-1 min-h-0 flex flex-col bg-card rounded-lg border shadow-sm overflow-hidden">
+            {/* Main Content Pane */}
+            <div className="flex-1 min-h-0 flex flex-col bg-card/50 backdrop-blur-sm rounded-xl border border-border/50 shadow-sm overflow-hidden">
 
                 {/* Toolbar */}
-                <div className="p-3 border-b bg-muted/20 flex gap-3 items-center justify-between shrink-0">
-                    <div className="relative w-full max-w-sm">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <div className="p-4 border-b border-border/50 bg-muted/5 flex gap-4 items-center justify-between shrink-0">
+                    <div className="relative w-full max-w-sm group">
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                         <Input
-                            placeholder="Search connections..."
-                            className="pl-8 h-9 text-sm bg-background"
+                            placeholder="Filter connections..."
+                            className="pl-9 h-9 bg-background/50 focus:bg-background border-muted-foreground/20 focus:border-primary/50"
                             value={filter}
                             onChange={(e) => setFilter(e.target.value)}
                         />
                     </div>
-                    <div className="flex items-center gap-2">
-                        <div className="flex bg-background border rounded-md p-0.5">
-                            <Button variant="ghost" size="icon" className={cn("h-7 w-7 rounded-sm", viewMode === 'grid' && "bg-muted shadow-sm")} onClick={() => setViewMode('grid')}><LayoutGrid className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" className={cn("h-7 w-7 rounded-sm", viewMode === 'list' && "bg-muted shadow-sm")} onClick={() => setViewMode('list')}><List className="h-4 w-4" /></Button>
-                        </div>
+                    <div className="flex items-center gap-2 bg-background/50 border border-border/50 rounded-lg p-1">
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className={cn("h-7 w-7 rounded-md transition-all", viewMode === 'grid' ? "bg-primary/10 text-primary shadow-sm" : "hover:bg-muted")} 
+                            onClick={() => setViewMode('grid')}
+                        >
+                            <LayoutGrid className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className={cn("h-7 w-7 rounded-md transition-all", viewMode === 'list' ? "bg-primary/10 text-primary shadow-sm" : "hover:bg-muted")} 
+                            onClick={() => setViewMode('list')}
+                        >
+                            <List className="h-4 w-4" />
+                        </Button>
                     </div>
                 </div>
 
-                {/* Scrollable Content Area */}
-                <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-border">
+                {/* Connection List */}
+                <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                     <div className={cn("grid gap-4", viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1")}>
                         {isLoading ? (
-                            Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-lg" />)
+                            Array.from({ length: 6 }).map((_, i) => (
+                                <div key={i} className="h-40 rounded-xl border border-border/40 bg-card p-4 space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <Skeleton className="h-10 w-10 rounded-lg" />
+                                        <div className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-3 w-16" /></div>
+                                    </div>
+                                    <Skeleton className="h-12 w-full" />
+                                </div>
+                            ))
                         ) : filteredConnections.length === 0 ? (
-                            <div className="col-span-full h-[400px] flex flex-col items-center justify-center text-muted-foreground bg-muted/5 rounded-lg border border-dashed">
-                                <Plug className="h-10 w-10 opacity-20 mb-4" />
-                                <h3 className="text-lg font-medium text-foreground">No connections found</h3>
-                                <p className="text-sm max-w-xs text-center mt-1">Connect your first database or API.</p>
-                                <Button variant="outline" className="mt-6" onClick={handleCreate}>Add Connection</Button>
+                            <div className="col-span-full h-[400px] flex flex-col items-center justify-center text-center p-8">
+                                <div className="relative mb-6">
+                                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+                                    <div className="relative h-20 w-20 bg-card border rounded-2xl flex items-center justify-center shadow-lg">
+                                        <Plug className="h-10 w-10 text-muted-foreground/50" />
+                                    </div>
+                                </div>
+                                <h3 className="text-xl font-bold mb-2">No Connections</h3>
+                                <p className="text-muted-foreground max-w-sm mb-6">
+                                    You haven't configured any data sources yet. Create one to start building pipelines.
+                                </p>
+                                <Button onClick={handleCreate} className="gap-2">
+                                    <Plus className="h-4 w-4" /> Add First Connection
+                                </Button>
                             </div>
                         ) : (
                             filteredConnections.map((conn) => {
-                                const meta = CONNECTOR_META[conn.type] || { icon: <Server className="text-muted-foreground" />, name: conn.type };
-                                // Conditional Border Color based on status
-                                const statusColor = conn.status === 'error' ? 'hover:border-rose-500/50' : 'hover:border-primary/50';
+                                const meta = CONNECTOR_META[conn.type] || { 
+                                    icon: <Server />, name: conn.type, color: "bg-muted text-muted-foreground" 
+                                };
+                                const isTesting = testingId === conn.id;
 
                                 return (
                                     <div
                                         key={conn.id}
                                         className={cn(
-                                            "group relative flex flex-col bg-background border transition-all hover:shadow-md",
-                                            statusColor,
-                                            viewMode === 'grid' ? "rounded-xl p-5" : "rounded-lg p-4 flex-row items-center gap-4"
+                                            "group relative flex bg-card/80 backdrop-blur-sm border border-border/50 hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/5",
+                                            viewMode === 'grid' ? "flex-col rounded-xl p-5" : "flex-row items-center rounded-lg p-4 gap-6"
                                         )}
                                     >
-                                        <div className={cn("flex justify-between items-start", viewMode === 'list' && "w-[250px] shrink-0")}>
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-lg bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                                                    {React.cloneElement(meta.icon as React.ReactElement<any>, { className: "h-6 w-6" })}
+                                        <div className={cn("flex items-start justify-between", viewMode === 'list' && "w-[300px] shrink-0")}>
+                                            <div className="flex items-center gap-3.5">
+                                                <div className={cn("h-11 w-11 rounded-xl flex items-center justify-center border shadow-sm transition-transform group-hover:scale-105", meta.color)}>
+                                                    {/* SAFE CLONE usage */}
+                                                    <SafeIcon icon={meta.icon} className="h-6 w-6" />
                                                 </div>
                                                 <div>
-                                                    <h3 className="font-semibold text-sm truncate max-w-[140px]">{conn.name}</h3>
-                                                    <p className="text-xs text-muted-foreground capitalize">{meta.name}</p>
+                                                    <h3 className="font-semibold text-sm text-foreground truncate max-w-40">{conn.name}</h3>
+                                                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                                                        <span className="capitalize">{meta.name || conn.type}</span>
+                                                        <span className="w-1 h-1 rounded-full bg-border" />
+                                                        <span className="font-mono opacity-70">ID: {conn.id}</span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className={cn("flex-1", viewMode === 'grid' ? "mt-4 mb-4" : "px-4 border-l")}>
-                                            {viewMode === 'grid' && (
+                                        <div className={cn("flex-1", viewMode === 'grid' ? "mt-4 mb-4" : "px-4 border-l border-border/40")}>
+                                            {viewMode === 'grid' ? (
                                                 <p className="text-xs text-muted-foreground line-clamp-2 h-8 leading-relaxed">
-                                                    {conn.description || "No description provided."}
+                                                    {conn.description || <span className="italic opacity-50">No description provided</span>}
                                                 </p>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground truncate">{conn.description}</p>
                                             )}
-                                            <div className="flex items-center gap-2 mt-2">
-                                                <ConnectionStatusBadge status={conn.status || 'active'} />
-                                                <span className="text-[10px] text-muted-foreground font-mono">ID: {conn.id}</span>
-                                            </div>
+                                            
+                                            {viewMode === 'grid' && (
+                                                <div className="mt-4 flex items-center gap-2">
+                                                    <ConnectionStatusBadge status={conn.status || 'active'} />
+                                                </div>
+                                            )}
                                         </div>
 
-                                        <div className={cn("flex items-center gap-2", viewMode === 'grid' ? "pt-3 border-t mt-auto" : "ml-auto border-l pl-4")}>
+                                        <div className={cn("flex items-center gap-2", viewMode === 'grid' ? "pt-3 border-t border-border/40 mt-auto" : "ml-auto")}>
                                             <Button
-                                                variant="ghost" size="sm"
-                                                className={cn("text-xs h-7 hover:bg-muted", viewMode === 'grid' && "flex-1")}
+                                                variant="outline" size="sm"
+                                                className={cn("text-xs h-8 bg-transparent border-border/50 hover:bg-muted/50", viewMode === 'grid' && "flex-1")}
                                                 onClick={() => handleTest(conn.id)}
-                                                disabled={testingId === conn.id}
+                                                disabled={isTesting}
                                             >
-                                                {testingId === conn.id ? <div className="animate-spin mr-2">⟳</div> : <ExternalLink className="mr-2 h-3 w-3" />}
-                                                Test
+                                                {isTesting ? (
+                                                    <RefreshCw className="mr-2 h-3.5 w-3.5 animate-spin text-primary" />
+                                                ) : (
+                                                    <ExternalLink className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+                                                )}
+                                                {isTesting ? "Testing..." : "Test"}
                                             </Button>
 
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground"><MoreHorizontal className="h-4 w-4" /></Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50">
+                                                        <Settings2 className="h-4 w-4" />
+                                                    </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem className="text-xs" onClick={() => handleEdit(conn)}>
-                                                        <Pencil className="mr-2 h-3 w-3" /> Edit Configuration
+                                                <DropdownMenuContent align="end" className="w-48">
+                                                    <DropdownMenuItem onClick={() => handleEdit(conn)}>
+                                                        <Pencil className="mr-2 h-3.5 w-3.5" /> Configure
                                                     </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
-                                                    <DropdownMenuItem className="text-xs text-destructive focus:text-destructive" onClick={() => handleDelete(conn.id)}>
-                                                        <Trash2 className="mr-2 h-3 w-3" /> Delete Connection
+                                                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleDelete(conn.id)}>
+                                                        <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -333,14 +414,14 @@ export const ConnectionsPage: React.FC = () => {
     );
 };
 
-// --- Create/Edit Flow ---
+// --- Create/Edit Flow Subcomponent ---
+
 const CreateConnectionFlow = ({ initialData, onClose }: { initialData?: any, onClose: () => void }) => {
     const isEditMode = !!initialData;
     const [step, setStep] = useState<'select' | 'configure'>('select');
     const [selectedType, setSelectedType] = useState<string | null>(initialData?.type || null);
     const queryClient = useQueryClient();
 
-    // If we have initial data, skip selection step
     useEffect(() => {
         if (initialData?.type) {
             setSelectedType(initialData.type);
@@ -360,10 +441,8 @@ const CreateConnectionFlow = ({ initialData, onClose }: { initialData?: any, onC
 
     const configValues = form.watch('config') || {};
 
-
     const mutation = useMutation({
-        mutationFn: (data: ConnectionFormValues) =>
-            createConnection(data as ConnectionCreate),
+        mutationFn: (data: ConnectionFormValues) => createConnection(data as ConnectionCreate),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['connections'] });
             toast.success(`Connection ${isEditMode ? 'updated' : 'created'} successfully`);
@@ -375,7 +454,6 @@ const CreateConnectionFlow = ({ initialData, onClose }: { initialData?: any, onC
     const handleSelect = (type: string) => {
         setSelectedType(type);
         form.setValue('type', type);
-        // Load defaults only if creating fresh
         if (!isEditMode) {
             const schema = CONNECTOR_CONFIG_SCHEMAS[type];
             if (schema) {
@@ -387,30 +465,32 @@ const CreateConnectionFlow = ({ initialData, onClose }: { initialData?: any, onC
         setStep('configure');
     };
 
-    // Step 1: Select Type
+    // --- STEP 1: Selection ---
     if (step === 'select' && !isEditMode) {
         return (
-            <div className="flex flex-col h-full bg-background">
-                <DialogHeader className="px-6 py-4 border-b bg-muted/10 shrink-0">
-                    <DialogTitle>Select Connector</DialogTitle>
-                    <DialogDescription>Choose a source or destination to get started.</DialogDescription>
+            <div className="flex flex-col h-full bg-background/50 backdrop-blur-xl">
+                <DialogHeader className="px-8 py-6 border-b border-border/50 shrink-0 bg-muted/5">
+                    <DialogTitle className="text-xl">Select a Connector</DialogTitle>
+                    <DialogDescription>Choose your data source or destination to proceed.</DialogDescription>
                 </DialogHeader>
-                <div className="flex-1 overflow-y-auto p-6">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <div className="flex-1 overflow-y-auto p-8 bg-muted/5">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
                         {Object.entries(CONNECTOR_META).map(([key, meta]) => (
                             <button
                                 key={key}
                                 onClick={() => handleSelect(key)}
-                                className="group flex flex-col items-center gap-3 p-4 rounded-xl border bg-card hover:border-primary/50 hover:shadow-md transition-all text-center relative overflow-hidden"
+                                className="group relative flex flex-col items-center gap-4 p-6 rounded-xl border border-border/60 bg-card hover:border-primary/50 hover:shadow-xl hover:shadow-primary/5 transition-all text-center overflow-hidden"
                             >
-                                <div className="absolute inset-0 bg-linear-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                <div className="p-3 bg-muted rounded-full group-hover:bg-primary/10 transition-colors z-10">
-                                    {React.cloneElement(meta.icon as React.ReactElement<any>, { className: "h-8 w-8" })}
+                                <div className={cn("p-4 rounded-2xl bg-muted/50 group-hover:bg-background transition-colors shadow-inner", meta.color.replace('text-', 'text-opacity-80 text-'))}>
+                                    <SafeIcon icon={meta.icon} className="h-8 w-8" />
                                 </div>
-                                <div className="z-10">
-                                    <h4 className="font-semibold text-sm">{meta.name}</h4>
-                                    <span className="text-[10px] text-muted-foreground uppercase tracking-wide">{meta.category}</span>
+                                <div className="space-y-1 z-10">
+                                    <h4 className="font-semibold text-sm text-foreground">{meta.name}</h4>
+                                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{meta.category}</span>
                                 </div>
+                                {meta.popular && (
+                                    <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/10 text-primary">POPULAR</span>
+                                )}
                             </button>
                         ))}
                     </div>
@@ -419,106 +499,156 @@ const CreateConnectionFlow = ({ initialData, onClose }: { initialData?: any, onC
         );
     }
 
-    // Step 2: Configure
-    const meta = selectedType ? CONNECTOR_META[selectedType] : null;
+    // --- STEP 2: Configuration ---
+    const meta = (selectedType && CONNECTOR_META[selectedType]) 
+        ? CONNECTOR_META[selectedType] 
+        : { name: selectedType || 'Unknown', icon: <Server />, description: 'Custom or deprecated connector type.', color: 'bg-muted text-muted-foreground' };
+        
     const schema = selectedType ? CONNECTOR_CONFIG_SCHEMAS[selectedType] : null;
 
     return (
         <div className="flex h-full">
-            <div className="w-[280px] bg-muted/30 border-r p-6 hidden md:flex flex-col gap-6 shrink-0">
-                <div>
+            {/* Sidebar for Dialog */}
+            <div className="w-[280px] bg-muted/10 border-r border-border/50 p-6 hidden md:flex flex-col gap-6 shrink-0 relative overflow-hidden">
+                <div className="absolute inset-0 bg-linear-to-b from-transparent to-muted/20 pointer-events-none" />
+                
+                <div className="z-10">
                     {!isEditMode && (
-                        <Button variant="ghost" size="sm" className="-ml-2 mb-4 text-muted-foreground" onClick={() => setStep('select')}>
-                            &larr; Back to Selection
+                        <Button 
+                            variant="link" 
+                            size="sm" 
+                            className="-ml-4 mb-6 text-muted-foreground hover:text-primary" 
+                            onClick={() => setStep('select')}
+                        >
+                            &larr; Change Connector
                         </Button>
                     )}
-                    <div className="h-14 w-14 bg-background border rounded-xl flex items-center justify-center mb-4 shadow-sm">
-                        {React.cloneElement(meta?.icon as React.ReactElement<any>, { className: "h-8 w-8" })}
+                    <div className={cn("h-16 w-16 rounded-2xl flex items-center justify-center mb-5 border shadow-sm", meta?.color)}>
+                        {/* SAFE CLONE usage */}
+                        <SafeIcon icon={meta.icon} className="h-8 w-8" />
                     </div>
-                    <h3 className="text-xl font-bold">{isEditMode ? 'Edit' : 'Configure'} {meta?.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{meta?.description}</p>
+                    <h3 className="text-xl font-bold tracking-tight">{isEditMode ? 'Edit' : 'Configure'} {meta?.name}</h3>
+                    <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{meta?.description}</p>
                 </div>
-                <div className="mt-auto space-y-4">
-                    <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-600 dark:text-blue-400">
-                        <strong>Security Note:</strong> Credentials are encrypted at rest using AES-256 before storage.
+
+                <div className="mt-auto space-y-4 z-10">
+                     <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10 text-xs text-blue-600/80 dark:text-blue-400">
+                        <div className="flex items-center gap-2 font-semibold mb-1">
+                            <ShieldCheck className="h-3.5 w-3.5" /> Secure Storage
+                        </div>
+                        Credentials are encrypted at rest using AES-256 GCM.
                     </div>
                 </div>
             </div>
 
-            <div className="flex-1 flex flex-col h-full bg-background min-w-0">
-                <DialogHeader className="px-6 py-4 border-b shrink-0">
-                    <DialogTitle>{isEditMode ? `Edit ${initialData.name}` : 'Connection Details'}</DialogTitle>
+            {/* Form Area */}
+            <div className="flex-1 flex flex-col h-full bg-background/50 backdrop-blur-sm min-w-0">
+                <DialogHeader className="px-8 py-6 border-b border-border/50 shrink-0">
+                    <DialogTitle className="text-lg">Connection Details</DialogTitle>
                 </DialogHeader>
-                <div className="flex-1 overflow-y-auto p-6">
-                    <FormProvider {...form}>
-                        <form id="conn-form" onSubmit={form.handleSubmit((d) => mutation.mutate(d))} className="space-y-6 max-w-lg mx-auto">
-                            <div className="space-y-4">
-                                <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs">1</span>
-                                    General
+                
+                <div className="flex-1 overflow-y-auto p-8">
+                    {/* SAFE GUARD: Form Provider wraps everything */}
+                    <Form {...form}>
+                        <form id="conn-form" onSubmit={form.handleSubmit((d) => mutation.mutate(d))} className="space-y-8 max-w-lg mx-auto">
+                            
+                            {/* General Section */}
+                            <div className="space-y-5">
+                                {/* Use standard HTML h4 for headers, NOT FormLabel */}
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px]">1</span>
+                                    General Information
                                 </h4>
-                                <FormField control={form.control} name="name" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Name</FormLabel>
-                                        <FormControl><Input {...field} placeholder="e.g. Production DB" /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="description" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Description</FormLabel>
-                                        <FormControl><Input {...field} placeholder="Optional description" /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
+                                <div className="grid gap-5 pl-7">
+                                    <FormField control={form.control} name="name" render={({ field }) => (
+                                        <FormItem>
+                                            {/* FIX: Using Label primitive instead of FormLabel to prevent context crash */}
+                                            <Label className="text-sm font-medium">Connection Name</Label>
+                                            <FormControl>
+                                                <Input {...field} placeholder="e.g. Production DB" className="bg-background/50" />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                    <FormField control={form.control} name="description" render={({ field }) => (
+                                        <FormItem>
+                                            {/* FIX: Using Label primitive */}
+                                            <Label className="text-sm font-medium">Description</Label>
+                                            <FormControl>
+                                                <Input {...field} placeholder="Optional context" className="bg-background/50" />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
+                                </div>
                             </div>
-                            <div className="border-t border-dashed" />
-                            <div className="space-y-4">
-                                <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/10 text-primary text-xs">2</span>
-                                    Config
+
+                            <div className="h-px bg-border/50" />
+
+                            {/* Config Section */}
+                            <div className="space-y-5">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px]">2</span>
+                                    Credentials
                                 </h4>
-                                {schema?.fields?.map((field: any) => {
-                                    if (field.dependency) {
-                                        const depVal = configValues[field.dependency.field];
-                                        if (depVal !== field.dependency.value) return null;
-                                    }
-                                    return (
-                                        <FormField key={field.name} control={form.control} name={`config.${field.name}`} render={({ field: f }) => (
-                                            <FormItem>
-                                                <FormLabel>{field.label}</FormLabel>
-                                                <FormControl>
-                                                    {field.type === 'select' ? (
-                                                        <Select onValueChange={f.onChange} defaultValue={f.value}>
-                                                            <SelectTrigger><SelectValue /></SelectTrigger>
-                                                            <SelectContent>
-                                                                {field.options?.map((o: any) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                                                            </SelectContent>
-                                                        </Select>
-                                                    ) : (
-                                                        <div className="relative">
-                                                            <Input {...f} type={field.type} placeholder={field.placeholder} className={field.type === 'password' ? 'pl-9' : ''} />
-                                                            {field.type === 'password' && <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />}
-                                                        </div>
-                                                    )}
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )} />
-                                    );
-                                })}
+                                <div className="grid gap-5 pl-7">
+                                    {schema?.fields?.map((field: any) => {
+                                        // Dependency Check
+                                        if (field.dependency) {
+                                            const depVal = configValues[field.dependency.field];
+                                            if (depVal !== field.dependency.value) return null;
+                                        }
+                                        return (
+                                            <FormField key={field.name} control={form.control} name={`config.${field.name}`} render={({ field: f }) => (
+                                                <FormItem>
+                                                    {/* FIX: Using Label primitive */}
+                                                    <Label className="text-sm font-medium">{field.label}</Label>
+                                                    <FormControl>
+                                                        {field.type === 'select' ? (
+                                                            <Select onValueChange={f.onChange} defaultValue={f.value}>
+                                                                <SelectTrigger className="bg-background/50"><SelectValue /></SelectTrigger>
+                                                                <SelectContent>
+                                                                    {field.options?.map((o: any) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        ) : (
+                                                            <div className="relative">
+                                                                <Input 
+                                                                    {...f} 
+                                                                    type={field.type} 
+                                                                    placeholder={field.placeholder} 
+                                                                    className={cn("bg-background/50", field.type === 'password' && 'pl-9')} 
+                                                                />
+                                                                {field.type === 'password' && (
+                                                                    <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )} />
+                                        );
+                                    })}
+                                    {(!schema?.fields || schema.fields.length === 0) && (
+                                        <div className="text-sm text-muted-foreground italic bg-muted/20 p-4 rounded-md border border-border/50">
+                                            No additional configuration required for this connector type.
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </form>
-                    </FormProvider>
+                    </Form>
                 </div>
-                <DialogFooter className="p-4 border-t bg-muted/5 shrink-0">
-                    <Button variant="ghost" onClick={onClose} className="mr-auto">Cancel</Button>
-                    <Button form="conn-form" type="submit" disabled={mutation.isPending}>
-                        {mutation.isPending && <div className="animate-spin mr-2">⟳</div>}
+
+                <DialogFooter className="p-6 border-t border-border/50 bg-muted/5 shrink-0 flex items-center justify-between">
+                    <Button variant="ghost" onClick={onClose} className="text-muted-foreground hover:text-foreground">Cancel</Button>
+                    <Button form="conn-form" type="submit" disabled={mutation.isPending} className="px-6 shadow-lg shadow-primary/20">
+                        {mutation.isPending ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
                         {isEditMode ? 'Update Connection' : 'Save Connection'}
                     </Button>
                 </DialogFooter>
             </div>
         </div>
     );
-}
+};

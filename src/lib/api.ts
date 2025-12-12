@@ -52,7 +52,7 @@ export interface PipelineCreate {
 export interface Job {
   id: number;
   pipeline_id: number;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  status: "running" | "failed" | "pending" | "completed" | "cancelled" | "success" | "error";
   started_at?: string;
   finished_at?: string;
   trigger_type: 'manual' | 'scheduled' | 'webhook';
