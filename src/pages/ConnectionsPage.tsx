@@ -77,6 +77,14 @@ const CONNECTOR_META: Record<string, ConnectorMetadata> = {
         id: 's3', name: 'Amazon S3', description: 'Scalable object storage in AWS.', 
         icon: <Cloud />, category: 'File', color: "text-orange-500 bg-orange-500/10 border-orange-500/20", popular: true 
     },
+    redis: { 
+        id: 'redis', name: 'Redis', description: 'In-memory key-value store.', 
+        icon: <Database />, category: 'Database', color: "text-red-600 bg-red-600/10 border-red-600/20" 
+    },
+    bigquery: { 
+        id: 'bigquery', name: 'Google BigQuery', description: 'Serverless enterprise data warehouse.', 
+        icon: <Cloud />, category: 'Warehouse', color: "text-blue-600 bg-blue-600/10 border-blue-600/20" 
+    },
     rest_api: { 
         id: 'rest_api', name: 'REST API', description: 'Connect to generic HTTP endpoints.', 
         icon: <Globe />, category: 'API', color: "text-purple-500 bg-purple-500/10 border-purple-500/20" 
@@ -103,6 +111,53 @@ const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
             { name: "password", label: "Password", type: "password", required: true },
         ]
     },
+    mongodb: {
+        fields: [
+            { name: "connection_string", label: "Connection String (URI)", type: "text", placeholder: "mongodb://user:pass@host:27017/db" },
+            { name: "host", label: "Host", type: "text", placeholder: "localhost", defaultValue: "localhost" },
+            { name: "port", label: "Port", type: "number", defaultValue: 27017 },
+            { name: "database", label: "Database Name", type: "text", required: true },
+            { name: "username", label: "Username", type: "text" },
+            { name: "password", label: "Password", type: "password" },
+            { name: "auth_source", label: "Auth Source", type: "text", defaultValue: "admin" },
+        ]
+    },
+    s3: {
+        fields: [
+            { name: "bucket", label: "Bucket Name", type: "text", required: true },
+            { name: "region_name", label: "AWS Region", type: "text", defaultValue: "us-east-1" },
+            { name: "aws_access_key_id", label: "Access Key ID", type: "text" },
+            { name: "aws_secret_access_key", label: "Secret Access Key", type: "password" },
+            { name: "endpoint_url", label: "Custom Endpoint URL", type: "text", placeholder: "https://s3.amazonaws.com" },
+        ]
+    },
+    redis: {
+        fields: [
+            { name: "host", label: "Host", type: "text", required: true, defaultValue: "localhost" },
+            { name: "port", label: "Port", type: "number", required: true, defaultValue: 6379 },
+            { name: "password", label: "Password", type: "password" },
+            { name: "db", label: "DB Index", type: "number", defaultValue: 0 },
+        ]
+    },
+    snowflake: {
+        fields: [
+            { name: "user", label: "User", type: "text", required: true },
+            { name: "password", label: "Password", type: "password", required: true },
+            { name: "account", label: "Account", type: "text", required: true, placeholder: "xy12345.us-east-1" },
+            { name: "warehouse", label: "Warehouse", type: "text", required: true },
+            { name: "database", label: "Database", type: "text", required: true },
+            { name: "schema_name", label: "Schema", type: "text", defaultValue: "PUBLIC" },
+            { name: "role", label: "Role", type: "text" },
+        ]
+    },
+    bigquery: {
+        fields: [
+            { name: "project_id", label: "Project ID", type: "text", required: true },
+            { name: "dataset_id", label: "Dataset ID", type: "text", required: true },
+            { name: "credentials_json", label: "Service Account JSON", type: "textarea", placeholder: "{ ... }" },
+            { name: "credentials_path", label: "Key File Path", type: "text" },
+        ]
+    },
     rest_api: {
         fields: [
             { name: "base_url", label: "Base URL", type: "text", required: true, placeholder: "https://api.example.com/v1" },
@@ -120,7 +175,7 @@ const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
             { name: "password", label: "Password", type: "password", required: true, dependency: { field: "auth_type", value: "basic" } },
         ]
     },
-    snowflake: { fields: [] }, s3: { fields: [] }, mongodb: { fields: [] }, local_file: { fields: [] }
+    local_file: { fields: [] }
 };
 
 const connectionSchema = z.object({

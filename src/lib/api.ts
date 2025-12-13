@@ -1,14 +1,77 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from 'axios';
 
 // --- Configuration ---
 export const API_BASE_URL = 'http://localhost:8000/api/v1'; // Adjust as needed
 
-export const apiClient = axios.create({
+// Renaming for consistency with request
+export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// Request interceptor to add token
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
+);
+
+// --- Auth Types ---
+export interface AuthToken {
+    access_token: string;
+    token_type: string;
+}
+
+export interface User {
+    id: number;
+    email: string;
+    full_name?: string;
+    is_active: boolean;
+    is_superuser: boolean;
+}
+
+export interface LoginRequest {
+    username: string; // OAuth2 expects username/password form fields usually, but here handling as JSON or Form
+    password: string;
+}
+
+export interface RegisterRequest {
+    email: string;
+    password: string;
+    full_name?: string;
+}
+
+// --- Auth Functions ---
+
+export const loginUser = async (credentials: LoginRequest) => {
+    // FastAPIs OAuth2PasswordRequestForm expects form-data usually
+    const params = new URLSearchParams();
+    params.append('username', credentials.username);
+    params.append('password', credentials.password);
+    
+    const { data } = await api.post<AuthToken>('/auth/login', params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+    return data;
+};
+
+export const registerUser = async (payload: RegisterRequest) => {
+    const { data } = await api.post<User>('/auth/register', payload);
+    return data;
+};
+
+export const getCurrentUser = async () => {
+    const { data } = await api.get<User>('/auth/me');
+    return data;
+};
 
 // --- Types (Mirrored from OpenAPI) ---
 
@@ -109,46 +172,46 @@ export interface SchemaVersion {
 }
 
 export const getConnections = async () => {
-  const { data } = await apiClient.get<ConnectionListResponse>('/connections');
+  const { data } = await api.get<ConnectionListResponse>('/connections');
   return data.connections;
 };
 
 export const getConnection = async (id: number) => {
-    const { data } = await apiClient.get<Connection>(`/connections/${id}`);
+    const { data } = await api.get<Connection>(`/connections/${id}`);
     return data;
 };
 
 export const createConnection = async (payload: ConnectionCreate) => {
-  const { data } = await apiClient.post<Connection>('/connections', payload);
+  const { data } = await api.post<Connection>('/connections', payload);
   return data;
 };
 
 export const deleteConnection = async (id: number) => {
-    await apiClient.delete(`/connections/${id}`);
+    await api.delete(`/connections/${id}`);
 };
 
 export const testConnection = async (id: number, config: any = {}) => {
-    const { data } = await apiClient.post<ConnectionTestResult>(`/connections/${id}/test`, { config });
+    const { data } = await api.post<ConnectionTestResult>(`/connections/${id}/test`, { config });
     return data;
 };
 
 export const discoverAssets = async (id: number) => {
-    const { data } = await apiClient.post<any>(`/connections/${id}/discover`, { include_metadata: false });
+    const { data } = await api.post<any>(`/connections/${id}/discover`, { include_metadata: false });
     return data;
 };
 
 export const getConnectionAssets = async (id: number) => {
-    const { data } = await apiClient.get<AssetListResponse>(`/connections/${id}/assets`);
+    const { data } = await api.get<AssetListResponse>(`/connections/${id}/assets`);
     return data.assets;
 };
 
 export const discoverAssetSchema = async (connectionId: number, assetId: number) => {
-    const { data } = await apiClient.post<any>(`/connections/${connectionId}/assets/${assetId}/discover-schema`, { force_refresh: true });
+    const { data } = await api.post<any>(`/connections/${connectionId}/assets/${assetId}/discover-schema`, { force_refresh: true });
     return data;
 };
 
 export const getAssetSchemaVersions = async (connectionId: number, assetId: number) => {
-    const { data } = await apiClient.get<SchemaVersion[]>(`/connections/${connectionId}/assets/${assetId}/schema-versions`);
+    const { data } = await api.get<SchemaVersion[]>(`/connections/${connectionId}/assets/${assetId}/schema-versions`);
     return data;
 };
 
@@ -198,27 +261,27 @@ export interface PipelineStatsResponse {
 }
 
 export const getPipelines = async () => {
-  const { data } = await apiClient.get<PipelineListResponse>('/pipelines');
+  const { data } = await api.get<PipelineListResponse>('/pipelines');
   return data.pipelines;
 };
 
 export const getPipeline = async (id: number) => {
-    const { data } = await apiClient.get<PipelineDetailRead>(`/pipelines/${id}`);
+    const { data } = await api.get<PipelineDetailRead>(`/pipelines/${id}`);
     return data;
 };
 
 export const getPipelineStats = async (id: number) => {
-    const { data } = await apiClient.get<PipelineStatsResponse>(`/pipelines/${id}/stats`);
+    const { data } = await api.get<PipelineStatsResponse>(`/pipelines/${id}/stats`);
     return data;
 };
 
 export const createPipeline = async (payload: PipelineCreate) => {
-    const { data } = await apiClient.post<PipelineDetailRead>('/pipelines', payload);
+    const { data } = await api.post<PipelineDetailRead>('/pipelines', payload);
     return data;
 };
 
 export const updatePipeline = async (id: number, payload: any) => {
-    const { data } = await apiClient.patch<PipelineDetailRead>(`/pipelines/${id}`, payload);
+    const { data } = await api.patch<PipelineDetailRead>(`/pipelines/${id}`, payload);
     return data;
 };
 
@@ -231,17 +294,17 @@ export interface PipelineVersionCreate {
 }
 
 export const createPipelineVersion = async (id: number, payload: PipelineVersionCreate) => {
-    const { data } = await apiClient.post<PipelineVersionRead>(`/pipelines/${id}/versions`, payload);
+    const { data } = await api.post<PipelineVersionRead>(`/pipelines/${id}/versions`, payload);
     return data;
 };
 
 export const publishPipelineVersion = async (pipelineId: number, versionId: number) => {
-    const { data } = await apiClient.post<any>(`/pipelines/${pipelineId}/versions/${versionId}/publish`, {});
+    const { data } = await api.post<any>(`/pipelines/${pipelineId}/versions/${versionId}/publish`, {});
     return data;
 };
 
 export const triggerPipeline = async (id: number) => {
-    const { data } = await apiClient.post<Job>(`/pipelines/${id}/trigger`, {});
+    const { data } = await api.post<Job>(`/pipelines/${id}/trigger`, {});
     return data;
 };
 
@@ -255,16 +318,16 @@ export interface JobListResponse {
 
 export const getJobs = async (pipelineId?: number) => {
   const params = pipelineId ? { pipeline_id: pipelineId } : {};
-  const { data } = await apiClient.get<JobListResponse>('/jobs', { params });
+  const { data } = await api.get<JobListResponse>('/jobs', { params });
   return data.jobs;
 };
 
 export const getJob = async (id: number) => {
-    const { data } = await apiClient.get<Job>(`/jobs/${id}`);
+    const { data } = await api.get<Job>(`/jobs/${id}`);
     return data;
 };
 
 export const getJobLogs = async (id: number) => {
-    const { data } = await apiClient.get<any[]>(`/jobs/${id}/logs`);
+    const { data } = await api.get<any[]>(`/jobs/${id}/logs`);
     return data;
 };
