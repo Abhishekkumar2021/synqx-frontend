@@ -1,32 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
-import {
-    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer, PieChart, Pie, Cell, Legend
-} from 'recharts';
 import { getPipelines, getJobs, getConnections } from '@/lib/api';
 import { subHours, format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-    Activity, Database, Workflow, CheckCircle2,
-    PlayCircle, Clock, TrendingUp, TrendingDown,
-    Zap, AlertTriangle, ArrowUpRight, 
-    Server,
-    MoreHorizontal
+    Activity, CheckCircle2,
+    PlayCircle, Zap, 
+    Workflow, Server
 } from 'lucide-react';
-import {
-    Table, TableBody, TableCell, TableHead,
-    TableHeader, TableRow
-} from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
-import {
-    DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { StatsCard } from '@/components/ui/StatsCard';
+import { ExecutionThroughputChart } from '@/components/dashboard/ExecutionThroughputChart';
+import { PipelineHealthChart } from '@/components/dashboard/PipelineHealthChart';
+import { RecentActivityTable } from '@/components/dashboard/RecentActivityTable';
 
 export const DashboardPage: React.FC = () => {
     // 1. Data Fetching
@@ -184,296 +171,24 @@ export const DashboardPage: React.FC = () => {
             <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-7">
 
                 {/* --- Main Area Chart: Throughput --- */}
-                <Card className="lg:col-span-4 flex flex-col border-border/60 bg-card/50 backdrop-blur-sm shadow-sm min-w-0">
-                    <CardHeader className="pb-4">
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                                <CardTitle className="text-base font-semibold">Execution Throughput</CardTitle>
-                                <CardDescription>24-hour job success vs failure volume</CardDescription>
-                            </div>
-                            <Badge variant="outline" className="font-mono text-[10px] uppercase text-secondary-foreground">Live</Badge>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="flex-1 pl-0">
-                        <div className="h-[300px] w-full" style={{ minHeight: '300px' }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="colorSuccess" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="var(--chart-2)" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="var(--chart-2)" stopOpacity={0} />
-                                        </linearGradient>
-                                        <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="var(--destructive)" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="var(--destructive)" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} opacity={0.15} />
-                                    <XAxis
-                                        dataKey="name"
-                                        stroke="var(--muted-foreground)"
-                                        fontSize={11}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        minTickGap={35}
-                                        dy={10}
-                                    />
-                                    <YAxis
-                                        stroke="var(--muted-foreground)"
-                                        fontSize={11}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        width={40}
-                                    />
-                                    <Tooltip
-                                        contentStyle={{
-                                            backgroundColor: 'var(--card)',
-                                            borderColor: 'var(--border)',
-                                            borderRadius: 'var(--radius)',
-                                            boxShadow: '0 10px 30px -5px rgba(0,0,0,0.3)'
-                                        }}
-                                        itemStyle={{ fontSize: '12px', fontWeight: 600, padding: 0 }}
-                                        labelStyle={{ color: 'var(--muted-foreground)', marginBottom: '0.5rem', fontSize: '11px' }}
-                                        cursor={{ stroke: 'var(--primary)', strokeWidth: 1, strokeDasharray: '4 4' }}
-                                    />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="success"
-                                        name="Completed"
-                                        stroke="var(--chart-2)"
-                                        strokeWidth={2}
-                                        fill="url(#colorSuccess)"
-                                        activeDot={{ r: 4, strokeWidth: 0 }}
-                                    />
-                                    <Area
-                                        type="monotone"
-                                        dataKey="failed"
-                                        name="Failed"
-                                        stroke="var(--destructive)"
-                                        strokeWidth={2}
-                                        fill="url(#colorFailed)"
-                                        activeDot={{ r: 4, strokeWidth: 0 }}
-                                    />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </CardContent>
-                </Card>
+                <ExecutionThroughputChart data={chartData} />
 
                 {/* --- Pie Chart: Pipeline Health --- */}
-                <Card className="lg:col-span-3 border-border/60 bg-card/50 backdrop-blur-sm shadow-sm flex flex-col min-w-0">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base font-semibold">Pipeline Health</CardTitle>
-                        <CardDescription>Status distribution of defined pipelines</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-1 flex items-center justify-center relative">
-                        {pipelineDistribution.length > 0 ? (
-                            <div className="w-full h-[250px] relative">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={pipelineDistribution}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={65}
-                                            outerRadius={90}
-                                            paddingAngle={3}
-                                            dataKey="value"
-                                            stroke="var(--background)"
-                                            strokeWidth={2}
-                                        >
-                                            {pipelineDistribution.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.color} className="stroke-background hover:opacity-80 transition-opacity" />
-                                            ))}
-                                        </Pie>
-                                        <Tooltip
-                                            contentStyle={{
-                                                backgroundColor: 'var(--card)',
-                                                borderRadius: '8px',
-                                                border: '1px solid var(--border)',
-                                                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
-                                            }}
-                                            itemStyle={{ color: 'var(--foreground)', fontWeight: 600 }}
-                                        />
-                                        <Legend
-                                            verticalAlign="bottom"
-                                            height={36}
-                                            iconType="circle"
-                                            iconSize={8}
-                                            formatter={(value) => <span className="text-xs text-muted-foreground ml-1">{value}</span>}
-                                        />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-8">
-                                    <span className="text-4xl font-bold tabular-nums text-foreground tracking-tighter">
-                                        {stats?.totalPipelines}
-                                    </span>
-                                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-1">
-                                        Total
-                                    </span>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center text-muted-foreground h-full gap-2">
-                                <div className="p-3 bg-muted rounded-full">
-                                    <AlertTriangle className="h-6 w-6 opacity-40" />
-                                </div>
-                                <span className="text-xs">No pipelines found</span>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
+                <PipelineHealthChart 
+                    data={pipelineDistribution} 
+                    totalPipelines={stats?.totalPipelines || 0} 
+                />
 
-                {/* --- Recent Activity Table --- */}
-                <Card className="col-span-full border-border/60 bg-card/50 backdrop-blur-sm shadow-sm overflow-hidden">
-                    <CardHeader className="flex flex-row items-center justify-between border-b border-border/40 bg-muted/5 py-4">
-                        <div className="space-y-0.5">
-                            <CardTitle className="text-base font-semibold flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-primary" />
-                                Recent Activity
-                            </CardTitle>
+                                {/* --- Recent Activity Table --- */}
+
+                                <RecentActivityTable jobs={jobs || []} />
+
+                            </div>
+
                         </div>
 
-                        <Link
-                            to="/jobs"
-                            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-xs h-8 gap-1 hover:text-primary")}
-                        >
-                            View Full History <ArrowUpRight className="h-3 w-3" />
-                        </Link>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="hover:bg-transparent border-b border-border/40">
-                                    <TableHead className="w-[100px] text-xs uppercase font-semibold">Job ID</TableHead>
-                                    <TableHead className="text-xs uppercase font-semibold">Pipeline</TableHead>
-                                    <TableHead className="text-xs uppercase font-semibold">Status</TableHead>
-                                    <TableHead className="text-right text-xs uppercase font-semibold">Duration</TableHead>
-                                    <TableHead className="text-right text-xs uppercase font-semibold">Started</TableHead>
-                                    <TableHead className="w-[50px]"></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {jobs && jobs.length > 0 ? (
-                                    jobs.slice(0, 5).map((job: any) => (
-                                        <TableRow key={job.id} className="hover:bg-muted/40 border-b border-border/40 group transition-colors">
-                                            <TableCell className="font-mono text-xs font-medium text-foreground">
-                                                #{job.id}
-                                            </TableCell>
-                                            <TableCell className="font-medium text-sm">
-                                                <div className="flex items-center gap-2">
-                                                    <Workflow className="h-3 w-3 text-muted-foreground" />
-                                                    {job.pipeline_name || `Pipeline ${job.pipeline_id}`}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <StatusBadge status={job.status} />
-                                            </TableCell>
-                                            <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">
-                                                {job.duration_ms ? `${(job.duration_ms / 1000).toFixed(2)}s` : '-'}
-                                            </TableCell>
-                                            <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">
-                                                {format(new Date(job.started_at), 'HH:mm:ss')}
-                                            </TableCell>
-                                            <TableCell>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <MoreHorizontal className="h-3.5 w-3.5" />
-                                                        </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                        <DropdownMenuItem>View Logs</DropdownMenuItem>
-                                                        <DropdownMenuItem>Rerun</DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={6} className="h-32 text-center">
-                                            <div className="flex flex-col items-center justify-center text-muted-foreground gap-2">
-                                                <Database className="h-8 w-8 opacity-20" />
-                                                <span className="text-sm">No recent activity recorded</span>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
-    );
-};
+                    );
 
-// --- Subcomponents ---
+                };
 
-const StatusBadge = ({ status }: { status: string }) => {
-    let styles = "bg-muted text-muted-foreground";
-    let icon = Clock;
-
-    switch (status?.toLowerCase()) {
-        case 'completed':
-        case 'success':
-            styles = "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
-            icon = CheckCircle2;
-            break;
-        case 'failed':
-        case 'error':
-            styles = "bg-red-500/10 text-red-500 border-red-500/20";
-            icon = AlertTriangle;
-            break;
-        case 'running':
-            styles = "bg-blue-500/10 text-blue-500 border-blue-500/20 animate-pulse";
-            icon = Zap;
-            break;
-    }
-
-    const Icon = icon;
-
-    return (
-        <Badge variant="outline" className={cn("text-[10px] uppercase font-bold border px-2 py-0.5 gap-1.5", styles)}>
-            <Icon className="h-3 w-3" />
-            {status}
-        </Badge>
-    );
-};
-
-const StatsCard = ({ title, value, subtext, trend, trendUp, icon: Icon, active, color, bgGlow }: any) => (
-    <Card className={cn(
-        "relative overflow-hidden border border-border/60 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:border-primary/30",
-        active && "border-primary/40 shadow-[0_0_20px_-10px_var(--color-primary)] ring-1 ring-primary/20"
-    )}>
-        <CardContent className="p-6">
-            <div className="flex items-center justify-between space-y-0 pb-3">
-                <p className="text-sm font-medium text-muted-foreground">{title}</p>
-                <div className={cn("p-2 rounded-lg bg-background/80 shadow-sm border border-border/50", active && "animate-pulse")}>
-                    <Icon className={cn("h-4 w-4", color || "text-foreground")} />
-                </div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-                <h3 className="text-3xl font-bold tracking-tight tabular-nums">{value}</h3>
-                {(trend || subtext) && (
-                    <div className="flex items-center text-xs">
-                        {trend && (
-                            <span className={cn(
-                                "flex items-center font-bold mr-2 px-1.5 py-0.5 rounded-sm bg-muted/50",
-                                trendUp ? "text-emerald-500" : "text-red-500"
-                            )}>
-                                {trendUp ? <TrendingUp className="mr-1 h-3 w-3" /> : <TrendingDown className="mr-1 h-3 w-3" />}
-                                {trend}
-                            </span>
-                        )}
-                        {subtext && <span className="text-muted-foreground/80">{subtext}</span>}
-                    </div>
-                )}
-            </div>
-        </CardContent>
-        {active && (
-            <div className={cn("absolute top-0 right-0 -mt-8 -mr-8 h-32 w-32 rounded-full blur-3xl opacity-20 pointer-events-none", bgGlow || "bg-primary")}></div>
-        )}
-    </Card>
-);
+                
