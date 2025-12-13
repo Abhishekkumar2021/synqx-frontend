@@ -3,10 +3,9 @@ import {
     User, Palette, Key, Bell, ShieldAlert, 
     Save, Copy, Check, Mail, 
     Globe, Laptop, Lock, Eye, EyeOff, 
-    RefreshCw, Trash2
+    RefreshCw, Trash2, Moon, Sun, Monitor
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { ModeToggle } from '@/components/ModeToggle';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,10 +15,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/components/ThemeProvider';
 
 type SettingsTab = 'general' | 'security' | 'notifications' | 'billing';
 
 export const SettingsPage: React.FC = () => {
+  const { user } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -38,10 +41,16 @@ export const SettingsPage: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col gap-8 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="relative flex flex-col gap-8 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-[80vh]">
       
+      {/* --- Ambient Background Effects --- */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px] opacity-30" />
+          <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] opacity-20" />
+      </div>
+
       {/* --- Page Header --- */}
-      <div className="flex flex-col gap-2 border-b border-border/50 pb-6">
+      <div className="flex flex-col gap-2 border-b border-border/50 pb-6 relative z-10">
         <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
             Settings
         </h2>
@@ -50,7 +59,7 @@ export const SettingsPage: React.FC = () => {
         </p>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8 lg:gap-12">
+      <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 relative z-10">
         
         {/* --- Sidebar Navigation --- */}
         <aside className="lg:w-64 shrink-0 space-y-2">
@@ -59,7 +68,7 @@ export const SettingsPage: React.FC = () => {
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as SettingsTab)}
                     className={cn(
-                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 border border-transparent",
+                        "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 border border-transparent outline-none focus:ring-2 focus:ring-primary/20",
                         activeTab === tab.id 
                             ? "bg-primary/10 text-primary border-primary/20 shadow-sm" 
                             : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -68,7 +77,6 @@ export const SettingsPage: React.FC = () => {
                     <tab.icon className={cn("h-4 w-4", activeTab === tab.id ? "text-primary" : "text-muted-foreground")} />
                     <div className="flex flex-col items-start">
                         <span>{tab.label}</span>
-                        {/* <span className="text-[10px] font-normal opacity-70">{tab.description}</span> */}
                     </div>
                     {activeTab === tab.id && (
                         <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]" />
@@ -83,15 +91,17 @@ export const SettingsPage: React.FC = () => {
             {activeTab === 'general' && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-500 fade-in">
                     {/* Profile Card */}
-                    <Card className="border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden">
+                    <Card className="border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden shadow-sm">
                         {/* Banner Background */}
                         <div className="h-24 bg-linear-to-r from-blue-600/20 via-purple-600/20 to-primary/20 border-b border-border/50" />
                         
                         <CardHeader className="relative pt-0">
                             <div className="absolute -top-12 left-6">
-                                <Avatar className="h-24 w-24 border-4 border-card shadow-xl">
-                                    <AvatarImage src="https://github.com/shadcn.png" />
-                                    <AvatarFallback className="bg-primary/10 text-primary text-2xl">AB</AvatarFallback>
+                                <Avatar className="h-24 w-24 border-4 border-card shadow-xl ring-1 ring-border/50">
+                                    <AvatarImage src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || 'synqx'}`} />
+                                    <AvatarFallback className="bg-primary/10 text-primary text-2xl">
+                                        {user?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                                    </AvatarFallback>
                                 </Avatar>
                                 <div className="absolute bottom-0 right-0">
                                     <Button size="icon" variant="secondary" className="h-8 w-8 rounded-full shadow-md border border-border">
@@ -100,15 +110,15 @@ export const SettingsPage: React.FC = () => {
                                 </div>
                             </div>
                             <div className="ml-32 pt-4">
-                                <CardTitle className="text-xl">Abhishek</CardTitle>
-                                <CardDescription>admin@synqx.dev • Administrator</CardDescription>
+                                <CardTitle className="text-xl">{user?.full_name || 'User'}</CardTitle>
+                                <CardDescription>{user?.email || 'guest@synqx.dev'} • Administrator</CardDescription>
                             </div>
                         </CardHeader>
                         <CardContent className="space-y-6 mt-4">
                             <div className="grid gap-6 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="display-name">Display Name</Label>
-                                    <Input id="display-name" defaultValue="Abhishek" className="bg-background/50" />
+                                    <Input id="display-name" defaultValue={user?.full_name || ''} className="bg-background/50 focus:bg-background transition-colors" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="username">Username</Label>
@@ -116,13 +126,13 @@ export const SettingsPage: React.FC = () => {
                                         <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
                                             synqx.dev/
                                         </span>
-                                        <Input id="username" defaultValue="abhishek" className="rounded-l-none bg-background/50" />
+                                        <Input id="username" defaultValue={user?.email?.split('@')[0] || ''} className="rounded-l-none bg-background/50 focus:bg-background transition-colors" />
                                     </div>
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="bio">Bio</Label>
-                                <Input id="bio" placeholder="Tell us a little bit about yourself" className="bg-background/50" />
+                                <Input id="bio" placeholder="Tell us a little bit about yourself" className="bg-background/50 focus:bg-background transition-colors" />
                             </div>
                         </CardContent>
                         <CardFooter className="bg-muted/5 border-t border-border/50 py-4 flex justify-end">
@@ -133,8 +143,8 @@ export const SettingsPage: React.FC = () => {
                         </CardFooter>
                     </Card>
 
-                    {/* Appearance */}
-                    <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                    {/* Appearance - Replaced with Theme Cards */}
+                    <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
                         <CardHeader>
                             <CardTitle className="text-base flex items-center gap-2">
                                 <Palette className="h-4 w-4 text-purple-500" /> Interface Theme
@@ -142,15 +152,45 @@ export const SettingsPage: React.FC = () => {
                             <CardDescription>Select your preferred color mode for the dashboard.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="flex items-center justify-between p-4 rounded-xl border border-border/50 bg-background/50">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-10 w-10 rounded-full bg-linear-to-br from-zinc-800 to-black border border-border/50 shadow-inner" />
-                                    <div className="space-y-0.5">
-                                        <Label className="text-base">Dark Mode</Label>
-                                        <p className="text-xs text-muted-foreground">Adjust the appearance to reduce eye strain.</p>
+                            <div className="grid grid-cols-3 gap-4">
+                                <button 
+                                    onClick={() => setTheme('light')}
+                                    className={cn(
+                                        "flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all hover:bg-muted/50 outline-none focus:ring-2 focus:ring-primary/20",
+                                        theme === 'light' ? "border-primary bg-primary/5" : "border-transparent bg-muted/20 hover:border-border"
+                                    )}
+                                >
+                                    <div className="p-3 bg-white rounded-full shadow-sm border border-slate-200">
+                                        <Sun className="h-5 w-5 text-amber-500" />
                                     </div>
-                                </div>
-                                <ModeToggle />
+                                    <span className="text-sm font-medium">Light</span>
+                                </button>
+                                
+                                <button 
+                                    onClick={() => setTheme('dark')}
+                                    className={cn(
+                                        "flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all hover:bg-muted/50 outline-none focus:ring-2 focus:ring-primary/20",
+                                        theme === 'dark' ? "border-primary bg-primary/5" : "border-transparent bg-muted/20 hover:border-border"
+                                    )}
+                                >
+                                    <div className="p-3 bg-zinc-900 rounded-full shadow-sm border border-zinc-700">
+                                        <Moon className="h-5 w-5 text-blue-400" />
+                                    </div>
+                                    <span className="text-sm font-medium">Dark</span>
+                                </button>
+                                
+                                <button 
+                                    onClick={() => setTheme('system')}
+                                    className={cn(
+                                        "flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all hover:bg-muted/50 outline-none focus:ring-2 focus:ring-primary/20",
+                                        theme === 'system' ? "border-primary bg-primary/5" : "border-transparent bg-muted/20 hover:border-border"
+                                    )}
+                                >
+                                    <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full shadow-sm border border-border">
+                                        <Monitor className="h-5 w-5 text-foreground" />
+                                    </div>
+                                    <span className="text-sm font-medium">System</span>
+                                </button>
                             </div>
                         </CardContent>
                     </Card>

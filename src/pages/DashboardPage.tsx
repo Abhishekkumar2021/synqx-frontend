@@ -57,24 +57,45 @@ export const DashboardPage: React.FC = () => {
 
     const isLoading = loadingPipelines || loadingJobs || loadingConnections;
 
-    // 3. Chart Data (Simulated for visuals if real data is sparse)
-    const [chartData] = useState(() => {
-        const data = [];
+    // 3. Chart Data (Real Aggregation)
+    const chartData = useMemo(() => {
+        if (!jobs) return [];
+        
         const now = new Date();
-        for (let i = 24; i >= 0; i--) {
-            const time = subHours(now, i);
-            const baseLoad = i > 8 && i < 18 ? 20 : 5;
-            const pseudoRandom = (i * 37) % 10;
-            const pseudoFailure = (i * 13) % 4;
-
-            data.push({
+        // Create buckets for the last 24 hours
+        const buckets = Array.from({ length: 25 }, (_, i) => {
+            const time = subHours(now, 24 - i);
+            return {
+                time,
+                key: format(time, 'yyyy-MM-dd-HH'),
                 name: format(time, 'HH:mm'),
-                success: baseLoad + pseudoRandom,
-                failed: pseudoFailure
-            })
-        }
-        return data;
-    });
+                success: 0,
+                failed: 0
+            };
+        });
+
+        // Fill buckets with job data
+        jobs.forEach((job: any) => {
+             // Use finished_at, or started_at as fallback
+             const dateStr = job.finished_at || job.started_at;
+             if (!dateStr) return;
+             
+             const date = new Date(dateStr);
+             const key = format(date, 'yyyy-MM-dd-HH');
+             
+             const bucket = buckets.find(b => b.key === key);
+             if (bucket) {
+                 const status = (job.status || '').toLowerCase();
+                 if (status === 'completed' || status === 'success') {
+                     bucket.success++;
+                 } else if (status === 'failed' || status === 'error') {
+                     bucket.failed++;
+                 }
+             }
+        });
+        
+        return buckets;
+    }, [jobs]);
 
     const pipelineDistribution = useMemo(() => {
         if (!pipelines) return [];

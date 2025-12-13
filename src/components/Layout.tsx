@@ -6,7 +6,6 @@ import {
     User, CreditCard, Users, PanelLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Toaster } from 'sonner';
 import { ModeToggle } from './ModeToggle'; 
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +17,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'; 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'; 
+import { useAuth } from '@/hooks/useAuth';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,6 +25,7 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
+  const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
@@ -35,16 +36,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   if (location.pathname === '/') {
       return (
           <div className="min-h-screen bg-background text-foreground font-sans antialiased selection:bg-primary/20">
-               <Toaster position="top-right" theme="system" closeButton />
                {children}
           </div>
       );
   }
 
   return (
-    <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans antialiased">
-      <Toaster position="top-right" theme="system" closeButton />
-      
+    <div className="flex h-screen w-full bg-background text-foreground overflow-hidden font-sans antialiased">      
       {/* --- Desktop Sidebar --- */}
       <aside 
         className={cn(
@@ -112,16 +110,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                          isSidebarCollapsed ? "justify-center px-0 gap-0" : "justify-start px-2 gap-3"
                      )}>
                         <Avatar className="h-8 w-8 border bg-primary/10 shrink-0">
-                            <AvatarImage src="https://github.com/shadcn.png" />
-                            <AvatarFallback>JD</AvatarFallback>
+                            <AvatarImage src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || 'synqx'}`} />
+                            <AvatarFallback>{user?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}</AvatarFallback>
                         </Avatar>
                         
                         <div className={cn(
                             "flex flex-col items-start overflow-hidden whitespace-nowrap transition-all duration-300 ease-in-out",
                             isSidebarCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"
                         )}>
-                            <span className="text-sm font-medium truncate w-32 text-left">Abhishek Kumar</span>
-                            <span className="text-xs text-muted-foreground truncate w-32 text-left">Admin Workspace</span>
+                            <span className="text-sm font-medium truncate w-32 text-left">{user?.full_name || 'User'}</span>
+                            <span className="text-xs text-muted-foreground truncate w-32 text-left">{user?.email || 'guest@synqx.dev'}</span>
                         </div>
                     </button>
                 </DropdownMenuTrigger>
@@ -138,7 +136,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                         <Users className="mr-2 h-4 w-4" /> Team
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive focus:text-destructive">
+                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => logout()}>
                         <LogOut className="mr-2 h-4 w-4" /> Log out
                     </DropdownMenuItem>
                 </DropdownMenuContent>

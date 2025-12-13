@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getJobLogs } from '../lib/api';
+import { getJobLogs, API_BASE_URL } from '../lib/api';
 
 export interface LogMessage {
   type: 'job_log' | 'step_log';
@@ -40,7 +40,10 @@ export function useJobLogs(jobId: number | null) {
   useEffect(() => {
     if (!jobId) return;
 
-    const wsUrl = `ws://localhost:8000/api/v1/ws/jobs/${jobId}`;
+    // Dynamically construct WS URL from API base
+    const wsBase = API_BASE_URL.replace(/^http/, 'ws');
+    const wsUrl = `${wsBase}/ws/jobs/${jobId}`;
+    
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
