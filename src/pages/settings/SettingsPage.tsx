@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@/components/ThemeProvider';
+import { useTheme } from '@/hooks/useTheme';
 
 type SettingsTab = 'general' | 'security' | 'notifications' | 'billing';
 
