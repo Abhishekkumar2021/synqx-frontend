@@ -170,7 +170,7 @@ export const DashboardPage: React.FC = () => {
                                 <CardTitle className="text-base font-semibold">Execution Throughput</CardTitle>
                                 <CardDescription>24-hour job success vs failure volume</CardDescription>
                             </div>
-                            <Badge variant="outline" className="font-mono text-[10px] uppercase">Live</Badge>
+                            <Badge variant="outline" className="font-mono text-[10px] uppercase text-secondary-foreground">Live</Badge>
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1 pl-0">
