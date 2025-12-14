@@ -7,13 +7,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
     Activity, CheckCircle2,
     PlayCircle, Zap, 
-    Workflow, Server
-} from 'lucide-react';
+    Workflow, Server} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatsCard } from '@/components/ui/StatsCard';
-import { ExecutionThroughputChart } from '@/components/dashboard/ExecutionThroughputChart';
-import { PipelineHealthChart } from '@/components/dashboard/PipelineHealthChart';
-import { RecentActivityTable } from '@/components/dashboard/RecentActivityTable';
+import { ExecutionThroughputChart } from '@/components/features/dashboard/ExecutionThroughputChart';
+import { PipelineHealthChart } from '@/components/features/dashboard/PipelineHealthChart';
+import { RecentActivityTable } from '@/components/features/dashboard/RecentActivityTable';
 
 export const DashboardPage: React.FC = () => {
     // 1. Data Fetching
@@ -49,7 +48,6 @@ export const DashboardPage: React.FC = () => {
         if (!jobs) return [];
         
         const now = new Date();
-        // Create buckets for the last 24 hours
         const buckets = Array.from({ length: 25 }, (_, i) => {
             const time = subHours(now, 24 - i);
             return {
@@ -61,9 +59,7 @@ export const DashboardPage: React.FC = () => {
             };
         });
 
-        // Fill buckets with job data
         jobs.forEach((job: any) => {
-             // Use finished_at, or started_at as fallback
              const dateStr = job.finished_at || job.started_at;
              if (!dateStr) return;
              
@@ -94,39 +90,39 @@ export const DashboardPage: React.FC = () => {
         };
 
         return [
-            { name: 'Active', value: counts.Active, color: 'var(--chart-2)' }, // Mint/Green
-            { name: 'Paused', value: counts.Paused, color: 'var(--chart-5)' }, // Yellow/Amber
-            { name: 'Error', value: counts.Error, color: 'var(--destructive)' }, // Red
-            { name: 'Draft', value: counts.Draft, color: 'var(--muted-foreground)' }, // Grey
+            { name: 'Active', value: counts.Active, color: 'var(--chart-2)' },
+            { name: 'Paused', value: counts.Paused, color: 'var(--chart-5)' },
+            { name: 'Error', value: counts.Error, color: 'var(--destructive)' },
+            { name: 'Draft', value: counts.Draft, color: 'var(--muted-foreground)' },
         ].filter(i => i.value > 0);
     }, [pipelines]);
 
     return (
-        <div className="flex flex-col gap-6 pb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex flex-col gap-8 pb-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
 
             {/* --- Header & Navigation --- */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                    <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                        <Activity className="h-6 w-6 text-primary" />
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 px-1">
+                <div className="space-y-2">
+                    <h2 className="text-4xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/50 flex items-center gap-3">
+                        <Activity className="h-8 w-8 text-primary animate-pulse-slow" />
                         System Overview
                     </h2>
-                    <p className="text-sm text-muted-foreground">
-                        Metrics for <span className="font-mono text-foreground font-medium">{format(new Date(), 'MMM dd, yyyy')}</span>. System is operational.
+                    <p className="text-base text-muted-foreground/80 font-medium">
+                        System status for <span className="text-foreground">{format(new Date(), 'MMMM dd, yyyy')}</span>. All systems operational.
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <Button size="sm" className="shadow-[0_0_15px_-5px_var(--color-primary)]">
-                        <PlayCircle className="mr-2 h-4 w-4" />
-                        Trigger Pipeline
+                <div className="flex items-center gap-4">
+                    <Button size="lg" className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:scale-105">
+                        <PlayCircle className="mr-2 h-5 w-5" />
+                        Run Pipeline
                     </Button>
                 </div>
             </div>
 
             {/* --- Stats Cards Grid --- */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 {isLoading ? (
-                    Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[120px] rounded-xl bg-card" />)
+                    Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[140px] rounded-3xl bg-white/5" />)
                 ) : (
                     <>
                         <StatsCard
@@ -136,7 +132,7 @@ export const DashboardPage: React.FC = () => {
                             trendUp={true}
                             icon={Workflow}
                             color="text-primary"
-                            bgGlow="bg-primary/5"
+                            bgGlow="bg-primary/10"
                         />
                         <StatsCard
                             title="Active Jobs"
@@ -145,7 +141,7 @@ export const DashboardPage: React.FC = () => {
                             icon={Zap}
                             active={true}
                             color="text-orange-400"
-                            bgGlow="bg-orange-500/5"
+                            bgGlow="bg-orange-500/10"
                         />
                         <StatsCard
                             title="Success Rate"
@@ -154,7 +150,7 @@ export const DashboardPage: React.FC = () => {
                             trendUp={false}
                             icon={CheckCircle2}
                             color="text-emerald-400"
-                            bgGlow="bg-emerald-500/5"
+                            bgGlow="bg-emerald-500/10"
                         />
                         <StatsCard
                             title="Connections"
@@ -162,33 +158,32 @@ export const DashboardPage: React.FC = () => {
                             subtext="All systems healthy"
                             icon={Server}
                             color="text-blue-400"
-                            bgGlow="bg-blue-500/5"
+                            bgGlow="bg-blue-500/10"
                         />
                     </>
                 )}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-7">
-
+            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-7">
                 {/* --- Main Area Chart: Throughput --- */}
-                <ExecutionThroughputChart data={chartData} />
+                <div className="lg:col-span-4 h-full">
+                     <ExecutionThroughputChart data={chartData} />
+                </div>
 
                 {/* --- Pie Chart: Pipeline Health --- */}
-                <PipelineHealthChart 
-                    data={pipelineDistribution} 
-                    totalPipelines={stats?.totalPipelines || 0} 
-                />
+                <div className="lg:col-span-3 h-full">
+                    <PipelineHealthChart 
+                        data={pipelineDistribution} 
+                        totalPipelines={stats?.totalPipelines || 0} 
+                    />
+                </div>
+            </div>
+            
+            {/* --- Recent Activity Table --- */}
+            <div className="mt-2">
+                <RecentActivityTable jobs={jobs || []} />
+            </div>
 
-                                {/* --- Recent Activity Table --- */}
-
-                                <RecentActivityTable jobs={jobs || []} />
-
-                            </div>
-
-                        </div>
-
-                    );
-
-                };
-
-                
+        </div>
+    );
+};

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getJobLogs, API_BASE_URL } from '../lib/api';
+import { getJobLogs, API_BASE_URL } from '@/lib/api';
 
 export interface LogMessage {
   type: 'job_log' | 'step_log';

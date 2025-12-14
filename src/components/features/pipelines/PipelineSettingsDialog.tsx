@@ -8,19 +8,19 @@ import {
     DialogTitle, 
     DialogDescription,
     DialogFooter 
-} from './ui/dialog';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label'; // Use Label primitive
-import { Switch } from './ui/switch';
-import { Textarea } from './ui/textarea'; // Use Textarea for description
-import { CronBuilder } from './CronBuilder';
-import { type Pipeline } from '../lib/api';
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label'; 
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea'; 
+import { CronBuilder } from '@/components/common/CronBuilder';
+import { type Pipeline } from '@/lib/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updatePipeline } from '../lib/api';
+import { updatePipeline } from '@/lib/api';
 import { toast } from 'sonner';
 import { Loader2, CalendarClock, Settings2 } from 'lucide-react';
-import { Separator } from './ui/separator';
+import { Separator } from '@/components/ui/separator';
 
 interface PipelineSettingsDialogProps {
     pipeline: Pipeline | null;
@@ -49,7 +49,7 @@ export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ 
             setValue('name', pipeline.name);
             setValue('description', pipeline.description || '');
             setValue('schedule_enabled', pipeline.schedule_enabled || false);
-            setValue('schedule_cron', pipeline.schedule_cron || '0 0 * * *'); // Default to daily midnight
+            setValue('schedule_cron', pipeline.schedule_cron || '0 0 * * *'); 
         }
     }, [pipeline, open, setValue]);
 
@@ -79,17 +79,17 @@ export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ 
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] border-border/50 bg-background/95 backdrop-blur-xl gap-0 p-0 overflow-hidden rounded-2xl shadow-2xl">
+            <DialogContent className="sm:max-w-[600px] border-white/10 bg-black/40 backdrop-blur-3xl gap-0 p-0 overflow-hidden rounded-[2rem] shadow-2xl ring-1 ring-white/10">
                 
                 {/* Header */}
-                <DialogHeader className="p-6 pb-4 border-b border-border/50 bg-muted/5">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-lg text-primary">
-                            <Settings2 className="h-5 w-5" />
+                <DialogHeader className="p-8 pb-6 border-b border-white/5 bg-white/5">
+                    <div className="flex items-center gap-4">
+                        <div className="p-2.5 bg-primary/10 rounded-xl text-primary ring-1 ring-primary/20 shadow-lg shadow-primary/10">
+                            <Settings2 className="h-6 w-6" />
                         </div>
                         <div>
-                            <DialogTitle>Pipeline Settings</DialogTitle>
-                            <DialogDescription className="mt-1.5">
+                            <DialogTitle className="text-xl font-bold">Pipeline Settings</DialogTitle>
+                            <DialogDescription className="mt-1 text-base text-muted-foreground/80">
                                 Manage configuration and automation schedules.
                             </DialogDescription>
                         </div>
@@ -97,62 +97,65 @@ export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ 
                 </DialogHeader>
                 
                 <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
-                    <div className="p-6 space-y-6 overflow-y-auto max-h-[65vh] custom-scrollbar">
+                    <div className="p-8 space-y-8 overflow-y-auto max-h-[65vh] custom-scrollbar">
                         
                         {/* --- General Section --- */}
-                        <div className="space-y-4">
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">General Information</h4>
-                            <div className="grid gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name">Pipeline Name</Label>
+                        <div className="space-y-5">
+                            <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60">General Information</h4>
+                            <div className="grid gap-5">
+                                <div className="space-y-2.5">
+                                    <Label htmlFor="name" className="text-sm font-semibold ml-1">Pipeline Name</Label>
                                     <Input 
                                         id="name" 
                                         {...register('name', { required: true })} 
-                                        className="bg-background/50 border-border/50 focus:border-primary/50"
+                                        className="bg-white/5 border-white/5 focus:bg-white/10 focus:border-primary/50 h-11 rounded-2xl"
                                         placeholder="e.g. Daily ETL Process"
                                     />
                                 </div>
                                 
-                                <div className="space-y-2">
-                                    <Label htmlFor="desc">Description</Label>
+                                <div className="space-y-2.5">
+                                    <Label htmlFor="desc" className="text-sm font-semibold ml-1">Description</Label>
                                     <Textarea 
                                         id="desc"
                                         {...register('description')} 
-                                        className="bg-background/50 border-border/50 focus:border-primary/50 min-h-20 resize-none"
+                                        className="bg-white/5 border-white/5 focus:bg-white/10 focus:border-primary/50 min-h-24 resize-none rounded-2xl p-4 text-sm"
                                         placeholder="Describe the purpose of this workflow..."
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        <Separator className="bg-border/50" />
+                        <Separator className="bg-white/5" />
 
                         {/* --- Automation Section --- */}
-                        <div className="space-y-4">
-                            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                        <div className="space-y-5">
+                            <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground/60 flex items-center gap-2">
                                 <CalendarClock className="h-4 w-4" /> Automation
                             </h4>
                             
-                            <div className="rounded-xl border border-border/50 bg-card/50 p-1">
-                                <div className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                                    <div className="space-y-0.5">
-                                        <Label className="text-sm font-medium">Enable Schedule</Label>
-                                        <p className="text-xs text-muted-foreground">
+                            <div className="rounded-3xl border border-white/5 bg-white/5 p-1.5 overflow-hidden">
+                                <div className="flex items-center justify-between p-4 rounded-2xl hover:bg-white/5 transition-colors">
+                                    <div className="space-y-1">
+                                        <Label className="text-base font-semibold">Enable Schedule</Label>
+                                        <p className="text-sm text-muted-foreground/80">
                                             Trigger runs automatically based on cron.
                                         </p>
                                     </div>
                                     <Switch 
                                         checked={scheduleEnabled}
                                         onCheckedChange={(c) => setValue('schedule_enabled', c)}
+                                        className="data-[state=checked]:bg-primary"
                                     />
                                 </div>
 
                                 {scheduleEnabled && (
-                                    <div className="px-3 pb-3 pt-1 animate-in fade-in slide-in-from-top-1">
-                                        <CronBuilder 
-                                            value={scheduleCron} 
-                                            onChange={(val) => setValue('schedule_cron', val)} 
-                                        />
+                                    <div className="px-4 pb-4 pt-2 animate-in fade-in slide-in-from-top-2">
+                                        <div className="bg-black/20 rounded-2xl p-4 border border-white/5">
+                                            <CronBuilder 
+                                                value={scheduleCron} 
+                                                onChange={(val) => setValue('schedule_cron', val)} 
+                                            />
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -160,19 +163,19 @@ export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ 
                     </div>
 
                     {/* Footer */}
-                    <DialogFooter className="p-4 border-t border-border/50 bg-muted/5">
+                    <DialogFooter className="p-6 border-t border-white/5 bg-white/5 backdrop-blur-xl">
                         <Button 
                             type="button" 
                             variant="ghost" 
                             onClick={() => onOpenChange(false)}
-                            className="hover:bg-muted"
+                            className="hover:bg-white/10 rounded-xl h-11"
                         >
                             Cancel
                         </Button>
                         <Button 
                             type="submit" 
                             disabled={mutation.isPending}
-                            className="shadow-lg shadow-primary/20 min-w-[100px]"
+                            className="shadow-xl shadow-primary/20 min-w-[140px] rounded-xl h-11 font-semibold"
                         >
                             {mutation.isPending ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

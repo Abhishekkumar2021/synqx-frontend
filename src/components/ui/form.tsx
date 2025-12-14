@@ -6,7 +6,7 @@ import * as LabelPrimitive from "@radix-ui/react-label"
 import { Controller, useFormContext, FormProvider } from "react-hook-form" // Value imports
 import type { ControllerProps, FieldPath, FieldValues } from "react-hook-form" // Type-only imports
 
-import { cn } from "../../lib/utils"
+import { cn } from "@/lib/utils"
 
 // ---------------------------------------------------------------------------------------------
 // Form Provider (Main wrapper for react-hook-form context)

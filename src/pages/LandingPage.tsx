@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ModeToggle } from '@/components/ModeToggle';
+import { ModeToggle } from '@/components/layout/ModeToggle';
 import {
     Workflow, Zap, Shield, Globe, ArrowRight,
     Database, Cable, BarChart3,

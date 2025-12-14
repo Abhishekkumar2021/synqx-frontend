@@ -7,7 +7,7 @@
 // Let's create the file anyway to avoid build errors if I decide to use it or if the import remains.
 
 import React from 'react';
-import { cn } from '../../lib/utils';
+import { cn } from '@/lib/utils';
 
 export const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(({ className, ...props }, ref) => (
   <div className="w-full overflow-auto">

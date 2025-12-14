@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../lib/utils';
+import { cn } from '@/lib/utils';
 
 // We need to install class-variance-authority or just do it manually. 
 // I'll do it manually to save an install step since I didn't install cva.

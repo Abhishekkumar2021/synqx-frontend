@@ -43,8 +43,8 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 // Import Custom Node Components
-import PipelineNode from '@/components/PipelineNode'; 
-import { NodeProperties } from '@/components/NodeProperties';
+import PipelineNode from '@/components/features/pipelines/PipelineNode'; 
+import { NodeProperties } from '@/components/features/pipelines/NodeProperties';
 
 // --- Layout Engine Configuration ---
 const dagreGraph = new dagre.graphlib.Graph();

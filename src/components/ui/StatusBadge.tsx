@@ -29,11 +29,11 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
                 break;
             case 'failed':
             case 'error':
-                styles = "bg-red-500/10 text-red-500 border-red-500/20";
+                styles = "bg-red-500/5 text-red-500 border-red-500/10";
                 icon = AlertTriangle; // Or XCircle
                 break;
             case 'broken':
-                styles = "bg-red-500/10 text-red-500 border-red-500/20";
+                styles = "bg-red-500/5 text-red-500 border-red-500/10";
                 icon = XCircle;
                 break;
             case 'running':

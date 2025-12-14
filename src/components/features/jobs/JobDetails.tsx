@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { JobLogViewer } from '@/components/JobLogViewer';
+import { JobLogViewer } from '@/components/features/jobs/JobLogViewer';
 import { differenceInSeconds } from 'date-fns';
 import {
     Calendar, Timer, ChevronRight, Terminal

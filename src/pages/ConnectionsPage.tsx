@@ -14,8 +14,8 @@ import { cn } from '@/lib/utils';
 import {
     Dialog, DialogContent
 } from "@/components/ui/dialog";
-import { CreateConnectionDialog } from '@/components/connections/CreateConnectionDialog';
-import { ConnectionsList } from '@/components/connections/ConnectionsList';
+import { CreateConnectionDialog } from '@/components/features/connections/CreateConnectionDialog';
+import { ConnectionsList } from '@/components/features/connections/ConnectionsList';
 
 export const ConnectionsPage: React.FC = () => {
     const queryClient = useQueryClient();
@@ -83,36 +83,38 @@ export const ConnectionsPage: React.FC = () => {
 
     if (error) return (
         <div className="flex h-full items-center justify-center">
-            <div className="text-center space-y-2">
-                <XCircle className="h-8 w-8 text-destructive mx-auto" />
-                <h3 className="text-lg font-semibold">Failed to load connections</h3>
-                <p className="text-muted-foreground">Please check your network settings.</p>
+            <div className="text-center space-y-4">
+                <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+                     <XCircle className="h-10 w-10 text-destructive" />
+                </div>
+                <h3 className="text-xl font-bold">Failed to load connections</h3>
+                <p className="text-muted-foreground max-w-xs mx-auto">Please check your network settings and try again.</p>
             </div>
         </div>
     );
 
     return (
-        <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 animate-in fade-in duration-500">
+        <div className="flex flex-col h-[calc(100vh-9rem)] gap-8 animate-in fade-in duration-700">
 
             {/* Header */}
-            <div className="flex items-center justify-between shrink-0">
-                <div className="space-y-1">
-                    <h2 className="text-2xl font-bold tracking-tight flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-lg ring-1 ring-primary/20">
-                            <LinkIcon className="h-5 w-5 text-primary" />
+            <div className="flex items-center justify-between shrink-0 px-1">
+                <div className="space-y-2">
+                    <h2 className="text-4xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/50 flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-2xl ring-1 ring-white/10 backdrop-blur-md">
+                            <LinkIcon className="h-6 w-6 text-primary" />
                         </div>
                         Connections
                     </h2>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-base text-muted-foreground/80 font-medium pl-1">
                         Manage authentication and configuration for your data sources.
                     </p>
                 </div>
 
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <Button size="sm" onClick={handleCreate} className="shadow-[0_0_15px_-5px_var(--color-primary)]">
-                        <Plus className="mr-2 h-4 w-4" /> New Connection
+                    <Button size="lg" onClick={handleCreate} className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:scale-105">
+                        <Plus className="mr-2 h-5 w-5" /> New Connection
                     </Button>
-                    <DialogContent className="max-w-5xl h-[700px] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-2xl border-border/50 bg-background/95 backdrop-blur-xl">
+                    <DialogContent className="max-w-5xl h-[700px] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-3xl border-white/10 bg-background/80 backdrop-blur-3xl shadow-2xl">
                         <CreateConnectionDialog
                             initialData={editingConnection}
                             onClose={() => setIsDialogOpen(false)}
@@ -121,25 +123,25 @@ export const ConnectionsPage: React.FC = () => {
                 </Dialog>
             </div>
 
-            {/* Main Content Pane */}
-            <div className="flex-1 min-h-0 flex flex-col bg-card/50 backdrop-blur-sm rounded-xl border border-border/50 shadow-sm overflow-hidden">
+            {/* Main Content Pane (Glass) */}
+            <div className="flex-1 min-h-0 flex flex-col bg-card/40 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden relative">
 
                 {/* Toolbar */}
-                <div className="p-4 border-b border-border/50 bg-muted/5 flex gap-4 items-center justify-between shrink-0">
-                    <div className="relative w-full max-w-sm group">
-                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <div className="p-6 border-b border-white/5 bg-white/5 flex gap-6 items-center justify-between shrink-0">
+                    <div className="relative w-full max-w-md group">
+                        <Search className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                         <Input
                             placeholder="Filter connections..."
-                            className="pl-9 h-9 bg-background/50 focus:bg-background border-muted-foreground/20 focus:border-primary/50"
+                            className="pl-11 h-11 rounded-2xl bg-black/5 dark:bg-white/5 border-transparent focus:bg-background focus:border-primary/30 transition-all"
                             value={filter}
                             onChange={(e) => setFilter(e.target.value)}
                         />
                     </div>
-                    <div className="flex items-center gap-2 bg-background/50 border border-border/50 rounded-lg p-1">
+                    <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 border border-white/5 rounded-2xl p-1.5">
                         <Button 
                             variant="ghost" 
                             size="icon" 
-                            className={cn("h-7 w-7 rounded-md transition-all", viewMode === 'grid' ? "bg-primary/10 text-primary shadow-sm" : "hover:bg-muted")} 
+                            className={cn("h-8 w-8 rounded-xl transition-all", viewMode === 'grid' ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:bg-white/5")} 
                             onClick={() => setViewMode('grid')}
                         >
                             <LayoutGrid className="h-4 w-4" />
@@ -147,7 +149,7 @@ export const ConnectionsPage: React.FC = () => {
                         <Button 
                             variant="ghost" 
                             size="icon" 
-                            className={cn("h-7 w-7 rounded-md transition-all", viewMode === 'list' ? "bg-primary/10 text-primary shadow-sm" : "hover:bg-muted")} 
+                            className={cn("h-8 w-8 rounded-xl transition-all", viewMode === 'list' ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:bg-white/5")} 
                             onClick={() => setViewMode('list')}
                         >
                             <List className="h-4 w-4" />

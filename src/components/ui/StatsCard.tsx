@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 interface StatsCardProps {
     title: string;
@@ -17,6 +18,8 @@ interface StatsCardProps {
     className?: string;
 }
 
+const MotionCard = motion(Card);
+
 export const StatsCard: React.FC<StatsCardProps> = ({ 
     title, 
     value, 
@@ -29,38 +32,54 @@ export const StatsCard: React.FC<StatsCardProps> = ({
     bgGlow,
     className
 }) => (
-    <Card className={cn(
-        "relative overflow-hidden border border-border/60 bg-card/50 backdrop-blur-sm transition-all duration-300 hover:shadow-md hover:border-primary/30",
-        active && "border-primary/40 shadow-[0_0_20px_-10px_var(--color-primary)] ring-1 ring-primary/20",
-        className
-    )}>
-        <CardContent className="p-6">
-            <div className="flex items-center justify-between space-y-0 pb-3">
-                <p className="text-sm font-medium text-muted-foreground">{title}</p>
-                <div className={cn("p-2 rounded-lg bg-background/80 shadow-sm border border-border/50", active && "animate-pulse")}>
-                    <Icon className={cn("h-4 w-4", color || "text-foreground")} />
+    <MotionCard 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+        className={cn(
+            "relative overflow-hidden border border-white/10 bg-white/5 backdrop-blur-xl transition-all duration-300 hover:shadow-2xl hover:bg-white/10 hover:-translate-y-1 rounded-3xl group",
+            active && "border-primary/30 shadow-[0_0_30px_-10px_var(--color-primary)] bg-primary/5",
+            className
+        )}
+    >
+        <CardContent className="p-7 relative z-10">
+            <div className="flex items-center justify-between space-y-0 pb-4">
+                <p className="text-sm font-semibold text-muted-foreground/80 tracking-wide uppercase">{title}</p>
+                <div className={cn(
+                    "p-2.5 rounded-xl bg-white/10 shadow-inner border border-white/5 transition-transform duration-300 group-hover:scale-110", 
+                    active && "bg-primary/20 border-primary/20 text-primary animate-pulse"
+                )}>
+                    <Icon className={cn("h-5 w-5", color || "text-foreground")} />
                 </div>
             </div>
-            <div className="flex flex-col gap-1.5">
-                <h3 className="text-3xl font-bold tracking-tight tabular-nums">{value}</h3>
+            <div className="flex flex-col gap-2">
+                <h3 className="text-4xl font-bold tracking-tighter tabular-nums text-foreground">{value}</h3>
                 {(trend || subtext) && (
-                    <div className="flex items-center text-xs">
+                    <div className="flex items-center text-xs font-medium">
                         {trend && (
                             <span className={cn(
-                                "flex items-center font-bold mr-2 px-1.5 py-0.5 rounded-sm bg-muted/50",
-                                trendUp ? "text-emerald-500" : "text-red-500"
+                                "flex items-center mr-2 px-2 py-0.5 rounded-md",
+                                trendUp ? "text-emerald-400 bg-emerald-500/10" : "text-rose-400 bg-rose-500/10"
                             )}>
                                 {trendUp ? <TrendingUp className="mr-1 h-3 w-3" /> : <TrendingDown className="mr-1 h-3 w-3" />}
                                 {trend}
                             </span>
                         )}
-                        {subtext && <span className="text-muted-foreground/80">{subtext}</span>}
+                        {subtext && <span className="text-muted-foreground/60">{subtext}</span>}
                     </div>
                 )}
             </div>
         </CardContent>
-        {active && (
-            <div className={cn("absolute top-0 right-0 -mt-8 -mr-8 h-32 w-32 rounded-full blur-3xl opacity-20 pointer-events-none", bgGlow || "bg-primary")}></div>
+        
+        {/* Decorative Glows */}
+        <div className={cn(
+            "absolute -top-10 -right-10 h-40 w-40 rounded-full blur-[60px] opacity-0 group-hover:opacity-20 transition-opacity duration-500 pointer-events-none",
+            bgGlow || "bg-primary"
+        )}></div>
+        
+         {active && (
+            <div className={cn("absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50")}></div>
         )}
-    </Card>
+    </MotionCard>
 );

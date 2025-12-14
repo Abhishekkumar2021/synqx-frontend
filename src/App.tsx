@@ -3,9 +3,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 
 // Components
-import { Layout } from './components/Layout';
-import { ThemeProvider } from './components/ThemeProvider';
-import { AuthProvider } from './components/AuthProvider';
+import { Layout } from './components/layout/Layout';
+import { ThemeProvider } from './components/providers/ThemeProvider';
+import { AuthProvider } from './components/providers/AuthProvider';
 
 // Hooks
 import { useAuth } from './hooks/useAuth';
