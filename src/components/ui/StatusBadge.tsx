@@ -17,36 +17,36 @@ interface StatusBadgeProps {
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) => {
     const config = useMemo(() => {
-        let styles = "bg-muted text-muted-foreground border-border";
+        let styles = "bg-muted/50 text-muted-foreground border-border/50";
         let icon = Clock;
         let animate = false;
 
         switch (status?.toLowerCase()) {
             case 'completed':
             case 'success':
-                styles = "bg-emerald-500/10 text-emerald-500 border-emerald-500/20";
+                styles = "bg-emerald-500/15 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_-4px_var(--color-emerald-500)]";
                 icon = CheckCircle2;
                 break;
             case 'failed':
             case 'error':
-                styles = "bg-red-500/5 text-red-500 border-red-500/10";
+                styles = "bg-rose-500/15 text-rose-400 border-rose-500/20 shadow-[0_0_10px_-4px_var(--color-rose-500)]";
                 icon = AlertTriangle; // Or XCircle
                 break;
             case 'broken':
-                styles = "bg-red-500/5 text-red-500 border-red-500/10";
+                styles = "bg-rose-500/15 text-rose-400 border-rose-500/20";
                 icon = XCircle;
                 break;
             case 'running':
-                styles = "bg-blue-500/10 text-blue-500 border-blue-500/20";
+                styles = "bg-blue-500/15 text-blue-400 border-blue-500/20 shadow-[0_0_10px_-4px_var(--color-blue-500)]";
                 icon = Loader2;
                 animate = true;
                 break;
             case 'active':
-                styles = "bg-green-500/10 text-green-500 border-green-500/20";
+                styles = "bg-green-500/15 text-green-400 border-green-500/20";
                 icon = CheckCircle2;
                 break;
             case 'paused':
-                styles = "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+                styles = "bg-amber-500/15 text-amber-400 border-amber-500/20";
                 icon = Clock;
                 break;
         }
@@ -60,7 +60,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) =
         <Badge 
             variant="outline" 
             className={cn(
-                "text-[10px] uppercase font-bold border px-2 py-0.5 gap-1.5", 
+                "text-[10px] uppercase font-bold border px-2.5 py-1 gap-1.5 backdrop-blur-md rounded-full transition-all duration-300 hover:scale-105", 
                 config.styles, 
                 config.animate && "animate-pulse",
                 className

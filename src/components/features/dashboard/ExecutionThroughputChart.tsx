@@ -13,7 +13,7 @@ interface ExecutionThroughputChartProps {
 
 export const ExecutionThroughputChart: React.FC<ExecutionThroughputChartProps> = ({ data }) => {
     return (
-        <Card className="lg:col-span-4 flex flex-col border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl rounded-3xl min-w-0 h-full">
+        <Card className="lg:col-span-4 flex flex-col min-w-0 h-full">
             <CardHeader className="pb-2 px-6 pt-6">
                 <div className="flex items-center justify-between">
                     <div className="space-y-1">

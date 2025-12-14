@@ -81,7 +81,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
 
 export const PipelineEditorPage: React.FC = () => {
     return (
-        <div className="h-[calc(100vh-9rem)] w-full bg-background relative border border-border/50 rounded-xl overflow-hidden shadow-sm ring-1 ring-border/50">
+        <div className="h-[calc(100vh-9rem)] w-full bg-background relative border border-white/5 rounded-[2rem] overflow-hidden shadow-2xl ring-1 ring-white/10">
             <ReactFlowProvider>
                 <PipelineEditorContent />
             </ReactFlowProvider>
@@ -316,13 +316,13 @@ const PipelineEditorContent: React.FC = () => {
       {/* --- HUD Header --- */}
       <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between pointer-events-none">
           {/* Breadcrumb & Title */}
-          <div className="flex items-center gap-2 pointer-events-auto bg-background/80 backdrop-blur-xl border border-border/40 p-1.5 pl-2 pr-4 rounded-full shadow-lg ring-1 ring-foreground/5">
+          <div className="flex items-center gap-2 pointer-events-auto bg-background/80 backdrop-blur-xl border border-white/10 p-1.5 pl-2 pr-4 rounded-full shadow-2xl ring-1 ring-white/5">
               <Link to="/pipelines">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted/50">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-white/10">
                       <ArrowLeft className="h-4 w-4" />
                   </Button>
               </Link>
-              <div className="h-4 w-px bg-border/50" />
+              <div className="h-4 w-px bg-white/10" />
               
               {/* Editable Title */}
               <div className="flex items-center group relative">
@@ -339,7 +339,7 @@ const PipelineEditorContent: React.FC = () => {
                             e.currentTarget.blur();
                         }
                     }}
-                    className="h-7 w-[200px] border-transparent bg-transparent px-2 text-sm font-semibold shadow-none focus-visible:ring-1 focus-visible:ring-primary/50 hover:bg-muted/30 transition-colors"
+                    className="h-7 w-[200px] border-transparent bg-transparent px-2 text-sm font-bold shadow-none focus-visible:ring-1 focus-visible:ring-primary/50 hover:bg-white/5 transition-colors"
                   />
               </div>
 
@@ -352,7 +352,7 @@ const PipelineEditorContent: React.FC = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 pointer-events-auto bg-background/80 backdrop-blur-xl border border-border/40 p-1.5 rounded-full shadow-lg ring-1 ring-foreground/5">
+          <div className="flex items-center gap-2 pointer-events-auto bg-background/80 backdrop-blur-xl border border-white/10 p-1.5 rounded-full shadow-2xl ring-1 ring-white/5">
             {!isNew && (
                 <Button 
                     variant="ghost" 
@@ -399,22 +399,22 @@ const PipelineEditorContent: React.FC = () => {
             },
         }}
         proOptions={{ hideAttribution: true }}
-        className="bg-muted/5 transition-colors duration-300"
+        className="bg-black/5 dark:bg-black/20 transition-colors duration-300"
       >
         <Background 
             variant={BackgroundVariant.Dots} 
             gap={24} 
             size={1.5} 
-            color={isDarkMode ? "rgba(120, 120, 120, 0.15)" : "rgba(0, 0, 0, 0.15)"}
+            color={isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.15)"}
         />
         
         <Controls 
-            className="bg-background border border-border/50 fill-foreground text-foreground rounded-xl overflow-hidden shadow-xl backdrop-blur-md m-4" 
+            className="bg-background border border-white/10 fill-foreground text-foreground rounded-2xl overflow-hidden shadow-xl backdrop-blur-md m-4" 
             showInteractive={false}
         />
         
         <MiniMap 
-            className="bg-background border border-border/50 rounded-xl shadow-xl overflow-hidden backdrop-blur-md m-4" 
+            className="bg-background border border-white/10 rounded-2xl shadow-xl overflow-hidden backdrop-blur-md m-4" 
             nodeColor={(node) => {
                 const type = node.type;
                 if (type === 'source') return 'var(--chart-1)';
@@ -429,25 +429,25 @@ const PipelineEditorContent: React.FC = () => {
 
         {/* --- Floating Toolbox --- */}
         <Panel position="top-center" className="mt-20 pointer-events-none">
-            <div className="flex items-center gap-1.5 p-2 bg-background/80 backdrop-blur-xl border border-border/40 rounded-full shadow-2xl pointer-events-auto ring-1 ring-foreground/5">
+            <div className="flex items-center gap-1.5 p-2 bg-background/80 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl pointer-events-auto ring-1 ring-white/5">
                 
-                <div className="flex items-center gap-1 pr-2 border-r border-border/40 mr-1">
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-muted" onClick={() => setSelectedNodeId(null)}>
+                <div className="flex items-center gap-1 pr-2 border-r border-white/10 mr-1">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-white/10" onClick={() => setSelectedNodeId(null)}>
                         <MousePointer2 className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-muted" onClick={onLayout} title="Auto Layout">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-white/10" onClick={onLayout} title="Auto Layout">
                         <Layout className="h-4 w-4" />
                     </Button>
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Button variant="secondary" size="sm" className="h-9 rounded-full px-4 gap-2 bg-blue-500/10 text-blue-600 dark:text-blue-500 hover:bg-blue-500/20 border border-blue-500/20" onClick={() => onAddNode('source')}>
+                    <Button variant="secondary" size="sm" className="h-9 rounded-full px-4 gap-2 bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 transition-colors" onClick={() => onAddNode('source')}>
                         <Database className="h-3.5 w-3.5" /> Source
                     </Button>
-                    <Button variant="secondary" size="sm" className="h-9 rounded-full px-4 gap-2 bg-purple-500/10 text-purple-600 dark:text-purple-500 hover:bg-purple-500/20 border border-purple-500/20" onClick={() => onAddNode('transform')}>
+                    <Button variant="secondary" size="sm" className="h-9 rounded-full px-4 gap-2 bg-purple-500/10 text-purple-600 dark:text-purple-500 hover:bg-purple-500/20 border border-purple-500/20 transition-colors" onClick={() => onAddNode('transform')}>
                         <ArrowRightLeft className="h-3.5 w-3.5" /> Transform
                     </Button>
-                    <Button variant="secondary" size="sm" className="h-9 rounded-full px-4 gap-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 hover:bg-emerald-500/20 border border-emerald-500/20" onClick={() => onAddNode('sink')}>
+                    <Button variant="secondary" size="sm" className="h-9 rounded-full px-4 gap-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 hover:bg-emerald-500/20 border border-emerald-500/20 transition-colors" onClick={() => onAddNode('sink')}>
                         <HardDriveUpload className="h-3.5 w-3.5" /> Sink
                     </Button>
                 </div>
@@ -457,8 +457,8 @@ const PipelineEditorContent: React.FC = () => {
 
       {/* --- Properties Slide-over --- */}
       <div className={cn(
-          "absolute top-4 bottom-4 right-4 w-[360px] bg-background/95 backdrop-blur-2xl border border-border/50 rounded-2xl shadow-2xl transition-all duration-500 cubic-bezier(0.32, 0.72, 0, 1) flex flex-col overflow-hidden z-20",
-          selectedNode ? "translate-x-0 opacity-100" : "translate-x-[420px] opacity-0 pointer-events-none"
+          "absolute top-4 bottom-4 right-4 w-[380px] bg-background/90 backdrop-blur-3xl border border-white/10 rounded-[2rem] shadow-2xl transition-all duration-500 cubic-bezier(0.32, 0.72, 0, 1) flex flex-col overflow-hidden z-20 ring-1 ring-white/5",
+          selectedNode ? "translate-x-0 opacity-100" : "translate-x-[450px] opacity-0 pointer-events-none"
       )}>
           {selectedNode && (
             <NodeProperties 

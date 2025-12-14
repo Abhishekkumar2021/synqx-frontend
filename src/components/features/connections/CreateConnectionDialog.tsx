@@ -96,26 +96,26 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
         return (
             <div className="flex flex-col h-full bg-background/50 backdrop-blur-xl">
                 <DialogHeader className="px-8 py-6 border-b border-border/50 shrink-0 bg-muted/5">
-                    <DialogTitle className="text-xl">Select a Connector</DialogTitle>
+                    <DialogTitle className="text-xl font-bold">Select a Connector</DialogTitle>
                     <DialogDescription>Choose your data source or destination to proceed.</DialogDescription>
                 </DialogHeader>
-                <div className="flex-1 overflow-y-auto p-8 bg-muted/5">
+                <div className="flex-1 overflow-y-auto p-8 bg-muted/5 custom-scrollbar">
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
                         {Object.entries(CONNECTOR_META).map(([key, meta]) => (
                             <button
                                 key={key}
                                 onClick={() => handleSelect(key)}
-                                className="group relative flex flex-col items-center gap-4 p-6 rounded-xl border border-border/60 bg-card hover:border-primary/50 hover:shadow-xl hover:shadow-primary/5 transition-all text-center overflow-hidden"
+                                className="group relative flex flex-col items-center gap-4 p-6 rounded-[2rem] border border-white/10 bg-card hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-300 text-center overflow-hidden hover:-translate-y-1"
                             >
-                                <div className={cn("p-4 rounded-2xl bg-muted/50 group-hover:bg-background transition-colors shadow-inner", meta.color.replace('text-', 'text-opacity-80 text-'))}>
+                                <div className={cn("p-5 rounded-2xl bg-white/5 border border-white/5 group-hover:bg-background transition-colors shadow-inner", meta.color.replace('text-', 'text-opacity-80 text-'))}>
                                     <SafeIcon icon={meta.icon} className="h-8 w-8" />
                                 </div>
                                 <div className="space-y-1 z-10">
-                                    <h4 className="font-semibold text-sm text-foreground">{meta.name}</h4>
-                                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{meta.category}</span>
+                                    <h4 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">{meta.name}</h4>
+                                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold opacity-70">{meta.category}</span>
                                 </div>
                                 {meta.popular && (
-                                    <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-bold bg-primary/10 text-primary">POPULAR</span>
+                                    <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-bold bg-primary/10 text-primary border border-primary/20">HOT</span>
                                 )}
                             </button>
                         ))}
@@ -135,31 +135,31 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
     return (
         <div className="flex h-full">
             {/* Sidebar for Dialog */}
-            <div className="w-[280px] bg-muted/10 border-r border-border/50 p-6 hidden md:flex flex-col gap-6 shrink-0 relative overflow-hidden">
-                <div className="absolute inset-0 bg-linear-to-b from-transparent to-muted/20 pointer-events-none" />
+            <div className="w-[300px] bg-muted/10 border-r border-border/50 p-8 hidden md:flex flex-col gap-8 shrink-0 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-muted/20 pointer-events-none" />
                 
                 <div className="z-10">
                     {!isEditMode && (
                         <Button 
                             variant="link" 
                             size="sm" 
-                            className="-ml-4 mb-6 text-muted-foreground hover:text-primary" 
+                            className="-ml-4 mb-6 text-muted-foreground hover:text-primary transition-colors" 
                             onClick={() => setStep('select')}
                         >
                             &larr; Change Connector
                         </Button>
                     )}
-                    <div className={cn("h-16 w-16 rounded-2xl flex items-center justify-center mb-5 border shadow-sm", meta?.color)}>
+                    <div className={cn("h-20 w-20 rounded-[1.5rem] flex items-center justify-center mb-6 border border-white/10 shadow-xl", meta?.color)}>
                         {/* SAFE CLONE usage */}
-                        <SafeIcon icon={meta.icon} className="h-8 w-8" />
+                        <SafeIcon icon={meta.icon} className="h-10 w-10" />
                     </div>
-                    <h3 className="text-xl font-bold tracking-tight">{isEditMode ? 'Edit' : 'Configure'} {meta?.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-3 leading-relaxed">{meta?.description}</p>
+                    <h3 className="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">{isEditMode ? 'Edit' : 'Configure'} {meta?.name}</h3>
+                    <p className="text-sm text-muted-foreground mt-4 leading-relaxed font-medium opacity-80">{meta?.description}</p>
                 </div>
 
                 <div className="mt-auto space-y-4 z-10">
-                     <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10 text-xs text-blue-600/80 dark:text-blue-400">
-                        <div className="flex items-center gap-2 font-semibold mb-1">
+                     <div className="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/10 text-xs text-blue-600/80 dark:text-blue-400 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 font-bold mb-1.5 uppercase tracking-wide opacity-90">
                             <ShieldCheck className="h-3.5 w-3.5" /> Secure Storage
                         </div>
                         Credentials are encrypted at rest using AES-256 GCM.
@@ -170,28 +170,28 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
             {/* Form Area */}
             <div className="flex-1 flex flex-col h-full bg-background/50 backdrop-blur-sm min-w-0">
                 <DialogHeader className="px-8 py-6 border-b border-border/50 shrink-0">
-                    <DialogTitle className="text-lg">Connection Details</DialogTitle>
+                    <DialogTitle className="text-lg font-bold">Connection Details</DialogTitle>
                 </DialogHeader>
                 
-                <div className="flex-1 overflow-y-auto p-8">
+                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
                     {/* SAFE GUARD: Form Provider wraps everything */}
                     <Form {...form}>
-                        <form id="conn-form" onSubmit={form.handleSubmit((d) => mutation.mutate(d))} className="space-y-8 max-w-lg mx-auto">
+                        <form id="conn-form" onSubmit={form.handleSubmit((d) => mutation.mutate(d))} className="space-y-10 max-w-lg mx-auto py-4">
                             
                             {/* General Section */}
-                            <div className="space-y-5">
+                            <div className="space-y-6">
                                 {/* Use standard HTML h4 for headers, NOT FormLabel */}
-                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px]">1</span>
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-3 opacity-80">
+                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-primary text-[10px] font-bold ring-2 ring-background">1</span>
                                     General Information
                                 </h4>
-                                <div className="grid gap-5 pl-7">
+                                <div className="grid gap-6 pl-9">
                                     <FormField control={form.control} name="name" render={({ field }) => (
                                         <FormItem>
                                             {/* FIX: Using Label primitive instead of FormLabel to prevent context crash */}
-                                            <Label className="text-sm font-medium">Connection Name</Label>
+                                            <Label className="text-sm font-semibold">Connection Name</Label>
                                             <FormControl>
-                                                <Input {...field} placeholder="e.g. Production DB" className="bg-background/50" />
+                                                <Input {...field} placeholder="e.g. Production DB" className="bg-background/40 border-white/10" />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -199,9 +199,9 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                     <FormField control={form.control} name="description" render={({ field }) => (
                                         <FormItem>
                                             {/* FIX: Using Label primitive */}
-                                            <Label className="text-sm font-medium">Description</Label>
+                                            <Label className="text-sm font-semibold">Description</Label>
                                             <FormControl>
-                                                <Input {...field} placeholder="Optional context" className="bg-background/50" />
+                                                <Input {...field} placeholder="Optional context" className="bg-background/40 border-white/10" />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -209,15 +209,15 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                 </div>
                             </div>
 
-                            <div className="h-px bg-border/50" />
+                            <div className="h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
 
                             {/* Config Section */}
-                            <div className="space-y-5">
-                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/20 text-primary text-[10px]">2</span>
+                            <div className="space-y-6">
+                                <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-3 opacity-80">
+                                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/20 text-primary text-[10px] font-bold ring-2 ring-background">2</span>
                                     Credentials
                                 </h4>
-                                <div className="grid gap-5 pl-7">
+                                <div className="grid gap-6 pl-9">
                                     {schema?.fields?.map((field: any) => {
                                         // Dependency Check
                                         if (field.dependency) {
@@ -228,11 +228,11 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                             <FormField key={field.name} control={form.control} name={`config.${field.name}`} render={({ field: f }) => (
                                                 <FormItem>
                                                     {/* FIX: Using Label primitive */}
-                                                    <Label className="text-sm font-medium">{field.label}</Label>
+                                                    <Label className="text-sm font-semibold">{field.label}</Label>
                                                     <FormControl>
                                                         {field.type === 'select' ? (
                                                             <Select onValueChange={f.onChange} defaultValue={f.value}>
-                                                                <SelectTrigger className="bg-background/50"><SelectValue /></SelectTrigger>
+                                                                <SelectTrigger className="bg-background/40 border-white/10"><SelectValue /></SelectTrigger>
                                                                 <SelectContent>
                                                                     {field.options?.map((o: any) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                                                                 </SelectContent>
@@ -243,10 +243,10 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                                                     {...f} 
                                                                     type={field.type} 
                                                                     placeholder={field.placeholder} 
-                                                                    className={cn("bg-background/50", field.type === 'password' && 'pl-9')} 
+                                                                    className={cn("bg-background/40 border-white/10", field.type === 'password' && 'pl-10')} 
                                                                 />
                                                                 {field.type === 'password' && (
-                                                                    <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                                                    <Lock className="absolute left-3.5 top-2.5 h-4 w-4 text-muted-foreground opacity-70" />
                                                                 )}
                                                             </div>
                                                         )}
@@ -257,7 +257,7 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                         );
                                     })}
                                     {(!schema?.fields || schema.fields.length === 0) && (
-                                        <div className="text-sm text-muted-foreground italic bg-muted/20 p-4 rounded-md border border-border/50">
+                                        <div className="text-sm text-muted-foreground italic bg-muted/20 p-4 rounded-xl border border-border/50 text-center">
                                             No additional configuration required for this connector type.
                                         </div>
                                     )}
@@ -267,9 +267,9 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                     </Form>
                 </div>
 
-                <DialogFooter className="p-6 border-t border-border/50 bg-muted/5 shrink-0 flex items-center justify-between">
+                <DialogFooter className="p-6 border-t border-border/50 bg-muted/5 shrink-0 flex items-center justify-between z-20">
                     <Button variant="ghost" onClick={onClose} className="text-muted-foreground hover:text-foreground">Cancel</Button>
-                    <Button form="conn-form" type="submit" disabled={mutation.isPending} className="px-6 shadow-lg shadow-primary/20">
+                    <Button form="conn-form" type="submit" disabled={mutation.isPending} className="px-8 rounded-full shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
                         {mutation.isPending ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
                         {isEditMode ? 'Update Connection' : 'Save Connection'}
                     </Button>

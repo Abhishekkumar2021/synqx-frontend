@@ -114,7 +114,7 @@ export const ConnectionsPage: React.FC = () => {
                     <Button size="lg" onClick={handleCreate} className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:scale-105">
                         <Plus className="mr-2 h-5 w-5" /> New Connection
                     </Button>
-                    <DialogContent className="max-w-5xl h-[700px] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-3xl border-white/10 bg-background/80 backdrop-blur-3xl shadow-2xl">
+                    <DialogContent className="max-w-5xl h-[700px] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-[2rem] border-white/10 bg-background/80 backdrop-blur-3xl shadow-2xl">
                         <CreateConnectionDialog
                             initialData={editingConnection}
                             onClose={() => setIsDialogOpen(false)}
@@ -124,7 +124,7 @@ export const ConnectionsPage: React.FC = () => {
             </div>
 
             {/* Main Content Pane (Glass) */}
-            <div className="flex-1 min-h-0 flex flex-col bg-card/40 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden relative">
+            <div className="flex-1 min-h-0 flex flex-col bg-card/40 backdrop-blur-2xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden relative">
 
                 {/* Toolbar */}
                 <div className="p-6 border-b border-white/5 bg-white/5 flex gap-6 items-center justify-between shrink-0">

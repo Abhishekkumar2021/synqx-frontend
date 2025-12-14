@@ -13,7 +13,7 @@ interface PipelineHealthChartProps {
 
 export const PipelineHealthChart: React.FC<PipelineHealthChartProps> = ({ data, totalPipelines }) => {
     return (
-        <Card className="lg:col-span-3 border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl rounded-3xl flex flex-col min-w-0">
+        <Card className="lg:col-span-3 flex flex-col min-w-0">
             <CardHeader className="pb-2 px-6 pt-6">
                 <CardTitle className="text-lg font-bold">Pipeline Health</CardTitle>
                 <CardDescription className="text-muted-foreground/80">Status distribution of defined pipelines</CardDescription>

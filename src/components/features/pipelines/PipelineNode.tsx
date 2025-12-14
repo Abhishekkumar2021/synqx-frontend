@@ -122,23 +122,21 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
   return (
     <div
       className={cn(
-        "group relative flex min-w-[260px] flex-col rounded-xl border bg-card/95 backdrop-blur-md transition-all duration-300",
+        "group relative flex min-w-[260px] flex-col rounded-[20px] border bg-card/95 backdrop-blur-xl transition-all duration-300 shadow-xl",
         // Selection State
         selected 
-            ? cn("ring-1 ring-offset-2 ring-offset-background shadow-xl scale-[1.02]", colorStyles.border, colorStyles.ring, colorStyles.shadow) 
-            : "border-border/60 hover:border-primary/30 hover:shadow-lg hover:-translate-y-0.5",
+            ? cn("ring-2 ring-offset-2 ring-offset-background scale-[1.02]", colorStyles.border, colorStyles.ring, colorStyles.shadow) 
+            : "border-white/10 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1",
         // Error State Override
         isError && "border-destructive/60 shadow-destructive/10 ring-destructive/20"
       )}
     >
-      {/* Removed the decorative top strip here */}
-
       {/* --- Header --- */}
       <div className="flex items-start justify-between p-4 pb-2">
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-3.5 min-w-0">
             {/* Icon Box */}
             <div className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-transparent transition-all duration-300",
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-transparent transition-all duration-300 shadow-inner",
                 colorStyles.bg,
                 selected ? "border-current/20" : "",
                 isRunning && "animate-pulse"
@@ -155,7 +153,7 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
                 <span className="text-sm font-bold text-foreground truncate pr-1" title={nodeData.label}>
                     {nodeData.label}
                 </span>
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
                     {config.label}
                 </span>
             </div>
@@ -167,25 +165,25 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
                 <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="h-7 w-7 -mr-2 text-muted-foreground/50 hover:text-foreground data-[state=open]:text-foreground"
+                    className="h-8 w-8 -mr-2 rounded-full text-muted-foreground/50 hover:text-foreground hover:bg-white/10 data-[state=open]:text-foreground"
                 >
                     <MoreHorizontal className="h-4 w-4" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuContent align="end" className="w-48 rounded-xl border-white/10 bg-background/80 backdrop-blur-xl">
                 <DropdownMenuLabel>Node Actions</DropdownMenuLabel>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-white/10" />
                 <DropdownMenuItem>
                     <Settings2 className="mr-2 h-3.5 w-3.5" /> Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                     <Play className="mr-2 h-3.5 w-3.5" /> Run Node
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-white/10" />
                 <DropdownMenuItem>
                     <Copy className="mr-2 h-3.5 w-3.5" /> Duplicate
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive focus:text-destructive">
+                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
                     <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
                 </DropdownMenuItem>
             </DropdownMenuContent>
@@ -194,12 +192,12 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
 
       {/* --- Body / Metrics --- */}
       {(status !== 'idle' || nodeData.rowsProcessed) && (
-          <div className="px-4 pb-4 pt-1">
-             <div className="flex items-center justify-between pt-3 border-t border-border/40">
+          <div className="px-4 pb-4 pt-2">
+             <div className="flex items-center justify-between pt-3 border-t border-white/5">
                 
                 {/* Status Badge */}
                 <Badge variant="outline" className={cn(
-                    "h-5 text-[9px] px-1.5 border-0 font-bold tracking-wide uppercase bg-muted/50",
+                    "h-5 text-[9px] px-2 rounded-full border-0 font-bold tracking-wide uppercase bg-muted/50",
                     isRunning && "bg-blue-500/10 text-blue-500 animate-pulse border-blue-500/20",
                     isSuccess && "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
                     isError && "bg-destructive/10 text-destructive border-destructive/20"
@@ -211,7 +209,7 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
 
                 {/* Data Metric */}
                 {typeof nodeData.rowsProcessed === 'number' && (
-                    <span className="text-[10px] font-mono text-muted-foreground flex items-center gap-1">
+                    <span className="text-[10px] font-mono font-medium text-muted-foreground flex items-center gap-1">
                         {nodeData.rowsProcessed.toLocaleString()} rows
                     </span>
                 )}
@@ -219,7 +217,7 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
              
              {/* Error Message (if failed) */}
              {isError && nodeData.error && (
-                 <div className="mt-2 text-[10px] text-destructive bg-destructive/5 p-1.5 rounded border border-destructive/10 truncate">
+                 <div className="mt-2 text-[10px] text-destructive bg-destructive/5 p-2 rounded-lg border border-destructive/10 truncate font-medium">
                      {nodeData.error}
                  </div>
              )}
@@ -233,12 +231,12 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
           type="target"
           position={Position.Left}
           className={cn(
-            "w-3! h-6! rounded-[2px]! border-2! bg-background! transition-all z-50",
+            "w-3! h-6! rounded-[4px]! border-2! bg-background! transition-all z-50",
             selected 
                 ? "border-primary! bg-primary!" 
-                : "border-muted-foreground/40! hover:border-primary! hover:bg-primary/50!"
+                : "border-white/20! hover:border-primary! hover:bg-primary/50!"
           )}
-          style={{ left: -9 }}
+          style={{ left: -10 }}
         />
       )}
       
@@ -247,12 +245,12 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
           type="source"
           position={Position.Right}
           className={cn(
-            "w-3! h-6! rounded-[2px]! border-2! bg-background! transition-all z-50",
+            "w-3! h-6! rounded-[4px]! border-2! bg-background! transition-all z-50",
             selected 
                 ? "border-primary! bg-primary!" 
-                : "border-muted-foreground/40! hover:border-primary! hover:bg-primary/50!"
+                : "border-white/20! hover:border-primary! hover:bg-primary/50!"
           )}
-          style={{ right: -9 }}
+          style={{ right: -10 }}
         />
       )}
     </div>

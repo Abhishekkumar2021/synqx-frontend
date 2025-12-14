@@ -8,16 +8,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-[0_0_20px_-5px_var(--color-primary)] hover:shadow-[0_0_30px_-5px_var(--color-primary)] hover:brightness-110",
+        default: "bg-primary text-primary-foreground shadow-[0_0_20px_-5px_var(--color-primary)] hover:shadow-[0_0_30px_-5px_var(--color-primary)] hover:brightness-110 border border-primary/20",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm border border-destructive/20",
         outline:
-          "border border-white/10 bg-white/5 hover:bg-white/10 hover:text-accent-foreground backdrop-blur-sm",
+          "border border-white/10 bg-white/5 hover:bg-white/10 hover:text-accent-foreground backdrop-blur-sm shadow-sm",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-white/5",
         ghost: "hover:bg-white/10 hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        glass: "bg-white/10 backdrop-blur-lg border border-white/20 text-foreground hover:bg-white/20 shadow-lg",
+        glass: "bg-white/10 backdrop-blur-lg border border-white/20 text-foreground hover:bg-white/20 shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1)] hover:shadow-[0_12px_20px_-4px_rgba(0,0,0,0.2)] hover:-translate-y-0.5",
       },
       size: {
         default: "h-10 px-5 py-2",

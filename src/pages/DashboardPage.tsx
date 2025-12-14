@@ -107,7 +107,7 @@ export const DashboardPage: React.FC = () => {
                         <Activity className="h-8 w-8 text-primary animate-pulse-slow" />
                         System Overview
                     </h2>
-                    <p className="text-base text-muted-foreground/80 font-medium">
+                    <p className="text-base text-muted-foreground/80 font-medium pl-1">
                         System status for <span className="text-foreground">{format(new Date(), 'MMMM dd, yyyy')}</span>. All systems operational.
                     </p>
                 </div>
@@ -122,7 +122,7 @@ export const DashboardPage: React.FC = () => {
             {/* --- Stats Cards Grid --- */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 {isLoading ? (
-                    Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[140px] rounded-3xl bg-white/5" />)
+                    Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[160px] rounded-[2rem] bg-white/5" />)
                 ) : (
                     <>
                         <StatsCard

@@ -113,7 +113,7 @@ export const PipelinesListPage: React.FC = () => {
             </div>
 
             {/* --- Main Content Area (Glass Pane) --- */}
-            <div className="flex-1 min-h-0 flex flex-col bg-card/40 backdrop-blur-2xl rounded-3xl border border-white/10 shadow-2xl overflow-hidden relative">
+            <div className="flex-1 min-h-0 flex flex-col bg-card/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden relative">
                 
                 {/* Toolbar */}
                 <div className="p-6 border-b border-white/5 bg-white/5 flex items-center justify-between shrink-0 gap-6">
@@ -165,18 +165,21 @@ export const PipelinesListPage: React.FC = () => {
                                     return (
                                         <div 
                                             key={pipeline.id}
-                                            className="group relative flex flex-col bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-3xl p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-black/20 hover:-translate-y-1 backdrop-blur-md"
+                                            className="group relative flex flex-col bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-[2rem] p-6 transition-all duration-500 hover:shadow-2xl hover:shadow-black/20 hover:-translate-y-1 backdrop-blur-md overflow-hidden"
                                         >
+                                            {/* Glow Effect */}
+                                            <div className="absolute -right-10 -top-10 h-32 w-32 bg-primary/10 blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+
                                             {/* Card Header */}
-                                            <div className="flex items-start justify-between mb-5">
+                                            <div className="flex items-start justify-between mb-5 relative z-10">
                                                 <div className="flex items-center gap-4">
                                                     <div className={cn(
-                                                        "h-12 w-12 rounded-2xl flex items-center justify-center border shadow-inner transition-all duration-300",
+                                                        "h-14 w-14 rounded-2xl flex items-center justify-center border shadow-inner transition-all duration-300",
                                                         isRunning 
                                                             ? "bg-blue-500/20 border-blue-500/30 text-blue-500 animate-pulse shadow-[0_0_15px_-5px_var(--color-blue-500)]" 
                                                             : "bg-black/5 dark:bg-white/5 border-white/5 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 group-hover:border-primary/20"
                                                     )}>
-                                                        <GitBranch className="h-6 w-6" />
+                                                        <GitBranch className="h-7 w-7" />
                                                     </div>
                                                     <div>
                                                         <Link to={`/pipelines/${pipeline.id}`} className="font-bold text-lg hover:text-primary transition-colors block mb-1">
@@ -187,7 +190,7 @@ export const PipelinesListPage: React.FC = () => {
                                                 </div>
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/10">
+                                                        <Button variant="ghost" size="icon" className="h-9 w-9 -mr-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-white/10">
                                                             <MoreVertical className="h-4 w-4" />
                                                         </Button>
                                                     </DropdownMenuTrigger>
@@ -207,13 +210,13 @@ export const PipelinesListPage: React.FC = () => {
                                             </div>
 
                                             {/* Card Body */}
-                                            <p className="text-sm text-muted-foreground/80 line-clamp-2 h-10 mb-6 leading-relaxed font-medium">
+                                            <p className="text-sm text-muted-foreground/80 line-clamp-2 h-10 mb-6 leading-relaxed font-medium relative z-10">
                                                 {pipeline.description || <span className="italic opacity-50">No description provided.</span>}
                                             </p>
 
                                             {/* Card Footer */}
-                                            <div className="mt-auto pt-5 border-t border-white/5 flex items-center justify-between text-xs font-medium">
-                                                <div className="flex items-center gap-2 text-muted-foreground bg-white/5 px-2.5 py-1 rounded-full">
+                                            <div className="mt-auto pt-5 border-t border-white/5 flex items-center justify-between text-xs font-medium relative z-10">
+                                                <div className="flex items-center gap-2 text-muted-foreground bg-white/5 px-3 py-1.5 rounded-full">
                                                     <Clock className="h-3.5 w-3.5" />
                                                     <span className="font-mono">{pipeline.schedule_cron || 'Manual'}</span>
                                                 </div>
@@ -379,8 +382,8 @@ const LoadingSkeleton = () => (
 
 const EmptyState = () => (
     <div className="flex flex-col items-center justify-center h-full text-muted-foreground/60 py-20">
-        <div className="h-32 w-32 bg-white/5 rounded-full flex items-center justify-center mb-8 border border-white/5">
-            <Workflow className="h-16 w-16 opacity-20" />
+        <div className="h-32 w-32 bg-white/5 rounded-[2rem] flex items-center justify-center mb-8 border border-white/5 rotate-12">
+            <Workflow className="h-16 w-16 opacity-20 -rotate-12" />
         </div>
         <p className="text-2xl font-bold text-foreground">No pipelines found</p>
         <p className="text-base max-w-sm text-center mt-3 leading-relaxed text-muted-foreground">

@@ -1,23 +1,38 @@
-import React from 'react';
-import { cn } from '@/lib/utils';
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "@/lib/utils"
 
-// We need to install class-variance-authority or just do it manually. 
-// I'll do it manually to save an install step since I didn't install cva.
+const badgeVariants = cva(
+  "inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  {
+    variants: {
+      variant: {
+        default:
+          "border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80",
+        secondary:
+          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        destructive:
+          "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
+        outline: "text-foreground",
+        glass: "bg-white/10 backdrop-blur-md border border-white/10 text-foreground hover:bg-white/20",
+        success: "border-transparent bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/20",
+        warning: "border-transparent bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/20",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-    variant?: 'default' | 'secondary' | 'destructive' | 'outline';
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof badgeVariants> {}
+
+function Badge({ className, variant, ...props }: BadgeProps) {
+  return (
+    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+  )
 }
 
-export const Badge = React.forwardRef<HTMLDivElement, BadgeProps>(({ className, variant = 'default', ...props }, ref) => {
-    const variants = {
-        default: "border-transparent bg-blue-600 text-white hover:bg-blue-700",
-        secondary: "border-transparent bg-gray-800 text-white hover:bg-gray-700",
-        destructive: "border-transparent bg-red-600 text-white hover:bg-red-700",
-        outline: "text-white border-gray-700",
-    }
-    
-    return (
-        <div ref={ref} className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2", variants[variant], className)} {...props} />
-    )
-});
-Badge.displayName = "Badge";
+export { Badge, badgeVariants }

@@ -26,49 +26,49 @@ export const JobsList: React.FC<JobsListProps> = ({
     onFilterChange
 }) => {
     return (
-        <div className="lg:col-span-4 flex flex-col h-full bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden">
+        <div className="flex flex-col h-full bg-transparent">
             {/* Search Toolbar */}
-            <div className="p-4 border-b border-border/50 bg-muted/5 space-y-4">
+            <div className="p-5 border-b border-white/5 bg-white/5 space-y-4">
                 <div className="relative group">
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input
                         placeholder="Search by ID or Status..."
-                        className="pl-9 h-9 bg-background/50 focus:bg-background transition-all border-muted-foreground/20 focus:border-primary/50"
+                        className="pl-10 h-10 rounded-xl bg-black/20 focus:bg-black/30 transition-all border-transparent focus:border-primary/30"
                         value={filter}
                         onChange={(e) => onFilterChange(e.target.value)}
                     />
                 </div>
-                <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-muted-foreground/70 px-1">
                     <span>{jobs.length} Executions</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-primary">
+                    <Button variant="ghost" size="icon" className="h-6 w-6 hover:text-primary hover:bg-white/10 rounded-full">
                         <Filter className="h-3 w-3" />
                     </Button>
                 </div>
             </div>
 
             {/* List Items */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar bg-card">
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
                 {isLoading ? (
-                    <div className="p-2 space-y-2">
+                    <div className="p-4 space-y-3">
                         {Array.from({ length: 6 }).map((_, i) => (
-                            <div key={i} className="p-4 rounded-lg border border-border/40 bg-card/50 space-y-3">
-                                <div className="flex justify-between"><Skeleton className="h-4 w-20" /><Skeleton className="h-4 w-12" /></div>
-                                <Skeleton className="h-3 w-32" />
+                            <div key={i} className="p-4 rounded-xl border border-white/5 bg-white/5 space-y-3">
+                                <div className="flex justify-between"><Skeleton className="h-4 w-20 rounded-md" /><Skeleton className="h-4 w-12 rounded-md" /></div>
+                                <Skeleton className="h-3 w-32 rounded-md" />
                             </div>
                         ))}
                     </div>
                 ) : (
                     // Added "divide-y" here for separators
-                    <div className="divide-y divide-border/50">
+                    <div className="p-2 space-y-1">
                         {jobs.map((job: Job) => (
                             <div
                                 key={job.id}
                                 onClick={() => onSelect(job.id)}
                                 className={cn(
-                                    "group relative flex flex-col gap-2 p-4 transition-all cursor-pointer hover:bg-muted/30",
+                                    "group relative flex flex-col gap-2 p-4 transition-all duration-300 cursor-pointer rounded-xl hover:bg-white/5 border border-transparent",
                                     selectedJobId === job.id
-                                        ? "bg-primary/5 border-l-4 border-l-primary pl-[13px]" // Left accent border for active
-                                        : "border-l-4 border-l-transparent pl-[13px]"
+                                        ? "bg-white/10 border-white/10 shadow-lg" 
+                                        : ""
                                 )}
                             >
                                 <div className="flex items-center justify-between">
@@ -80,7 +80,7 @@ export const JobsList: React.FC<JobsListProps> = ({
                                             #{job.id}
                                         </span>
                                     </div>
-                                    <span className="text-[10px] text-muted-foreground font-medium tabular-nums">
+                                    <span className="text-[10px] text-muted-foreground font-medium tabular-nums opacity-70">
                                         {job.started_at ? formatDistanceToNow(new Date(job.started_at), { addSuffix: true }) : ''}
                                     </span>
                                 </div>
@@ -90,8 +90,12 @@ export const JobsList: React.FC<JobsListProps> = ({
                                         <GitBranch className="h-3 w-3 opacity-70" />
                                         <span>Pipeline-{job.pipeline_id}</span>
                                     </div>
-                                    <StatusBadge status={job.status} />
+                                    <StatusBadge status={job.status} className="scale-90 origin-right" />
                                 </div>
+                                
+                                {selectedJobId === job.id && (
+                                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full" />
+                                )}
                             </div>
                         ))}
                     </div>

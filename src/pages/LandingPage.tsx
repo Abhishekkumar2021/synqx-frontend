@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/layout/ModeToggle';
@@ -15,7 +15,7 @@ export function LandingPage() {
         <div className="flex flex-col min-h-screen font-sans selection:bg-primary/20 selection:text-primary bg-background text-foreground overflow-x-hidden">
             
             {/* --- Header --- */}
-            <header className="fixed top-0 w-full z-50 px-6 h-16 flex items-center justify-between border-b border-border/40 bg-background/60 backdrop-blur-xl supports-backdrop-filter:bg-background/60">
+            <header className="fixed top-0 w-full z-50 px-6 h-16 flex items-center justify-between border-b border-white/5 bg-background/60 backdrop-blur-xl supports-backdrop-filter:bg-background/60">
                 <div className="flex items-center gap-2.5 font-bold text-xl tracking-tight">
                     <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 shadow-[0_0_15px_-3px_var(--color-primary)]">
                         <Workflow className="h-5 w-5 text-primary" />
@@ -33,10 +33,10 @@ export function LandingPage() {
                 <div className="flex items-center gap-4">
                     <ModeToggle />
                     <Link to="/login" className="hidden sm:block">
-                        <Button variant="ghost" size="sm" className="font-medium hover:bg-primary/5 hover:text-primary">Sign In</Button>
+                        <Button variant="ghost" size="sm" className="font-medium hover:bg-primary/5 hover:text-primary rounded-full">Sign In</Button>
                     </Link>
                     <Link to="/dashboard">
-                        <Button size="sm" className="font-semibold shadow-[0_0_15px_-5px_var(--color-primary)] hover:shadow-[0_0_25px_-5px_var(--color-primary)] transition-all">
+                        <Button size="sm" className="font-semibold shadow-[0_0_15px_-5px_var(--color-primary)] hover:shadow-[0_0_25px_-5px_var(--color-primary)] transition-all rounded-full px-5">
                             Console
                             <ArrowRight className="ml-2 h-3.5 w-3.5" />
                         </Button>
@@ -66,7 +66,7 @@ export function LandingPage() {
                         <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
                             <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1]">
                                 <span className="block text-foreground">Orchestrate Data</span>
-                                <span className="bg-clip-text text-transparent bg-linear-to-r from-primary via-blue-400 to-indigo-500 animate-gradient-x">
+                                <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-400 to-indigo-500 animate-gradient-x">
                                     At Light Speed
                                 </span>
                             </h1>
@@ -80,13 +80,13 @@ export function LandingPage() {
                         {/* CTA Buttons */}
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
                             <Link to="/dashboard">
-                                <Button size="lg" className="h-14 px-8 text-base shadow-[0_0_30px_-10px_var(--color-primary)] hover:shadow-[0_0_40px_-10px_var(--color-primary)] hover:-translate-y-0.5 transition-all duration-300">
+                                <Button size="lg" className="h-14 px-8 text-base shadow-[0_0_30px_-10px_var(--color-primary)] hover:shadow-[0_0_40px_-10px_var(--color-primary)] hover:-translate-y-0.5 transition-all duration-300 rounded-full">
                                     Start Building Now
                                     <ArrowRight className="ml-2 h-4 w-4" />
                                 </Button>
                             </Link>
                             <a href="http://localhost:3000" target="_blank" rel="noopener noreferrer">
-                                <Button variant="outline" size="lg" className="h-14 px-8 text-base border-primary/20 bg-background/50 hover:bg-primary/5 hover:border-primary/40 hover:text-primary transition-all backdrop-blur-sm">
+                                <Button variant="outline" size="lg" className="h-14 px-8 text-base border-primary/20 bg-background/50 hover:bg-primary/5 hover:border-primary/40 hover:text-primary transition-all backdrop-blur-sm rounded-full">
                                     <Code2 className="mr-2 h-4 w-4" />
                                     Read Documentation
                                 </Button>
@@ -95,22 +95,22 @@ export function LandingPage() {
 
                         {/* Interactive Hero Graphic */}
                         <div className="mt-24 relative group max-w-6xl mx-auto perspective-[2000px] animate-in fade-in zoom-in-95 duration-1000 delay-500">
-                            <div className="absolute -inset-1 bg-linear-to-r from-primary/30 via-indigo-500/30 to-blue-600/30 rounded-2xl blur-3xl opacity-30 group-hover:opacity-50 transition-duration-500"></div>
+                            <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 via-indigo-500/30 to-blue-600/30 rounded-[2rem] blur-3xl opacity-30 group-hover:opacity-50 transition-duration-500"></div>
 
-                            <div className="relative rounded-xl border border-border/50 bg-background/80 backdrop-blur-xl shadow-2xl overflow-hidden transform transition-transform duration-700 hover:scale-[1.005]">
+                            <div className="relative rounded-[2rem] border border-white/10 bg-background/80 backdrop-blur-xl shadow-2xl overflow-hidden transform transition-transform duration-700 hover:scale-[1.005]">
                                 {/* Browser Toolbar */}
-                                <div className="border-b border-border/50 bg-muted/20 px-4 py-3 flex items-center justify-between">
+                                <div className="border-b border-white/5 bg-black/20 px-4 py-3 flex items-center justify-between">
                                     <div className="flex gap-2">
                                         <div className="w-3 h-3 rounded-full bg-destructive/80 border border-destructive/50"></div>
                                         <div className="w-3 h-3 rounded-full bg-yellow-500/80 border border-yellow-500/50"></div>
                                         <div className="w-3 h-3 rounded-full bg-emerald-500/80 border border-emerald-500/50"></div>
                                     </div>
-                                    <div className="px-3 py-1 rounded-full bg-background/50 border border-border/50 text-[10px] text-muted-foreground font-mono flex items-center gap-2 shadow-inner">
+                                    <div className="px-3 py-1 rounded-full bg-background/50 border border-white/5 text-[10px] text-muted-foreground font-mono flex items-center gap-2 shadow-inner">
                                         <Lock className="h-2.5 w-2.5" />
                                         synqx.app/pipelines/production-v1
                                     </div>
                                     <div className="flex gap-2">
-                                        <div className="h-2 w-12 rounded-full bg-border/50" />
+                                        <div className="h-2 w-12 rounded-full bg-white/5" />
                                     </div>
                                 </div>
 
@@ -196,7 +196,7 @@ export function LandingPage() {
                 </section>
 
                 {/* --- Stats Section --- */}
-                <section className="py-20 border-y border-border/40 bg-muted/10 backdrop-blur-sm relative">
+                <section className="py-20 border-y border-white/5 bg-white/5 backdrop-blur-sm relative">
                     <div className="absolute inset-0 bg-noise opacity-5 pointer-events-none"></div>
                     <div className="container px-4 md:px-6 mx-auto">
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
@@ -277,14 +277,14 @@ export function LandingPage() {
                                     <IntegrationItem icon={<BarChart3 className="h-4 w-4 text-purple-400" />} text="AWS S3, Azure Blob" />
                                 </ul>
 
-                                <Button variant="outline" className="group h-12 px-6 border-primary/20 hover:border-primary hover:bg-primary/5 text-foreground transition-all">
+                                <Button variant="outline" className="group h-12 px-6 border-primary/20 hover:border-primary hover:bg-primary/5 text-foreground transition-all rounded-full">
                                     View All Connectors
                                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform text-primary" />
                                 </Button>
                             </div>
 
                             <div className="relative h-[500px] w-full flex items-center justify-center perspective-[1000px]">
-                                <div className="absolute inset-0 bg-linear-to-tr from-primary/10 to-transparent rounded-full blur-3xl opacity-50" />
+                                <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent rounded-full blur-3xl opacity-50" />
 
                                 {/* Central Hub */}
                                 <div className="z-20 h-32 w-32 bg-background/80 backdrop-blur-xl rounded-3xl shadow-[0_0_50px_-10px_var(--color-primary)] flex items-center justify-center border border-primary/30 relative">
@@ -317,11 +317,11 @@ export function LandingPage() {
                         </p>
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
                             <Link to="/dashboard">
-                                <Button size="lg" className="h-14 px-10 text-lg shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all hover:-translate-y-1">
+                                <Button size="lg" className="h-14 px-10 text-lg shadow-xl shadow-primary/20 hover:shadow-primary/40 transition-all hover:-translate-y-1 rounded-full">
                                     Start Free Trial
                                 </Button>
                             </Link>
-                            <Button variant="outline" size="lg" className="h-14 px-10 text-lg border-muted-foreground/20 hover:bg-muted/50 backdrop-blur-sm">
+                            <Button variant="outline" size="lg" className="h-14 px-10 text-lg border-muted-foreground/20 hover:bg-muted/50 backdrop-blur-sm rounded-full">
                                 Schedule Demo
                             </Button>
                         </div>
@@ -338,7 +338,7 @@ export function LandingPage() {
             </main>
 
             {/* --- Footer --- */}
-            <footer className="py-16 border-t border-border/40 bg-muted/5 relative">
+            <footer className="py-16 border-t border-white/5 bg-white/5 relative">
                 <div className="absolute inset-0 bg-noise opacity-[0.03] pointer-events-none"></div>
                 <div className="container px-4 md:px-6 mx-auto relative z-10">
                     <div className="grid md:grid-cols-4 gap-12 mb-12">
@@ -380,7 +380,7 @@ export function LandingPage() {
                             </ul>
                         </div>
                     </div>
-                    <div className="pt-8 border-t border-border/40 text-center text-sm text-muted-foreground flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="pt-8 border-t border-white/5 text-center text-sm text-muted-foreground flex flex-col md:flex-row justify-between items-center gap-4">
                         <p>© 2025 SynqX Inc. All rights reserved.</p>
                         <div className="flex gap-6">
                             <a href="#" className="hover:text-foreground transition-colors">Twitter</a>
@@ -395,14 +395,14 @@ export function LandingPage() {
 }
 
 const StatItem = ({ number, label }: { number: string, label: string }) => (
-    <div className="space-y-2 p-4 rounded-xl hover:bg-muted/30 transition-colors cursor-default">
-        <div className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-linear-to-b from-foreground to-muted-foreground">{number}</div>
+    <div className="space-y-2 p-4 rounded-xl hover:bg-white/5 transition-colors cursor-default">
+        <div className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-foreground to-muted-foreground">{number}</div>
         <div className="text-sm text-muted-foreground font-medium uppercase tracking-wide">{label}</div>
     </div>
 );
 
 const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) => (
-    <div className="group p-8 rounded-3xl border border-border/50 bg-card hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/5 relative overflow-hidden">
+    <div className="group p-8 rounded-[2rem] border border-white/10 bg-card hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/5 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors" />
 
         <div className="mb-6 w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300 ring-1 ring-primary/20">
@@ -414,8 +414,8 @@ const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode, titl
 );
 
 const IntegrationItem = ({ icon, text }: { icon: React.ReactNode, text: string }) => (
-    <li className="flex items-center gap-3 p-3 rounded-lg border border-transparent hover:border-border/50 hover:bg-muted/40 transition-all cursor-default">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted/50">
+    <li className="flex items-center gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 hover:bg-white/5 transition-all cursor-default">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5">
             {icon}
         </div>
         <span className="font-medium text-sm text-foreground/80">{text}</span>
@@ -424,7 +424,7 @@ const IntegrationItem = ({ icon, text }: { icon: React.ReactNode, text: string }
 
 const IntegrationCard = ({ name, position, icon, color }: { name: string, position: string, icon: React.ReactNode, color: string }) => (
     <div className={cn(
-        "px-4 py-3 bg-card/80 backdrop-blur-md border border-border/50 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 hover:border-primary/40 flex items-center gap-3 cursor-default",
+        "px-4 py-3 bg-card/80 backdrop-blur-md border border-white/10 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 hover:border-primary/40 flex items-center gap-3 cursor-default",
         position
     )}>
         <div className={cn("h-8 w-8 rounded-lg bg-muted/50 flex items-center justify-center", color)}>
@@ -445,7 +445,7 @@ const MockNode = ({ icon, title, sub, active = false, status, type = 'default' }
 
     return (
         <div className={cn(
-            "w-52 p-4 rounded-xl border border-border/60 bg-card/95 backdrop-blur-sm flex flex-col gap-3 shadow-xl transition-all hover:scale-105 border-l-4",
+            "w-52 p-4 rounded-xl border border-white/10 bg-card/95 backdrop-blur-sm flex flex-col gap-3 shadow-xl transition-all hover:scale-105 border-l-4",
             colors[type],
             active ? 'ring-2 ring-primary/50 shadow-primary/20' : 'hover:border-primary/30'
         )}>

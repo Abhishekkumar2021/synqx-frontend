@@ -51,15 +51,15 @@ export const JobsPage: React.FC = () => {
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <div className="hidden md:flex items-center px-4 py-2 bg-emerald-500/10 rounded-full border border-emerald-500/20 text-xs font-bold text-emerald-500 tracking-wide uppercase">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-2.5"></span>
+                    <div className="hidden md:flex items-center px-4 py-2 bg-emerald-500/10 rounded-full border border-emerald-500/20 text-xs font-bold text-emerald-500 tracking-wide uppercase shadow-[0_0_15px_-5px_var(--color-emerald-500)]">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-2.5 shadow-lg shadow-emerald-500/50"></span>
                         Live Stream
                     </div>
                     <Button
                         variant="outline"
                         size="lg"
                         onClick={() => refetch()}
-                        className={cn("gap-2 rounded-full border-white/10 bg-white/5 hover:bg-white/10", isRefetching && "opacity-80")}
+                        className={cn("gap-2 rounded-full border-white/10 bg-white/5 hover:bg-white/10 hover:border-primary/30 backdrop-blur-md transition-all", isRefetching && "opacity-80")}
                         disabled={isRefetching}
                     >
                         <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
@@ -69,10 +69,10 @@ export const JobsPage: React.FC = () => {
             </div>
 
             {/* Main Grid Layout (Glass Container) */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 bg-card/40 backdrop-blur-3xl rounded-3xl border border-white/10 shadow-2xl p-1 relative overflow-hidden">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 bg-card/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 shadow-2xl p-2 relative overflow-hidden">
                 
                 {/* --- LEFT PANEL: List --- */}
-                <div className="lg:col-span-4 h-full rounded-2xl bg-white/5 border border-white/5 overflow-hidden flex flex-col">
+                <div className="lg:col-span-4 h-full rounded-[2rem] bg-white/5 border border-white/5 overflow-hidden flex flex-col relative z-10">
                     <JobsList 
                         jobs={filteredJobs} 
                         isLoading={isLoading} 
@@ -84,12 +84,14 @@ export const JobsPage: React.FC = () => {
                 </div>
 
                 {/* --- RIGHT PANEL: Details --- */}
-                <div className="lg:col-span-8 h-full rounded-2xl bg-black/40 border border-white/10 overflow-hidden relative shadow-inner">
+                <div className="lg:col-span-8 h-full rounded-[2rem] bg-black/40 border border-white/10 overflow-hidden relative shadow-inner z-10">
                     {selectedJob ? (
                          <JobDetails job={selectedJob} />
                     ) : (
                         <div className="flex flex-col items-center justify-center h-full text-muted-foreground/50">
-                            <Terminal className="h-16 w-16 mb-4 opacity-20" />
+                            <div className="p-6 rounded-3xl bg-white/5 border border-white/5 mb-6">
+                                <Terminal className="h-12 w-12 opacity-30" />
+                            </div>
                             <p className="text-lg font-medium">Select a job to view logs</p>
                         </div>
                     )}

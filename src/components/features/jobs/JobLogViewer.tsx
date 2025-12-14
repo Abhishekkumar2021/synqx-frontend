@@ -112,7 +112,7 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
             <div className={cn(
                 "flex flex-col overflow-hidden relative group transition-all duration-300",
                 "bg-[#09090b] text-slate-300",
-                !hideControls ? "rounded-3xl border border-white/10 shadow-2xl h-[650px]" : "h-full border-none"
+                !hideControls ? "rounded-[2.5rem] border border-white/10 shadow-2xl h-[650px]" : "h-full border-none"
             )}>
 
                 {/* Terminal Header */}
