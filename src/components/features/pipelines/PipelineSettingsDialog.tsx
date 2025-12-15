@@ -79,7 +79,7 @@ export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ 
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px] border-white/10 bg-black/40 backdrop-blur-3xl gap-0 p-0 overflow-hidden rounded-[2rem] shadow-2xl ring-1 ring-white/10">
+            <DialogContent className="sm:max-w-[600px] glass-panel gap-0 p-0 overflow-hidden shadow-2xl">
                 
                 {/* Header */}
                 <DialogHeader className="p-8 pb-6 border-b border-white/5 bg-white/5">
@@ -108,7 +108,7 @@ export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ 
                                     <Input 
                                         id="name" 
                                         {...register('name', { required: true })} 
-                                        className="bg-white/5 border-white/5 focus:bg-white/10 focus:border-primary/50 h-11 rounded-2xl"
+                                        className="glass-input h-11 rounded-2xl"
                                         placeholder="e.g. Daily ETL Process"
                                     />
                                 </div>
@@ -118,7 +118,7 @@ export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ 
                                     <Textarea 
                                         id="desc"
                                         {...register('description')} 
-                                        className="bg-white/5 border-white/5 focus:bg-white/10 focus:border-primary/50 min-h-24 resize-none rounded-2xl p-4 text-sm"
+                                        className="glass-input min-h-24 resize-none rounded-2xl p-4 text-sm"
                                         placeholder="Describe the purpose of this workflow..."
                                     />
                                 </div>

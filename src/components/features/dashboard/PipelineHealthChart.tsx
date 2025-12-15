@@ -13,7 +13,7 @@ interface PipelineHealthChartProps {
 
 export const PipelineHealthChart: React.FC<PipelineHealthChartProps> = ({ data, totalPipelines }) => {
     return (
-        <Card className="lg:col-span-3 flex flex-col min-w-0">
+        <Card className="lg:col-span-3 flex flex-col min-w-0 glass-card border-none shadow-xl">
             <CardHeader className="pb-2 px-6 pt-6">
                 <CardTitle className="text-lg font-bold">Pipeline Health</CardTitle>
                 <CardDescription className="text-muted-foreground/80">Status distribution of defined pipelines</CardDescription>
@@ -45,11 +45,11 @@ export const PipelineHealthChart: React.FC<PipelineHealthChartProps> = ({ data, 
                                 </Pie>
                                 <Tooltip
                                     contentStyle={{
-                                        backgroundColor: 'rgba(20, 20, 20, 0.8)',
-                                        backdropFilter: 'blur(12px)',
+                                        backgroundColor: 'rgba(10, 10, 10, 0.8)',
+                                        backdropFilter: 'blur(16px)',
                                         borderRadius: '16px',
-                                        border: '1px solid rgba(255,255,255,0.1)',
-                                        boxShadow: '0 10px 40px -10px rgba(0,0,0,0.5)',
+                                        border: '1px solid rgba(255,255,255,0.08)',
+                                        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                                         padding: '10px 16px'
                                     }}
                                     itemStyle={{ color: '#fff', fontWeight: 600, fontSize: '13px' }}

@@ -70,7 +70,7 @@ export const CronBuilder: React.FC<CronBuilderProps> = ({ value, onChange }) => 
     };
 
     return (
-        <div className="flex flex-col gap-4 rounded-xl border border-border/50 bg-card/50 p-1 shadow-sm">
+        <div className="flex flex-col gap-4 rounded-xl glass-card border-none p-1 shadow-sm">
             
             {/* --- Header / Tabs --- */}
             <div className="flex items-center justify-between p-3 pb-0">
@@ -119,7 +119,7 @@ export const CronBuilder: React.FC<CronBuilderProps> = ({ value, onChange }) => 
                                     "relative flex flex-col items-start p-3 rounded-lg border text-left transition-all duration-200 outline-none group",
                                     value === preset.value
                                         ? "bg-primary/5 border-primary/50 shadow-[0_0_15px_-5px_var(--color-primary)]"
-                                        : "bg-background/50 border-border/50 hover:border-primary/30 hover:bg-muted/30"
+                                        : "bg-white/5 border-white/5 hover:border-primary/30 hover:bg-white/10"
                                 )}
                             >
                                 <div className="flex justify-between w-full mb-1">
@@ -133,7 +133,7 @@ export const CronBuilder: React.FC<CronBuilderProps> = ({ value, onChange }) => 
                                 <span className="text-xs text-muted-foreground mb-2">{preset.desc}</span>
                                 <code className={cn(
                                     "text-[10px] px-1.5 py-0.5 rounded font-mono transition-colors",
-                                    value === preset.value ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                                    value === preset.value ? "bg-primary/10 text-primary" : "bg-black/20 text-muted-foreground"
                                 )}>
                                     {preset.value}
                                 </code>
@@ -143,7 +143,7 @@ export const CronBuilder: React.FC<CronBuilderProps> = ({ value, onChange }) => 
                         {/* "Go Custom" hint if they want more control */}
                         <button 
                             onClick={() => setModeOverride('custom')}
-                            className="flex flex-col items-center justify-center p-3 rounded-lg border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all gap-2"
+                            className="flex flex-col items-center justify-center p-3 rounded-lg border border-dashed border-white/10 text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all gap-2"
                         >
                             <Settings2 className="h-5 w-5" />
                             <span className="text-xs font-medium">Create Custom Schedule</span>
@@ -163,7 +163,7 @@ export const CronBuilder: React.FC<CronBuilderProps> = ({ value, onChange }) => 
                                     value={value}
                                     onChange={(e) => onChange(e.target.value)}
                                     className={cn(
-                                        "font-mono text-center tracking-widest text-lg h-14 bg-background/50 border-border/50 transition-all",
+                                        "font-mono text-center tracking-widest text-lg h-14 glass-input transition-all",
                                         isValid 
                                             ? "focus-visible:ring-primary/30 focus-visible:border-primary/50" 
                                             : "border-destructive/50 focus-visible:ring-destructive/30 text-destructive"
@@ -204,7 +204,7 @@ export const CronBuilder: React.FC<CronBuilderProps> = ({ value, onChange }) => 
                         </div>
 
                         {/* Cheat Sheet */}
-                        <div className="rounded-lg bg-muted/30 border border-border/50 p-4">
+                        <div className="rounded-lg bg-white/5 border border-white/5 p-4">
                             <div className="flex items-center gap-2 mb-3 text-muted-foreground">
                                 <Info className="h-4 w-4 text-primary" />
                                 <span className="text-xs font-semibold uppercase tracking-wider">Quick Reference</span>
@@ -222,7 +222,7 @@ export const CronBuilder: React.FC<CronBuilderProps> = ({ value, onChange }) => 
 
             {/* --- Footer Status --- */}
             <div className={cn(
-                "px-4 py-3 border-t border-border/50 bg-muted/10 flex items-center justify-between rounded-b-xl transition-colors",
+                "px-4 py-3 border-t border-white/5 bg-black/20 flex items-center justify-between rounded-b-xl transition-colors",
                 isValid ? "bg-emerald-500/5" : "bg-destructive/5"
             )}>
                 <span className="text-xs font-medium text-muted-foreground">Summary:</span>

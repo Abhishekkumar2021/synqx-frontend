@@ -20,6 +20,7 @@ export function useJobLogs(jobId: number | null) {
   // Fetch initial logs (history)
   useEffect(() => {
     if (!jobId) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLogs([]);
         return;
     }

@@ -122,11 +122,11 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
   return (
     <div
       className={cn(
-        "group relative flex min-w-[260px] flex-col rounded-[20px] border bg-card/95 backdrop-blur-xl transition-all duration-300 shadow-xl",
+        "group relative flex min-w-[260px] flex-col rounded-[20px] glass-card transition-all duration-300",
         // Selection State
         selected 
             ? cn("ring-2 ring-offset-2 ring-offset-background scale-[1.02]", colorStyles.border, colorStyles.ring, colorStyles.shadow) 
-            : "border-white/10 hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1",
+            : "hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1",
         // Error State Override
         isError && "border-destructive/60 shadow-destructive/10 ring-destructive/20"
       )}

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { HelmetProvider } from 'react-helmet-async';
 import { Loader2 } from 'lucide-react';
 
 // Components
@@ -126,17 +127,19 @@ const AppRoutes = () => {
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="synqx-theme">
-        <QueryClientProvider client={queryClient}>
-            <AuthProvider>
-                <BrowserRouter>
-                    <AppRoutes />
-                    {/* Global Toaster for Notifications */}
-                    <Toaster richColors position="top-right" />
-                </BrowserRouter>
-            </AuthProvider>
-        </QueryClientProvider>
-    </ThemeProvider>
+    <HelmetProvider>
+      <ThemeProvider defaultTheme="dark" storageKey="synqx-theme">
+          <QueryClientProvider client={queryClient}>
+              <AuthProvider>
+                  <BrowserRouter>
+                      <AppRoutes />
+                      {/* Global Toaster for Notifications */}
+                      <Toaster richColors position="top-right" />
+                  </BrowserRouter>
+              </AuthProvider>
+          </QueryClientProvider>
+      </ThemeProvider>
+    </HelmetProvider>
   );
 }
 

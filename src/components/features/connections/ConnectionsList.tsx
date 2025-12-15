@@ -75,7 +75,7 @@ export const ConnectionsList: React.FC<ConnectionsListProps> = ({
                             <div
                                 key={conn.id}
                                 className={cn(
-                                    "group relative flex bg-card/40 backdrop-blur-md border border-white/10 hover:border-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-black/10 hover:-translate-y-1 overflow-hidden",
+                                    "group relative flex glass-card glass-card-hover hover:border-primary/30",
                                     viewMode === 'grid' ? "flex-col rounded-[2rem] p-6" : "flex-row items-center rounded-3xl p-4 gap-6"
                                 )}
                             >

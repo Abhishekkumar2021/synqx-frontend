@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from 'axios';
+import { toast } from 'sonner';
 
 // --- Configuration ---
 export const API_BASE_URL = 'http://localhost:8000/api/v1'; // Adjust as needed
@@ -22,6 +23,48 @@ api.interceptors.request.use(
         return config;
     },
     (error) => Promise.reject(error)
+);
+
+// Response interceptor for global error handling
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const { response } = error;
+        
+        // Handle 401 Unauthorized (Session Expired)
+        if (response && response.status === 401) {
+            // Only redirect if we are not already on the login page to avoid loops
+            if (!window.location.pathname.includes('/login')) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                toast.error('Session expired. Please login again.');
+                // Slight delay to allow toast to be seen
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 1000);
+            }
+        } 
+        // Handle 403 Forbidden
+        else if (response && response.status === 403) {
+            toast.error('You do not have permission to perform this action.');
+        }
+        // Handle 500 Server Errors
+        else if (response && response.status >= 500) {
+            toast.error('Server error. Please try again later.');
+        }
+        // Handle Network Errors
+        else if (error.message === 'Network Error') {
+            toast.error('Network error. Please check your connection.');
+        }
+        // Let specific 400 errors be handled by the caller if needed, 
+        // but provide a default message if none exists
+        else if (response && response.data && response.data.detail) {
+             // Optional: Toast specific API errors globally if desired, 
+             // or let components handle them. For now, we pass it through.
+        }
+
+        return Promise.reject(error);
+    }
 );
 
 // --- Auth Types ---

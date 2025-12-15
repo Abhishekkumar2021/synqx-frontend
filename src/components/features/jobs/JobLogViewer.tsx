@@ -80,7 +80,7 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
 
             {/* --- External Controls --- */}
             {!hideControls && (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white/5 border border-white/10 p-5 rounded-3xl shadow-lg backdrop-blur-xl gap-6 transition-all">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between glass-card p-5 gap-6 transition-all">
                     <div className="flex items-center gap-4">
                         <div className="p-2.5 bg-primary/10 rounded-2xl text-primary ring-1 ring-primary/20 shadow-[0_0_15px_-5px_var(--color-primary)]">
                             <Terminal className="h-6 w-6" />
@@ -97,7 +97,7 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
                             <Input
                                 value={jobIdInput}
                                 onChange={(e) => setJobIdInput(e.target.value)}
-                                className="w-48 pl-10 h-10 font-mono text-sm bg-black/10 border-white/5 focus:bg-black/20 rounded-xl"
+                                className="w-48 pl-10 h-10 font-mono text-sm glass-input rounded-xl"
                                 placeholder="Job ID"
                             />
                         </div>
@@ -111,13 +111,13 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
             {/* --- The Terminal Window --- */}
             <div className={cn(
                 "flex flex-col overflow-hidden relative group transition-all duration-300",
-                "bg-[#09090b] text-slate-300",
+                "bg-black text-gray-300 dark:bg-[#09090b] dark:text-gray-300", // Keep terminal dark, adjust text
                 !hideControls ? "rounded-[2.5rem] border border-white/10 shadow-2xl h-[650px]" : "h-full border-none"
             )}>
 
                 {/* Terminal Header */}
                 <div className="flex items-center justify-between px-5 py-3 shrink-0 select-none
-                        bg-white/[0.03] 
+                        bg-white/5 dark:bg-white/[0.03] 
                         border-b border-white/5 backdrop-blur-sm">
                     <div className="flex items-center gap-5">
                         {/* Window Controls (Mac Style) */}
@@ -192,7 +192,7 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
                                 <div key={log.id || idx} className="flex gap-4 hover:bg-white/[0.04] p-1 rounded-lg px-3 transition-colors group/line items-start">
 
                                     {/* Timestamp */}
-                                    <span className="text-zinc-500 shrink-0 select-none min-w-[85px] pt-[1px]">
+                                    <span className="text-muted-foreground/50 dark:text-zinc-500 shrink-0 select-none min-w-[85px] pt-[1px]">
                                         {new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                     </span>
 
@@ -200,10 +200,10 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
                                     <span className={cn(
                                         "font-bold shrink-0 w-[60px] select-none text-[10px] pt-0.5 uppercase tracking-wider text-center rounded-md h-5 flex items-center justify-center",
                                         {
-                                            'bg-blue-500/10 text-blue-400': log.level === 'INFO',
-                                            'bg-amber-500/10 text-amber-400': log.level === 'WARNING' || log.level === 'WARN',
-                                            'bg-rose-500/10 text-rose-400': log.level === 'ERROR',
-                                            'bg-zinc-500/10 text-zinc-400': log.level === 'DEBUG',
+                                            'bg-blue-500/10 text-blue-600 dark:text-blue-400': log.level === 'INFO',
+                                            'bg-amber-500/10 text-amber-600 dark:text-amber-400': log.level === 'WARNING' || log.level === 'WARN',
+                                            'bg-rose-500/10 text-rose-600 dark:text-rose-400': log.level === 'ERROR',
+                                            'bg-zinc-200/50 text-zinc-600 dark:bg-zinc-500/10 dark:text-zinc-400': log.level === 'DEBUG',
                                         }
                                     )}>
                                         {log.level}
@@ -213,8 +213,8 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
                                     <span className={cn(
                                         "break-all whitespace-pre-wrap flex-1 leading-relaxed",
                                         log.level === 'ERROR'
-                                            ? "text-rose-200"
-                                            : "text-zinc-300"
+                                            ? "text-rose-600 dark:text-rose-200"
+                                            : "text-foreground dark:text-zinc-300"
                                     )}>
                                         {log.message}
                                     </span>
@@ -248,7 +248,7 @@ const ActionIcon = ({ onClick, title, children, active }: { onClick: () => void,
         onClick={onClick}
         className={cn(
             "p-2 rounded-lg transition-all duration-200",
-            "text-zinc-400 hover:text-white hover:bg-white/10",
+            "text-muted-foreground hover:text-foreground hover:bg-white/10",
             active && "bg-primary/20 text-primary hover:bg-primary/30 hover:text-primary-foreground"
         )}
         title={title}

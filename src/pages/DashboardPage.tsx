@@ -13,6 +13,7 @@ import { StatsCard } from '@/components/ui/StatsCard';
 import { ExecutionThroughputChart } from '@/components/features/dashboard/ExecutionThroughputChart';
 import { PipelineHealthChart } from '@/components/features/dashboard/PipelineHealthChart';
 import { RecentActivityTable } from '@/components/features/dashboard/RecentActivityTable';
+import { PageMeta } from '@/components/common/PageMeta';
 
 export const DashboardPage: React.FC = () => {
     // 1. Data Fetching
@@ -99,6 +100,7 @@ export const DashboardPage: React.FC = () => {
 
     return (
         <div className="flex flex-col gap-8 pb-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
+            <PageMeta title="Dashboard" description="System overview and health metrics." />
 
             {/* --- Header & Navigation --- */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 px-1">

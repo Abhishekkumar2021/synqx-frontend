@@ -11,6 +11,7 @@ import {
 import { cn } from '@/lib/utils';
 import { JobsList } from '@/components/features/jobs/JobsList';
 import { JobDetails } from '@/components/features/jobs/JobDetails';
+import { PageMeta } from '@/components/common/PageMeta';
 
 export const JobsPage: React.FC = () => {
     const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
@@ -36,6 +37,7 @@ export const JobsPage: React.FC = () => {
 
     return (
         <div className="flex flex-col h-[calc(100vh-9rem)] gap-8 animate-in fade-in duration-700">
+            <PageMeta title="Execution History" description="Monitor pipeline runs and logs." />
 
             {/* Header Section */}
             <div className="flex items-center justify-between shrink-0 px-1">
@@ -69,7 +71,7 @@ export const JobsPage: React.FC = () => {
             </div>
 
             {/* Main Grid Layout (Glass Container) */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 bg-card/40 backdrop-blur-3xl rounded-[2.5rem] border border-white/10 shadow-2xl p-2 relative overflow-hidden">
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 glass-panel p-2 relative">
                 
                 {/* --- LEFT PANEL: List --- */}
                 <div className="lg:col-span-4 h-full rounded-[2rem] bg-white/5 border border-white/5 overflow-hidden flex flex-col relative z-10">

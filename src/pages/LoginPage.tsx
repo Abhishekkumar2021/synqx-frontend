@@ -10,6 +10,7 @@ import {
     Loader2, Mail, Lock, Eye, EyeOff, 
     Workflow, ArrowRight, Sparkles, Shield, Zap
 } from 'lucide-react';
+import { PageMeta } from '@/components/common/PageMeta';
 
 export const LoginPage: React.FC = () => {
     const { login } = useAuth();
@@ -60,6 +61,7 @@ export const LoginPage: React.FC = () => {
 
     return (
         <div ref={containerRef} className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0 overflow-hidden bg-background font-sans selection:bg-primary/20">
+            <PageMeta title="Login" description="Sign in to your SynqX account." />
             
             {/* --- RIGHT PANEL: Premium Visuals --- */}
             <div className="relative hidden h-full flex-col bg-[#050505] p-12 text-white lg:flex border-r border-white/5 overflow-hidden justify-between">

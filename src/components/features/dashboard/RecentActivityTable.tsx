@@ -24,7 +24,7 @@ interface RecentActivityTableProps {
 
 export const RecentActivityTable: React.FC<RecentActivityTableProps> = ({ jobs }) => {
     return (
-        <Card className="col-span-full overflow-hidden">
+        <Card className="col-span-full overflow-hidden glass-card border-none shadow-xl">
             <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 py-5 px-6">
                 <div className="space-y-1">
                     <CardTitle className="text-lg font-bold flex items-center gap-2.5">

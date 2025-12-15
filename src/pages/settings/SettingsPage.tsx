@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
+import { PageMeta } from '@/components/common/PageMeta';
 
 type SettingsTab = 'general' | 'security' | 'notifications' | 'billing';
 
@@ -42,6 +43,7 @@ export const SettingsPage: React.FC = () => {
 
   return (
     <div className="relative flex flex-col gap-8 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-[80vh]">
+      <PageMeta title="Settings" description="Manage workspace preferences and security." />
       
       {/* --- Ambient Background Effects --- */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
@@ -70,8 +72,8 @@ export const SettingsPage: React.FC = () => {
                     className={cn(
                         "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 border border-transparent outline-none focus:ring-2 focus:ring-primary/20",
                         activeTab === tab.id 
-                            ? "bg-primary/10 text-primary border-primary/20 shadow-sm" 
-                            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                            ? "glass-float text-primary border-primary/20 shadow-lg shadow-primary/5" 
+                            : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                     )}
                 >
                     <tab.icon className={cn("h-4 w-4", activeTab === tab.id ? "text-primary" : "text-muted-foreground")} />
@@ -91,20 +93,20 @@ export const SettingsPage: React.FC = () => {
             {activeTab === 'general' && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-500 fade-in">
                     {/* Profile Card */}
-                    <Card className="border-border/50 bg-card/50 backdrop-blur-sm overflow-hidden shadow-sm">
+                    <Card className="glass-panel overflow-hidden shadow-sm">
                         {/* Banner Background */}
-                        <div className="h-24 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-primary/20 border-b border-border/50" />
+                        <div className="h-24 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-primary/20 border-b border-white/5" />
                         
                         <CardHeader className="relative pt-0">
                             <div className="absolute -top-12 left-6">
-                                <Avatar className="h-24 w-24 border-4 border-card shadow-xl ring-1 ring-border/50">
+                                <Avatar className="h-24 w-24 border-4 border-card shadow-xl ring-1 ring-white/10">
                                     <AvatarImage src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || 'synqx'}`} />
                                     <AvatarFallback className="bg-primary/10 text-primary text-2xl">
                                         {user?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className="absolute bottom-0 right-0">
-                                    <Button size="icon" variant="secondary" className="h-8 w-8 rounded-full shadow-md border border-border">
+                                    <Button size="icon" variant="secondary" className="h-8 w-8 rounded-full shadow-md border border-white/10">
                                         <User className="h-4 w-4" />
                                     </Button>
                                 </div>
@@ -118,24 +120,24 @@ export const SettingsPage: React.FC = () => {
                             <div className="grid gap-6 md:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="display-name">Display Name</Label>
-                                    <Input id="display-name" defaultValue={user?.full_name || ''} className="bg-background/50 focus:bg-background transition-colors" />
+                                    <Input id="display-name" defaultValue={user?.full_name || ''} className="glass-input transition-colors" />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="username">Username</Label>
                                     <div className="flex">
-                                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
+                                        <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-white/10 bg-white/5 text-muted-foreground text-sm">
                                             synqx.dev/
                                         </span>
-                                        <Input id="username" defaultValue={user?.email?.split('@')[0] || ''} className="rounded-l-none bg-background/50 focus:bg-background transition-colors" />
+                                        <Input id="username" defaultValue={user?.email?.split('@')[0] || ''} className="rounded-l-none glass-input transition-colors" />
                                     </div>
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="bio">Bio</Label>
-                                <Input id="bio" placeholder="Tell us a little bit about yourself" className="bg-background/50 focus:bg-background transition-colors" />
+                                <Input id="bio" placeholder="Tell us a little bit about yourself" className="glass-input transition-colors" />
                             </div>
                         </CardContent>
-                        <CardFooter className="bg-muted/5 border-t border-border/50 py-4 flex justify-end">
+                        <CardFooter className="bg-white/5 border-t border-white/5 py-4 flex justify-end">
                             <Button onClick={handleSave} disabled={isLoading} className="shadow-lg shadow-primary/20">
                                 {isLoading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                                 Save Changes
@@ -144,7 +146,7 @@ export const SettingsPage: React.FC = () => {
                     </Card>
 
                     {/* Appearance - Replaced with Theme Cards */}
-                    <Card className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm">
+                    <Card className="glass-card shadow-sm">
                         <CardHeader>
                             <CardTitle className="text-base flex items-center gap-2">
                                 <Palette className="h-4 w-4 text-purple-500" /> Interface Theme
@@ -156,8 +158,8 @@ export const SettingsPage: React.FC = () => {
                                 <button 
                                     onClick={() => setTheme('light')}
                                     className={cn(
-                                        "flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all hover:bg-muted/50 outline-none focus:ring-2 focus:ring-primary/20",
-                                        theme === 'light' ? "border-primary bg-primary/5" : "border-transparent bg-muted/20 hover:border-border"
+                                        "flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all hover:bg-white/5 outline-none focus:ring-2 focus:ring-primary/20",
+                                        theme === 'light' ? "border-primary bg-primary/5" : "border-transparent bg-black/20 hover:border-white/10"
                                     )}
                                 >
                                     <div className="p-3 bg-white rounded-full shadow-sm border border-slate-200">
@@ -169,8 +171,8 @@ export const SettingsPage: React.FC = () => {
                                 <button 
                                     onClick={() => setTheme('dark')}
                                     className={cn(
-                                        "flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all hover:bg-muted/50 outline-none focus:ring-2 focus:ring-primary/20",
-                                        theme === 'dark' ? "border-primary bg-primary/5" : "border-transparent bg-muted/20 hover:border-border"
+                                        "flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all hover:bg-white/5 outline-none focus:ring-2 focus:ring-primary/20",
+                                        theme === 'dark' ? "border-primary bg-primary/5" : "border-transparent bg-black/20 hover:border-white/10"
                                     )}
                                 >
                                     <div className="p-3 bg-zinc-900 rounded-full shadow-sm border border-zinc-700">
@@ -182,8 +184,8 @@ export const SettingsPage: React.FC = () => {
                                 <button 
                                     onClick={() => setTheme('system')}
                                     className={cn(
-                                        "flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all hover:bg-muted/50 outline-none focus:ring-2 focus:ring-primary/20",
-                                        theme === 'system' ? "border-primary bg-primary/5" : "border-transparent bg-muted/20 hover:border-border"
+                                        "flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all hover:bg-white/5 outline-none focus:ring-2 focus:ring-primary/20",
+                                        theme === 'system' ? "border-primary bg-primary/5" : "border-transparent bg-black/20 hover:border-white/10"
                                     )}
                                 >
                                     <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-full shadow-sm border border-border">
@@ -201,7 +203,7 @@ export const SettingsPage: React.FC = () => {
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-500 fade-in">
                     <ApiKeyCard />
                     
-                    <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                    <Card className="glass-card">
                         <CardHeader>
                             <CardTitle className="text-base flex items-center gap-2">
                                 <Lock className="h-4 w-4 text-blue-500" /> Active Sessions
@@ -209,7 +211,7 @@ export const SettingsPage: React.FC = () => {
                             <CardDescription>Manage devices currently logged into your account.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between p-3 border-b border-border/50 last:border-0">
+                            <div className="flex items-center justify-between p-3 border-b border-white/5 last:border-0">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-green-500/10 text-green-500 rounded-lg">
                                         <Laptop className="h-4 w-4" />
@@ -220,7 +222,7 @@ export const SettingsPage: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex items-center justify-between p-3 border-b border-border/50 last:border-0">
+                            <div className="flex items-center justify-between p-3 border-b border-white/5 last:border-0">
                                 <div className="flex items-center gap-3">
                                     <div className="p-2 bg-muted text-muted-foreground rounded-lg">
                                         <Globe className="h-4 w-4" />
@@ -260,7 +262,7 @@ export const SettingsPage: React.FC = () => {
 
             {activeTab === 'notifications' && (
                 <div className="space-y-6 animate-in slide-in-from-right-4 duration-500 fade-in">
-                    <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
+                    <Card className="glass-card">
                         <CardHeader>
                             <CardTitle className="text-base flex items-center gap-2">
                                 <Mail className="h-4 w-4 text-emerald-500" /> Email Notifications
@@ -275,7 +277,7 @@ export const SettingsPage: React.FC = () => {
                                 </div>
                                 <Switch />
                             </div>
-                            <Separator className="bg-border/50" />
+                            <Separator className="bg-white/10" />
                             <div className="flex items-center justify-between space-x-4">
                                 <div className="flex flex-col space-y-1">
                                     <Label className="text-sm font-medium leading-none">Pipeline Failures</Label>
@@ -283,7 +285,7 @@ export const SettingsPage: React.FC = () => {
                                 </div>
                                 <Switch defaultChecked />
                             </div>
-                            <Separator className="bg-border/50" />
+                            <Separator className="bg-white/10" />
                             <div className="flex items-center justify-between space-x-4">
                                 <div className="flex flex-col space-y-1">
                                     <Label className="text-sm font-medium leading-none">Maintenance & Security</Label>

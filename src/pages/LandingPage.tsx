@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/layout/ModeToggle';
@@ -8,18 +7,21 @@ import {
     Lock, Clock, CheckCircle2,
     Code2, Sparkles, Server, Cpu
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { FeatureCard } from '@/components/features/landing/FeatureCard';
+import { StatItem } from '@/components/features/landing/StatItem';
+import { IntegrationItem, IntegrationCard } from '@/components/features/landing/IntegrationComponents';
+import { MockNode } from '@/components/features/landing/MockNode';
+import { PageMeta } from '@/components/common/PageMeta';
 
 export function LandingPage() {
     return (
         <div className="flex flex-col min-h-screen font-sans selection:bg-primary/20 selection:text-primary bg-background text-foreground overflow-x-hidden">
+            <PageMeta title="Home" description="The Universal ETL Engine for modern data stacks." />
             
             {/* --- Header --- */}
             <header className="fixed top-0 w-full z-50 px-6 h-16 flex items-center justify-between border-b border-white/5 bg-background/60 backdrop-blur-xl supports-backdrop-filter:bg-background/60">
                 <div className="flex items-center gap-2.5 font-bold text-xl tracking-tight">
-                    <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 shadow-[0_0_15px_-3px_var(--color-primary)]">
-                        <Workflow className="h-5 w-5 text-primary" />
-                    </div>
+                    <Zap className="w-5 h-5 text-blue-500" />
                     <span>SynqX</span>
                 </div>
 
@@ -393,74 +395,3 @@ export function LandingPage() {
         </div>
     );
 }
-
-const StatItem = ({ number, label }: { number: string, label: string }) => (
-    <div className="space-y-2 p-4 rounded-xl hover:bg-white/5 transition-colors cursor-default">
-        <div className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-foreground to-muted-foreground">{number}</div>
-        <div className="text-sm text-muted-foreground font-medium uppercase tracking-wide">{label}</div>
-    </div>
-);
-
-const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) => (
-    <div className="group p-8 rounded-[2rem] border border-white/10 bg-card hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/5 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors" />
-
-        <div className="mb-6 w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300 ring-1 ring-primary/20">
-            {icon}
-        </div>
-        <h3 className="text-xl font-bold mb-3">{title}</h3>
-        <p className="text-muted-foreground leading-relaxed">{description}</p>
-    </div>
-);
-
-const IntegrationItem = ({ icon, text }: { icon: React.ReactNode, text: string }) => (
-    <li className="flex items-center gap-3 p-3 rounded-lg border border-transparent hover:border-white/10 hover:bg-white/5 transition-all cursor-default">
-        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white/5">
-            {icon}
-        </div>
-        <span className="font-medium text-sm text-foreground/80">{text}</span>
-    </li>
-);
-
-const IntegrationCard = ({ name, position, icon, color }: { name: string, position: string, icon: React.ReactNode, color: string }) => (
-    <div className={cn(
-        "px-4 py-3 bg-card/80 backdrop-blur-md border border-white/10 rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-105 hover:border-primary/40 flex items-center gap-3 cursor-default",
-        position
-    )}>
-        <div className={cn("h-8 w-8 rounded-lg bg-muted/50 flex items-center justify-center", color)}>
-            {React.cloneElement(icon as React.ReactElement)}
-        </div>
-        <span className="font-semibold text-sm">{name}</span>
-    </div>
-);
-
-const MockNode = ({ icon, title, sub, active = false, status, type = 'default' }: { icon: React.ReactNode, title: string, sub: string, active?: boolean, status?: string, type?: 'source' | 'transform' | 'sink' | 'default' }) => {
-
-    const colors = {
-        source: 'border-l-blue-500',
-        transform: 'border-l-orange-500',
-        sink: 'border-l-emerald-500',
-        default: 'border-l-primary'
-    };
-
-    return (
-        <div className={cn(
-            "w-52 p-4 rounded-xl border border-white/10 bg-card/95 backdrop-blur-sm flex flex-col gap-3 shadow-xl transition-all hover:scale-105 border-l-4",
-            colors[type],
-            active ? 'ring-2 ring-primary/50 shadow-primary/20' : 'hover:border-primary/30'
-        )}>
-            <div className="flex items-center gap-3">
-                <div className="p-2 bg-muted/50 rounded-lg">{icon}</div>
-                <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-bold truncate">{title}</span>
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">{sub}</span>
-                </div>
-            </div>
-            {status === 'running' && (
-                <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-primary animate-progress w-1/3 rounded-full"></div>
-                </div>
-            )}
-        </div>
-    );
-};

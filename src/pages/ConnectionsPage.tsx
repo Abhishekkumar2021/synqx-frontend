@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { CreateConnectionDialog } from '@/components/features/connections/CreateConnectionDialog';
 import { ConnectionsList } from '@/components/features/connections/ConnectionsList';
+import { PageMeta } from '@/components/common/PageMeta';
 
 export const ConnectionsPage: React.FC = () => {
     const queryClient = useQueryClient();
@@ -95,6 +96,7 @@ export const ConnectionsPage: React.FC = () => {
 
     return (
         <div className="flex flex-col h-[calc(100vh-9rem)] gap-8 animate-in fade-in duration-700">
+            <PageMeta title="Connections" description="Manage data sources and destinations." />
 
             {/* Header */}
             <div className="flex items-center justify-between shrink-0 px-1">

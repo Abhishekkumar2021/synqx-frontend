@@ -94,18 +94,18 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
     // --- STEP 1: Selection ---
     if (step === 'select' && !isEditMode) {
         return (
-            <div className="flex flex-col h-full bg-background/50 backdrop-blur-xl">
-                <DialogHeader className="px-8 py-6 border-b border-border/50 shrink-0 bg-muted/5">
+            <div className="flex flex-col h-full bg-background/60 backdrop-blur-xl">
+                <DialogHeader className="px-8 py-6 border-b border-white/5 shrink-0 bg-white/5">
                     <DialogTitle className="text-xl font-bold">Select a Connector</DialogTitle>
                     <DialogDescription>Choose your data source or destination to proceed.</DialogDescription>
                 </DialogHeader>
-                <div className="flex-1 overflow-y-auto p-8 bg-muted/5 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
                         {Object.entries(CONNECTOR_META).map(([key, meta]) => (
                             <button
                                 key={key}
                                 onClick={() => handleSelect(key)}
-                                className="group relative flex flex-col items-center gap-4 p-6 rounded-[2rem] border border-white/10 bg-card hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/5 transition-all duration-300 text-center overflow-hidden hover:-translate-y-1"
+                                className="group relative flex flex-col items-center gap-4 p-6 rounded-[2rem] glass-card glass-card-hover text-center overflow-hidden"
                             >
                                 <div className={cn("p-5 rounded-2xl bg-white/5 border border-white/5 group-hover:bg-background transition-colors shadow-inner", meta.color.replace('text-', 'text-opacity-80 text-'))}>
                                     <SafeIcon icon={meta.icon} className="h-8 w-8" />
@@ -135,8 +135,8 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
     return (
         <div className="flex h-full">
             {/* Sidebar for Dialog */}
-            <div className="w-[300px] bg-muted/10 border-r border-border/50 p-8 hidden md:flex flex-col gap-8 shrink-0 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-muted/20 pointer-events-none" />
+            <div className="w-[300px] bg-white/5 border-r border-white/5 p-8 hidden md:flex flex-col gap-8 shrink-0 relative overflow-hidden backdrop-blur-xl">
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/5 pointer-events-none" />
                 
                 <div className="z-10">
                     {!isEditMode && (
@@ -149,7 +149,7 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                             &larr; Change Connector
                         </Button>
                     )}
-                    <div className={cn("h-20 w-20 rounded-[1.5rem] flex items-center justify-center mb-6 border border-white/10 shadow-xl", meta?.color)}>
+                    <div className={cn("h-20 w-20 rounded-[1.5rem] flex items-center justify-center mb-6 border border-white/10 shadow-xl glass-card", meta?.color)}>
                         {/* SAFE CLONE usage */}
                         <SafeIcon icon={meta.icon} className="h-10 w-10" />
                     </div>
@@ -168,15 +168,15 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
             </div>
 
             {/* Form Area */}
-            <div className="flex-1 flex flex-col h-full bg-background/50 backdrop-blur-sm min-w-0">
-                <DialogHeader className="px-8 py-6 border-b border-border/50 shrink-0">
+            <div className="flex-1 flex flex-col h-full bg-background/40 backdrop-blur-md min-w-0">
+                <DialogHeader className="px-8 py-6 border-b border-white/5 shrink-0">
                     <DialogTitle className="text-lg font-bold">Connection Details</DialogTitle>
                 </DialogHeader>
                 
                 <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
                     {/* SAFE GUARD: Form Provider wraps everything */}
                     <Form {...form}>
-                        <form id="conn-form" onSubmit={form.handleSubmit((d) => mutation.mutate(d))} className="space-y-10 max-w-lg mx-auto py-4">
+                        <form id="conn-form" onSubmit={form.handleSubmit((d) => mutation.mutate(d))} className="space-y-10 max-w-2xl mx-auto py-4">
                             
                             {/* General Section */}
                             <div className="space-y-6">
@@ -191,7 +191,7 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                             {/* FIX: Using Label primitive instead of FormLabel to prevent context crash */}
                                             <Label className="text-sm font-semibold">Connection Name</Label>
                                             <FormControl>
-                                                <Input {...field} placeholder="e.g. Production DB" className="bg-background/40 border-white/10" />
+                                                <Input {...field} placeholder="e.g. Production DB" className="glass-input h-11 rounded-xl" />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -201,7 +201,7 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                             {/* FIX: Using Label primitive */}
                                             <Label className="text-sm font-semibold">Description</Label>
                                             <FormControl>
-                                                <Input {...field} placeholder="Optional context" className="bg-background/40 border-white/10" />
+                                                <Input {...field} placeholder="Optional context" className="glass-input h-11 rounded-xl" />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -209,7 +209,7 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                 </div>
                             </div>
 
-                            <div className="h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+                            <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
                             {/* Config Section */}
                             <div className="space-y-6">
@@ -232,7 +232,7 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                                     <FormControl>
                                                         {field.type === 'select' ? (
                                                             <Select onValueChange={f.onChange} defaultValue={f.value}>
-                                                                <SelectTrigger className="bg-background/40 border-white/10"><SelectValue /></SelectTrigger>
+                                                                <SelectTrigger className="glass-input h-11 rounded-xl"><SelectValue /></SelectTrigger>
                                                                 <SelectContent>
                                                                     {field.options?.map((o: any) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                                                                 </SelectContent>
@@ -243,10 +243,10 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                                                     {...f} 
                                                                     type={field.type} 
                                                                     placeholder={field.placeholder} 
-                                                                    className={cn("bg-background/40 border-white/10", field.type === 'password' && 'pl-10')} 
+                                                                    className={cn("glass-input h-11 rounded-xl", field.type === 'password' && 'pl-10')} 
                                                                 />
                                                                 {field.type === 'password' && (
-                                                                    <Lock className="absolute left-3.5 top-2.5 h-4 w-4 text-muted-foreground opacity-70" />
+                                                                    <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground opacity-70" />
                                                                 )}
                                                             </div>
                                                         )}
@@ -257,7 +257,7 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                         );
                                     })}
                                     {(!schema?.fields || schema.fields.length === 0) && (
-                                        <div className="text-sm text-muted-foreground italic bg-muted/20 p-4 rounded-xl border border-border/50 text-center">
+                                        <div className="text-sm text-muted-foreground italic bg-white/5 p-4 rounded-xl border border-white/5 text-center">
                                             No additional configuration required for this connector type.
                                         </div>
                                     )}
@@ -267,7 +267,7 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                     </Form>
                 </div>
 
-                <DialogFooter className="p-6 border-t border-border/50 bg-muted/5 shrink-0 flex items-center justify-between z-20">
+                <DialogFooter className="p-6 border-t border-white/5 bg-white/5 shrink-0 flex items-center justify-between z-20">
                     <Button variant="ghost" onClick={onClose} className="text-muted-foreground hover:text-foreground">Cancel</Button>
                     <Button form="conn-form" type="submit" disabled={mutation.isPending} className="px-8 rounded-full shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
                         {mutation.isPending ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}

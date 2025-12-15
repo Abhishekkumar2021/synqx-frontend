@@ -38,7 +38,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
         transition={{ duration: 0.4, ease: "easeOut" }}
         whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
         className={cn(
-            "relative overflow-hidden border border-white/10 bg-white/5 backdrop-blur-xl transition-all duration-300 hover:shadow-2xl hover:bg-white/10 hover:-translate-y-1 rounded-3xl group",
+            "glass-card glass-card-hover rounded-3xl group",
             active && "border-primary/30 shadow-[0_0_30px_-10px_var(--color-primary)] bg-primary/5",
             className
         )}
@@ -79,7 +79,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
         )}></div>
         
          {active && (
-            <div className={cn("absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50")}></div>
+            <div className={cn("absolute bottom-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-primary to-transparent opacity-50")}></div>
         )}
     </MotionCard>
 );

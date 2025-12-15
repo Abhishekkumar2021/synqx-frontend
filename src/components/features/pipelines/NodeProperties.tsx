@@ -162,7 +162,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                             <Label className="text-sm font-semibold ml-1">Node Label</Label>
                             <Input 
                                 {...register('label')} 
-                                className="bg-white/5 border-white/5 focus:bg-white/10 focus:border-primary/50 h-11 rounded-2xl" 
+                                className="glass-input h-11 rounded-2xl" 
                             />
                         </div>
                         <div className="space-y-2.5">
@@ -170,11 +170,11 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                             <div className="relative">
                                 <select 
                                     {...register('type')}
-                                    className="flex h-11 w-full items-center justify-between rounded-2xl border border-white/5 bg-white/5 px-4 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50 appearance-none hover:bg-white/10 transition-colors"
+                                    className="flex h-11 w-full items-center justify-between rounded-2xl glass-input px-4 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary appearance-none transition-colors"
                                 >
-                                    <option value="source">Source</option>
-                                    <option value="transform">Transform</option>
-                                    <option value="sink">Sink (Destination)</option>
+                                    <option value="source" className="bg-background">Source</option>
+                                    <option value="transform" className="bg-background">Transform</option>
+                                    <option value="sink" className="bg-background">Sink (Destination)</option>
                                 </select>
                                 <div className="absolute right-3 top-3.5 pointer-events-none opacity-50">
                                     <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -195,14 +195,14 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                     <div className="relative">
                                         <select 
                                             {...register('operator_class')}
-                                            className="flex h-11 w-full items-center justify-between rounded-2xl border border-white/5 bg-white/5 px-4 py-2 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-primary focus:bg-white/10 appearance-none hover:bg-white/10 transition-colors"
+                                            className="flex h-11 w-full items-center justify-between rounded-2xl glass-input px-4 py-2 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-primary appearance-none transition-colors"
                                         >
-                                            <option value="pandas_transform">Generic (Custom Code)</option>
-                                            <option value="filter">Filter Rows</option>
-                                            <option value="join">Join / Merge</option>
-                                            <option value="aggregate">Aggregate / Group By</option>
-                                            <option value="drop_columns">Drop Columns</option>
-                                            <option value="deduplicate">Deduplicate</option>
+                                            <option value="pandas_transform" className="bg-background">Generic (Custom Code)</option>
+                                            <option value="filter" className="bg-background">Filter Rows</option>
+                                            <option value="join" className="bg-background">Join / Merge</option>
+                                            <option value="aggregate" className="bg-background">Aggregate / Group By</option>
+                                            <option value="drop_columns" className="bg-background">Drop Columns</option>
+                                            <option value="deduplicate" className="bg-background">Deduplicate</option>
                                         </select>
                                         <div className="absolute right-3 top-3.5 pointer-events-none opacity-50">
                                             <svg width="10" height="6" viewBox="0 0 10 6" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -224,7 +224,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                             <Input 
                                                 {...register('filter_condition', { onChange: (e) => syncVisualToConfig({ condition: e.target.value })})}
                                                 placeholder="e.g. age > 18"
-                                                className="font-mono text-xs bg-black/20 border-white/5 h-10 rounded-xl"
+                                                className="font-mono text-xs glass-input h-10 rounded-xl"
                                             />
                                             <p className="text-[10px] text-muted-foreground pl-1">Pandas query string format.</p>
                                         </div>
@@ -244,7 +244,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                                     <Input 
                                                         {...register('join_on', { onChange: (e) => syncVisualToConfig({ on: e.target.value })})}
                                                         placeholder="id"
-                                                        className="h-10 rounded-xl bg-black/20 border-white/5"
+                                                        className="h-10 rounded-xl glass-input"
                                                     />
                                                 </div>
                                                 <div className="space-y-2">
@@ -252,11 +252,11 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                                     <div className="relative">
                                                         <select 
                                                             {...register('join_type', { onChange: (e) => syncVisualToConfig({ how: e.target.value })})}
-                                                            className="flex h-10 w-full rounded-xl border border-white/5 bg-black/20 px-3 py-1 text-sm shadow-sm appearance-none focus:outline-none focus:ring-1 focus:ring-primary"
+                                                            className="flex h-10 w-full rounded-xl glass-input px-3 py-1 text-sm shadow-sm appearance-none focus:outline-none focus:ring-1 focus:ring-primary"
                                                         >
-                                                            <option value="left">Left</option>
-                                                            <option value="inner">Inner</option>
-                                                            <option value="outer">Full Outer</option>
+                                                            <option value="left" className="bg-background">Left</option>
+                                                            <option value="inner" className="bg-background">Inner</option>
+                                                            <option value="outer" className="bg-background">Full Outer</option>
                                                         </select>
                                                         <div className="absolute right-3 top-3.5 pointer-events-none opacity-50">
                                                             <svg width="8" height="5" viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" strokeWidth="1.5"/></svg>
@@ -275,7 +275,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                                     onChange: (e) => syncVisualToConfig({ columns: e.target.value.split(',') })
                                                 })}
                                                 placeholder="col1, col2, _metadata"
-                                                className="h-10 rounded-xl bg-black/20 border-white/5"
+                                                className="h-10 rounded-xl glass-input"
                                             />
                                             <p className="text-[10px] text-muted-foreground pl-1">Comma separated list of column names.</p>
                                         </div>
@@ -312,7 +312,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                             </div>
                             <Textarea 
                                 {...register('config')}
-                                className="font-mono text-xs leading-relaxed min-h-[350px] resize-none bg-[#0a0a0a] border-white/10 text-gray-300 rounded-2xl p-4 shadow-inner"
+                                className="font-mono text-xs leading-relaxed min-h-[350px] resize-none glass-input text-gray-300 rounded-2xl p-4 shadow-inner"
                                 spellCheck={false}
                             />
                         </div>

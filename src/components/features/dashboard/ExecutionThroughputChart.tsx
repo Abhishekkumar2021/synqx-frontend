@@ -13,7 +13,7 @@ interface ExecutionThroughputChartProps {
 
 export const ExecutionThroughputChart: React.FC<ExecutionThroughputChartProps> = ({ data }) => {
     return (
-        <Card className="lg:col-span-4 flex flex-col min-w-0 h-full">
+        <Card className="lg:col-span-4 flex flex-col min-w-0 h-full glass-card border-none shadow-xl">
             <CardHeader className="pb-2 px-6 pt-6">
                 <div className="flex items-center justify-between">
                     <div className="space-y-1">
@@ -60,15 +60,15 @@ export const ExecutionThroughputChart: React.FC<ExecutionThroughputChartProps> =
                             />
                             <Tooltip
                                 contentStyle={{
-                                    backgroundColor: 'rgba(20, 20, 20, 0.8)',
-                                    backdropFilter: 'blur(12px)',
+                                    backgroundColor: 'rgba(10, 10, 10, 0.8)',
+                                    backdropFilter: 'blur(16px)',
                                     borderRadius: '16px',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    boxShadow: '0 10px 40px -10px rgba(0,0,0,0.5)',
+                                    border: '1px solid rgba(255,255,255,0.08)',
+                                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                                     padding: '12px'
                                 }}
                                 itemStyle={{ fontSize: '12px', fontWeight: 600, padding: 0 }}
-                                labelStyle={{ color: 'rgba(255,255,255,0.6)', marginBottom: '0.5rem', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}
+                                labelStyle={{ color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}
                                 cursor={{ stroke: 'rgba(255,255,255,0.2)', strokeWidth: 1, strokeDasharray: '4 4' }}
                             />
                             <Area

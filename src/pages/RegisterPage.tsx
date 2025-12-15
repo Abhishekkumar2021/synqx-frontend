@@ -10,6 +10,7 @@ import {
     Loader2, Mail, Lock, User, Eye, EyeOff, 
     Workflow, ArrowRight, Server, Database, Globe 
 } from 'lucide-react';
+import { PageMeta } from '@/components/common/PageMeta';
 
 export const RegisterPage: React.FC = () => {
     const navigate = useNavigate();
@@ -60,6 +61,7 @@ export const RegisterPage: React.FC = () => {
 
     return (
         <div ref={containerRef} className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0 overflow-hidden bg-background font-sans selection:bg-primary/20">
+            <PageMeta title="Register" description="Create a new SynqX account." />
             
             {/* --- RIGHT PANEL: Premium Visuals --- */}
             <div className="relative hidden h-full flex-col bg-[#050505] p-12 text-white lg:flex border-r border-white/5 overflow-hidden justify-between">
@@ -149,7 +151,7 @@ export const RegisterPage: React.FC = () => {
                     }}
                 />
 
-                <div className="mx-auto flex w-full flex-col justify-center space-y-8 sm:w-[420px] z-10 px-8 py-12 bg-card/30 backdrop-blur-xl border border-white/5 rounded-[2.5rem] shadow-2xl shadow-black/5 animate-in zoom-in-95 duration-500">
+                <div className="mx-auto flex w-full flex-col justify-center space-y-8 sm:w-[420px] z-10 px-8 py-12 glass-panel border border-white/5 rounded-[2.5rem] shadow-2xl shadow-black/5 animate-in zoom-in-95 duration-500">
                     
                     {/* Header */}
                     <div className="flex flex-col space-y-3 text-center">
@@ -177,7 +179,7 @@ export const RegisterPage: React.FC = () => {
                                         disabled={isLoading}
                                         value={fullName}
                                         onChange={(e) => setFullName(e.target.value)}
-                                        className="pl-11 h-12 rounded-2xl bg-black/5 dark:bg-white/5 border-transparent focus:bg-background focus:border-primary/30 transition-all"
+                                        className="pl-11 h-12 rounded-2xl glass-input transition-all"
                                         required 
                                     />
                                 </div>
@@ -198,7 +200,7 @@ export const RegisterPage: React.FC = () => {
                                         disabled={isLoading}
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="pl-11 h-12 rounded-2xl bg-black/5 dark:bg-white/5 border-transparent focus:bg-background focus:border-primary/30 transition-all"
+                                        className="pl-11 h-12 rounded-2xl glass-input transition-all"
                                         required 
                                     />
                                 </div>
@@ -215,7 +217,7 @@ export const RegisterPage: React.FC = () => {
                                         disabled={isLoading}
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="pl-11 pr-11 h-12 rounded-2xl bg-black/5 dark:bg-white/5 border-transparent focus:bg-background focus:border-primary/30 transition-all"
+                                        className="pl-11 pr-11 h-12 rounded-2xl glass-input transition-all"
                                         required 
                                     />
                                     <button
@@ -249,7 +251,7 @@ export const RegisterPage: React.FC = () => {
 
                         <div className="relative my-2">
                             <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t border-border/50" />
+                                <span className="w-full border-t border-white/5" />
                             </div>
                             <div className="relative flex justify-center text-xs uppercase">
                                 <span className="bg-background px-3 text-muted-foreground font-medium">
