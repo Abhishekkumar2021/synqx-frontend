@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'rea
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HelmetProvider } from 'react-helmet-async';
 import { Loader2, AlertCircle } from 'lucide-react';
-import { Toaster } from 'sonner';
 import { ErrorBoundary } from 'react-error-boundary';
 
 // Providers & Layouts
@@ -11,6 +10,7 @@ import { Layout } from './components/layout/Layout';
 import { ThemeProvider } from './components/providers/ThemeProvider';
 import { AuthProvider } from './components/providers/AuthProvider';
 import { useAuth } from './hooks/useAuth';
+import { Toaster } from './components/ui/sonner';
 
 // Lazy Load Pages (Handling Named Exports)
 const LandingPage = lazy(() => import('./pages/LandingPage').then(module => ({ default: module.LandingPage })));
@@ -143,16 +143,7 @@ function App() {
           <AuthProvider>
             <BrowserRouter>
               <AppRoutes />
-              <Toaster
-                richColors
-                position="top-right"
-                theme="system"
-                className="font-sans"
-                toastOptions={{
-                  className: 'glass-card border-border/50',
-                  style: { borderRadius: 'var(--radius)' }
-                }}
-              />
+              <Toaster position='top-center' closeButton />
             </BrowserRouter>
           </AuthProvider>
         </QueryClientProvider>
