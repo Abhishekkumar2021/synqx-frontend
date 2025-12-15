@@ -1,143 +1,161 @@
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HelmetProvider } from 'react-helmet-async';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Toaster } from 'sonner';
+import { ErrorBoundary } from 'react-error-boundary';
 
-// Components
+// Providers & Layouts
 import { Layout } from './components/layout/Layout';
 import { ThemeProvider } from './components/providers/ThemeProvider';
 import { AuthProvider } from './components/providers/AuthProvider';
-
-// Hooks
 import { useAuth } from './hooks/useAuth';
 
-// Pages
-import { LandingPage } from './pages/LandingPage';
-import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { DashboardPage } from './pages/DashboardPage';
-import { ConnectionsPage } from './pages/ConnectionsPage';
-import { ConnectionDetailsPage } from './pages/ConnectionDetailsPage';
-import { PipelinesListPage } from './pages/pipelines/PipelinesListPage';
-import { PipelineEditorPage } from './pages/pipelines/PipelineEditorPage';
-import { JobsPage } from './pages/JobsPage';
-import { SettingsPage } from './pages/settings/SettingsPage';
-import { Toaster } from 'sonner';
+// Lazy Load Pages (Handling Named Exports)
+const LandingPage = lazy(() => import('./pages/LandingPage').then(module => ({ default: module.LandingPage })));
+const LoginPage = lazy(() => import('./pages/LoginPage').then(module => ({ default: module.LoginPage })));
+const RegisterPage = lazy(() => import('./pages/RegisterPage').then(module => ({ default: module.RegisterPage })));
+const DashboardPage = lazy(() => import('./pages/DashboardPage').then(module => ({ default: module.DashboardPage })));
+const ConnectionsPage = lazy(() => import('./pages/ConnectionsPage').then(module => ({ default: module.ConnectionsPage })));
+const ConnectionDetailsPage = lazy(() => import('./pages/ConnectionDetailsPage').then(module => ({ default: module.ConnectionDetailsPage })));
+const PipelinesListPage = lazy(() => import('./pages/PipelinesListPage').then(module => ({ default: module.PipelinesListPage })));
+const PipelineEditorPage = lazy(() => import('./pages/PipelineEditorPage').then(module => ({ default: module.PipelineEditorPage })));
+const JobsPage = lazy(() => import('./pages/JobsPage').then(module => ({ default: module.JobsPage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then(module => ({ default: module.SettingsPage })));
 
+// React Query Configuration
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
 
 /**
- * 1. Full Page Loader
- * A premium loading screen while Auth checks session.
+ * Premium Loading State
+ * Uses 'glass-panel' utility for depth and 'animate-pulse' for life.
  */
 const FullPageLoader = () => (
-  <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background text-foreground animate-in fade-in duration-500">
+  <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background text-foreground animate-in fade-in duration-300">
     <div className="relative flex items-center justify-center">
-      <div className="absolute inset-0 rounded-full blur-xl bg-primary/30 animate-pulse" />
-      <div className="p-4 bg-background/50 backdrop-blur-xl border border-border/50 rounded-2xl shadow-2xl relative">
-        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+      {/* Ambient Glow */}
+      <div className="absolute inset-0 rounded-full blur-2xl bg-primary/20 animate-pulse-slow" />
+
+      {/* Glass Card */}
+      <div className="p-6 glass-panel rounded-2xl relative flex flex-col items-center gap-4">
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+        <span className="text-sm font-medium text-muted-foreground animate-pulse">
+          Loading SynqX...
+        </span>
       </div>
     </div>
-    <h2 className="mt-6 text-lg font-semibold tracking-tight animate-pulse text-muted-foreground">
-      Initializing SynqX...
-    </h2>
   </div>
 );
 
 /**
- * 2. Protected Route Guard
- * Redirects to /login if not authenticated.
+ * Fatal Error Fallback
+ * Shown if a page crashes completely.
  */
+const ErrorFallback = ({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) => (
+  <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background p-4">
+    <div className="glass-panel p-8 max-w-md text-center space-y-4">
+      <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+        <AlertCircle className="h-6 w-6 text-destructive" />
+      </div>
+      <h2 className="text-lg font-semibold">Something went wrong</h2>
+      <p className="text-sm text-muted-foreground wrap-break-word">{error.message}</p>
+      <button
+        onClick={resetErrorBoundary}
+        className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity text-sm font-medium"
+      >
+        Try again
+      </button>
+    </div>
+  </div>
+);
+
 const ProtectedRoute = () => {
   const { token, isLoading } = useAuth();
   const location = useLocation();
 
   if (isLoading) return <FullPageLoader />;
-  
-  if (!token) {
-    // Redirect to login but save the attempted location
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
+  if (!token) return <Navigate to="/login" state={{ from: location }} replace />;
 
-  // Wrap the Outlet (page content) in the Main Layout
   return (
     <Layout>
-      <Outlet />
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <Suspense fallback={<FullPageLoader />}>
+          <Outlet />
+        </Suspense>
+      </ErrorBoundary>
     </Layout>
   );
 };
 
-/**
- * 3. Public Route Guard
- * Redirects to /dashboard if ALREADY authenticated (e.g. user goes to /login while logged in).
- */
 const PublicRoute = () => {
-    const { token, isLoading } = useAuth();
+  const { token, isLoading } = useAuth();
+  if (isLoading) return <FullPageLoader />;
+  if (token) return <Navigate to="/dashboard" replace />;
 
-    if (isLoading) return <FullPageLoader />;
-
-    if (token) {
-        return <Navigate to="/dashboard" replace />;
-    }
-
-    return <Outlet />;
+  return (
+    <Suspense fallback={<FullPageLoader />}>
+      <Outlet />
+    </Suspense>
+  );
 };
 
-const AppRoutes = () => {
-    return (
-        <Routes>
-            {/* --- Public Routes (Guarded against logged-in users) --- */}
-            <Route element={<PublicRoute />}>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/register" element={<RegisterPage />} />
-            </Route>
+const AppRoutes = () => (
+  <Routes>
+    {/* Public Access */}
+    <Route element={<PublicRoute />}>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+    </Route>
 
-            {/* --- Protected Routes (Wrapped in Layout) --- */}
-            <Route element={<ProtectedRoute />}>
-                <Route path="/dashboard" element={<DashboardPage />} />
-                
-                {/* Connections */}
-                <Route path="/connections" element={<ConnectionsPage />} />
-                <Route path="/connections/:id" element={<ConnectionDetailsPage />} />
-                
-                {/* Pipelines */}
-                <Route path="/pipelines" element={<PipelinesListPage />} />
-                <Route path="/pipelines/:id" element={<PipelineEditorPage />} />
-                
-                {/* Jobs / Logs */}
-                <Route path="/jobs" element={<JobsPage />} />
-                
-                {/* Settings */}
-                <Route path="/settings" element={<SettingsPage />} />
+    {/* Secured Application Area */}
+    <Route element={<ProtectedRoute />}>
+      <Route path="/dashboard" element={<DashboardPage />} />
 
-                {/* Catch-all for protected area */}
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Route>
-        </Routes>
-    );
-};
+      <Route path="/connections" element={<ConnectionsPage />} />
+      <Route path="/connections/:id" element={<ConnectionDetailsPage />} />
+
+      <Route path="/pipelines" element={<PipelinesListPage />} />
+      <Route path="/pipelines/:id" element={<PipelineEditorPage />} />
+
+      <Route path="/jobs" element={<JobsPage />} />
+      <Route path="/settings" element={<SettingsPage />} />
+
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Route>
+  </Routes>
+);
 
 function App() {
   return (
     <HelmetProvider>
       <ThemeProvider defaultTheme="dark" storageKey="synqx-theme">
-          <QueryClientProvider client={queryClient}>
-              <AuthProvider>
-                  <BrowserRouter>
-                      <AppRoutes />
-                      {/* Global Toaster for Notifications */}
-                      <Toaster richColors position="top-right" />
-                  </BrowserRouter>
-              </AuthProvider>
-          </QueryClientProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <BrowserRouter>
+              <AppRoutes />
+              <Toaster
+                richColors
+                position="top-right"
+                theme="system"
+                className="font-sans"
+                toastOptions={{
+                  className: 'glass-card border-border/50',
+                  style: { borderRadius: 'var(--radius)' }
+                }}
+              />
+            </BrowserRouter>
+          </AuthProvider>
+        </QueryClientProvider>
       </ThemeProvider>
     </HelmetProvider>
   );

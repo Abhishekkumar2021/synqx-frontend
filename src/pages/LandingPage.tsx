@@ -68,7 +68,7 @@ export function LandingPage() {
                         <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
                             <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1]">
                                 <span className="block text-foreground">Orchestrate Data</span>
-                                <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-400 to-indigo-500 animate-gradient-x">
+                                <span className="bg-clip-text text-transparent bg-linear-to-r from-primary via-blue-400 to-indigo-500 animate-gradient-x">
                                     At Light Speed
                                 </span>
                             </h1>
@@ -97,7 +97,7 @@ export function LandingPage() {
 
                         {/* Interactive Hero Graphic */}
                         <div className="mt-24 relative group max-w-6xl mx-auto perspective-[2000px] animate-in fade-in zoom-in-95 duration-1000 delay-500">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-primary/30 via-indigo-500/30 to-blue-600/30 rounded-[2rem] blur-3xl opacity-30 group-hover:opacity-50 transition-duration-500"></div>
+                            <div className="absolute -inset-1 bg-linear-to-r from-primary/30 via-indigo-500/30 to-blue-600/30 rounded-[2rem] blur-3xl opacity-30 group-hover:opacity-50 transition-duration-500"></div>
 
                             <div className="relative rounded-[2rem] border border-white/10 bg-background/80 backdrop-blur-xl shadow-2xl overflow-hidden transform transition-transform duration-700 hover:scale-[1.005]">
                                 {/* Browser Toolbar */}
@@ -286,7 +286,7 @@ export function LandingPage() {
                             </div>
 
                             <div className="relative h-[500px] w-full flex items-center justify-center perspective-[1000px]">
-                                <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent rounded-full blur-3xl opacity-50" />
+                                <div className="absolute inset-0 bg-linear-to-tr from-primary/10 to-transparent rounded-full blur-3xl opacity-50" />
 
                                 {/* Central Hub */}
                                 <div className="z-20 h-32 w-32 bg-background/80 backdrop-blur-xl rounded-3xl shadow-[0_0_50px_-10px_var(--color-primary)] flex items-center justify-center border border-primary/30 relative">

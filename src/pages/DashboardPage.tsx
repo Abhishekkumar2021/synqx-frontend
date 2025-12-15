@@ -105,7 +105,7 @@ export const DashboardPage: React.FC = () => {
             {/* --- Header & Navigation --- */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 px-1">
                 <div className="space-y-2">
-                    <h2 className="text-4xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/50 flex items-center gap-3">
+                    <h2 className="text-4xl font-bold tracking-tighter text-transparent bg-clip-text bg-linear-to-r from-foreground to-foreground/50 flex items-center gap-3">
                         <Activity className="h-8 w-8 text-primary animate-pulse-slow" />
                         System Overview
                     </h2>
@@ -124,7 +124,7 @@ export const DashboardPage: React.FC = () => {
             {/* --- Stats Cards Grid --- */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
                 {isLoading ? (
-                    Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[160px] rounded-[2rem] bg-white/5" />)
+                    Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-[2rem] bg-white/5" />)
                 ) : (
                     <>
                         <StatsCard

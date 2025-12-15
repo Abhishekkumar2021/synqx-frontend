@@ -86,7 +86,7 @@ export const LoginPage: React.FC = () => {
 
                 {/* 2. Top Content */}
                 <div className="relative z-20 flex items-center gap-3 animate-in fade-in slide-in-from-top-8 duration-1000">
-                    <div className="p-2.5 bg-gradient-to-br from-primary to-blue-600 rounded-2xl shadow-lg shadow-primary/20 ring-1 ring-white/10 backdrop-blur-md">
+                    <div className="p-2.5 bg-linear-to-br from-primary to-blue-600 rounded-2xl shadow-lg shadow-primary/20 ring-1 ring-white/10 backdrop-blur-md">
                         <Workflow className="h-6 w-6 text-white" />
                     </div>
                     <span className="text-xl font-bold tracking-tight text-white drop-shadow-sm">SynqX</span>
@@ -94,7 +94,7 @@ export const LoginPage: React.FC = () => {
 
                 {/* 3. Feature Highlights (Middle) */}
                 <div className="relative z-20 space-y-12 max-w-lg animate-in fade-in slide-in-from-left-8 duration-1000 delay-200">
-                     <h2 className="text-4xl md:text-5xl font-bold leading-tight tracking-tight text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60">
+                     <h2 className="text-4xl md:text-5xl font-bold leading-tight tracking-tight text-transparent bg-clip-text bg-linear-to-b from-white to-white/60">
                         Orchestrate data,<br/> control the future.
                     </h2>
                     
@@ -120,13 +120,13 @@ export const LoginPage: React.FC = () => {
                 {/* 4. Testimonial (Bottom) */}
                 <div className="relative z-20 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
                     <div className="p-8 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/5 shadow-2xl relative overflow-hidden group">
-                        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        <div className="absolute inset-0 bg-linear-to-r from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         <blockquote className="space-y-6 relative z-10">
                             <p className="text-lg font-medium leading-relaxed text-zinc-200 italic">
                                 &ldquo;The real-time forensic logging capabilities alone have saved us hundreds of engineering hours. It's not just a tool; it's our central nervous system.&rdquo;
                             </p>
                             <footer className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-full p-0.5 bg-gradient-to-br from-blue-400 to-primary">
+                                <div className="h-12 w-12 rounded-full p-0.5 bg-linear-to-br from-blue-400 to-primary">
                                     <div className="h-full w-full rounded-full bg-black flex items-center justify-center text-sm font-bold text-white">
                                         SD
                                     </div>

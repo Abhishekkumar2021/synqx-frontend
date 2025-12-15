@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/incompatible-library */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo } from 'react';
@@ -101,7 +100,7 @@ export const ConnectionsPage: React.FC = () => {
             {/* Header */}
             <div className="flex items-center justify-between shrink-0 px-1">
                 <div className="space-y-2">
-                    <h2 className="text-4xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-foreground to-foreground/50 flex items-center gap-3">
+                    <h2 className="text-4xl font-bold tracking-tighter text-transparent bg-clip-text bg-linear-to-r from-foreground to-foreground/50 flex items-center gap-3">
                         <div className="p-2 bg-primary/10 rounded-2xl ring-1 ring-white/10 backdrop-blur-md">
                             <LinkIcon className="h-6 w-6 text-primary" />
                         </div>

@@ -95,7 +95,7 @@ export const SettingsPage: React.FC = () => {
                     {/* Profile Card */}
                     <Card className="glass-panel overflow-hidden shadow-sm">
                         {/* Banner Background */}
-                        <div className="h-24 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-primary/20 border-b border-white/5" />
+                        <div className="h-24 bg-linear-to-r from-blue-600/20 via-purple-600/20 to-primary/20 border-b border-white/5" />
                         
                         <CardHeader className="relative pt-0">
                             <div className="absolute -top-12 left-6">
@@ -345,7 +345,7 @@ const ApiKeyCard = () => {
                             />
                             {/* Blur effect overlay when hidden */}
                             {!isVisible && (
-                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-background/50 to-background pointer-events-none rounded-md" />
+                                <div className="absolute inset-0 bg-linear-to-r from-transparent via-background/50 to-background pointer-events-none rounded-md" />
                             )}
                         </div>
                         
