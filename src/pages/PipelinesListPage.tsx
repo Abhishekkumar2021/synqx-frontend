@@ -81,7 +81,7 @@ export const PipelinesListPage: React.FC = () => {
                     </p>
                 </div>
                 <Link to="/pipelines/new" className="w-full md:w-auto">
-                    <Button size="lg" className="w-full md:w-auto rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:scale-105 active:scale-95 font-semibold">
+                    <Button size="sm" className="w-full md:w-auto rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:scale-105 active:scale-95 font-semibold">
                         <Plus className="mr-2 h-5 w-5" /> Create Pipeline
                     </Button>
                 </Link>
@@ -95,7 +95,7 @@ export const PipelinesListPage: React.FC = () => {
 
                     {/* Search Bar */}
                     <div className="relative w-full md:max-w-md group">
-                        <Search className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <Search className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors z-20" />
                         <Input
                             placeholder="Filter pipelines..."
                             className="pl-11 h-11 rounded-2xl bg-background/50 border-border/50 focus:bg-background focus:border-primary/30 focus:ring-4 focus:ring-primary/10 transition-all shadow-sm"
@@ -156,7 +156,7 @@ export const PipelinesListPage: React.FC = () => {
                 {viewMode === 'list' && (
                     <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-border/50 hover:scrollbar-thumb-border/80 scrollbar-track-transparent">
                         {/* Sticky Header */}
-                        <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border/40 bg-muted/40 text-xs font-bold text-muted-foreground uppercase tracking-widest shrink-0 sticky top-0 backdrop-blur-xl z-20 shadow-sm">
+                        <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border/40 bg-muted/60 text-xs font-bold text-muted-foreground uppercase tracking-widest shrink-0 sticky top-0 backdrop-blur-3xl z-20 shadow-sm">
                             <div className="col-span-12 md:col-span-5">Pipeline</div>
                             <div className="col-span-2 hidden md:block">Status</div>
                             <div className="col-span-3 hidden md:block">Last Activity</div>

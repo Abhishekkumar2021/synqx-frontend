@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getJobs, type Job } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import {
-    History, RefreshCw, Terminal
+    History, RefreshCw, Terminal, Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { JobsList } from '@/components/features/jobs/JobsList';
@@ -33,32 +33,40 @@ export const JobsPage: React.FC = () => {
     }, [jobs, filter]);
 
     return (
-        <div className="flex flex-col h-[calc(100vh-9rem)] gap-8 animate-in fade-in duration-700">
+        <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 animate-in fade-in duration-700">
             <PageMeta title="Execution History" description="Monitor pipeline runs and logs." />
 
-            {/* Header Section */}
+            {/* --- Header Section --- */}
             <div className="flex items-center justify-between shrink-0 px-1">
-                <div className="space-y-2">
-                    <h2 className="text-4xl font-bold tracking-tighter text-transparent bg-clip-text bg-linear-to-r from-foreground to-foreground/50 flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-2xl ring-1 ring-white/10 backdrop-blur-md">
-                            <History className="h-6 w-6 text-primary" />
+                <div className="space-y-1.5">
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 backdrop-blur-md shadow-sm">
+                            <History className="h-5 w-5 text-primary" />
                         </div>
                         Execution History
                     </h2>
-                    <p className="text-base text-muted-foreground/80 font-medium pl-1">
+                    <p className="text-base text-muted-foreground font-medium pl-1">
                         Real-time monitoring and forensic logs for pipeline executions.
                     </p>
                 </div>
+
                 <div className="flex items-center gap-4">
-                    <div className="hidden md:flex items-center px-4 py-2 bg-emerald-500/10 rounded-full border border-emerald-500/20 text-xs font-bold text-emerald-500 tracking-wide uppercase shadow-[0_0_15px_-5px_var(--color-emerald-500)]">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse mr-2.5 shadow-lg shadow-emerald-500/50"></span>
-                        Live Stream
+                    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-background/50 rounded-full border border-border shadow-sm">
+                        <span className="relative flex h-2.5 w-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                        </span>
+                        <span className="text-xs font-bold text-muted-foreground tracking-wide uppercase">Live Stream</span>
                     </div>
+
                     <Button
                         variant="outline"
-                        size="lg"
+                        size="sm"
                         onClick={() => refetch()}
-                        className={cn("gap-2 rounded-full border-white/10 bg-white/5 hover:bg-white/10 hover:border-primary/30 backdrop-blur-md transition-all", isRefetching && "opacity-80")}
+                        className={cn(
+                            "gap-2 rounded-full border-border/50 bg-card hover:bg-muted/50 transition-all shadow-sm",
+                            isRefetching && "opacity-80"
+                        )}
                         disabled={isRefetching}
                     >
                         <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
@@ -67,31 +75,57 @@ export const JobsPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Main Grid Layout (Glass Container) */}
-            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 glass-panel p-2 relative">
-                
+            {/* --- Main Content Area (Glass Panel) --- */}
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 relative">
+
+                {/* Background Decoration 
+                   This creates the subtle "glow" behind the main panels 
+                */}
+                <div className="absolute inset-0 bg-linear-to-tr from-primary/5 via-transparent to-blue-500/5 rounded-[2rem] -z-10 blur-xl opacity-50" />
+
                 {/* --- LEFT PANEL: List --- */}
-                <div className="lg:col-span-4 h-full rounded-[2rem] bg-white/5 border border-white/5 overflow-hidden flex flex-col relative z-10">
-                    <JobsList 
-                        jobs={filteredJobs} 
-                        isLoading={isLoading} 
-                        selectedJobId={selectedJobId} 
+                <div className="lg:col-span-4 h-full rounded-[2rem] border border-border/60 bg-card/40 backdrop-blur-xl shadow-lg shadow-black/5 overflow-hidden flex flex-col relative">
+                    <JobsList
+                        jobs={filteredJobs}
+                        isLoading={isLoading}
+                        selectedJobId={selectedJobId}
                         onSelect={setSelectedJobId}
                         filter={filter}
                         onFilterChange={setFilter}
                     />
                 </div>
 
-                {/* --- RIGHT PANEL: Details --- */}
-                <div className="lg:col-span-8 h-full rounded-[2rem] bg-black/40 border border-white/10 overflow-hidden relative shadow-inner z-10">
+                {/* --- RIGHT PANEL: Details / Terminal --- */}
+                <div className="lg:col-span-8 h-full rounded-[2rem] border border-border/60 bg-card/60 backdrop-blur-2xl shadow-xl shadow-black/5 overflow-hidden relative flex flex-col">
                     {selectedJob ? (
-                         <JobDetails job={selectedJob} />
+                        <JobDetails job={selectedJob} />
                     ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground/50">
-                            <div className="p-6 rounded-3xl bg-white/5 border border-white/5 mb-6">
-                                <Terminal className="h-12 w-12 opacity-30" />
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground/60 space-y-6">
+                            <div className="relative group">
+                                <div className="absolute -inset-1 bg-linear-to-r from-primary to-purple-600 rounded-full blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+                                <div className="relative p-8 rounded-full bg-background border border-border/50 shadow-2xl">
+                                    <Terminal className="h-12 w-12 opacity-50" />
+                                </div>
                             </div>
-                            <p className="text-lg font-medium">Select a job to view logs</p>
+                            <div className="text-center space-y-2">
+                                <h3 className="text-xl font-semibold text-foreground">No Execution Selected</h3>
+                                <p className="max-w-xs mx-auto text-sm">
+                                    Select a job from the list on the left to view detailed logs and metrics.
+                                </p>
+                            </div>
+
+                            {/* Decorative Fake Stats */}
+                            <div className="flex gap-8 mt-8 opacity-40 grayscale">
+                                <div className="flex flex-col items-center gap-1">
+                                    <Activity className="h-5 w-5" />
+                                    <span className="text-xs font-mono">IDLE</span>
+                                </div>
+                                <div className="h-8 w-px bg-border"></div>
+                                <div className="flex flex-col items-center gap-1">
+                                    <span className="text-xs font-bold font-mono">0ms</span>
+                                    <span className="text-[10px] uppercase">Latency</span>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
 import {
     CheckCircle2,
-    AlertTriangle,
+    AlertCircle,
     Clock,
     XCircle,
-    Loader2
+    Loader2,
+    PauseCircle,
+    PlayCircle
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -12,62 +14,111 @@ import { cn } from '@/lib/utils';
 interface StatusBadgeProps {
     status: string;
     className?: string;
-    variant?: 'default' | 'outline' | 'secondary' | 'destructive';
+    showIcon?: boolean;
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className }) => {
-    const config = useMemo(() => {
-        let styles = "bg-muted/50 text-muted-foreground border-border/50";
-        let icon = Clock;
-        let animate = false;
+export const StatusBadge: React.FC<StatusBadgeProps> = ({
+    status,
+    className,
+    showIcon = true
+}) => {
+    const s = (status || '').toLowerCase();
 
-        switch (status?.toLowerCase()) {
+    const config = useMemo(() => {
+        switch (s) {
             case 'completed':
             case 'success':
-                styles = "bg-emerald-500/15 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_-4px_var(--color-emerald-500)]";
-                icon = CheckCircle2;
-                break;
+            case 'healthy':
+                return {
+                    variant: "success",
+                    icon: CheckCircle2,
+                    animate: false
+                };
+
+            case 'active':
+            case 'enabled':
+                return {
+                    variant: "success",
+                    icon: PlayCircle,
+                    animate: false
+                };
+
             case 'failed':
             case 'error':
-                styles = "bg-rose-500/15 text-rose-400 border-rose-500/20 shadow-[0_0_10px_-4px_var(--color-rose-500)]";
-                icon = AlertTriangle; // Or XCircle
-                break;
-            case 'broken':
-                styles = "bg-rose-500/15 text-rose-400 border-rose-500/20";
-                icon = XCircle;
-                break;
-            case 'running':
-                styles = "bg-blue-500/15 text-blue-400 border-blue-500/20 shadow-[0_0_10px_-4px_var(--color-blue-500)]";
-                icon = Loader2;
-                animate = true;
-                break;
-            case 'active':
-                styles = "bg-green-500/15 text-green-400 border-green-500/20";
-                icon = CheckCircle2;
-                break;
-            case 'paused':
-                styles = "bg-amber-500/15 text-amber-400 border-amber-500/20";
-                icon = Clock;
-                break;
-        }
+            case 'critical':
+                return {
+                    variant: "destructive",
+                    icon: AlertCircle,
+                    animate: false
+                };
 
-        return { styles, icon, animate };
-    }, [status]);
+            case 'broken':
+            case 'disconnected':
+                return {
+                    variant: "destructive",
+                    icon: XCircle,
+                    animate: false
+                };
+
+            case 'running':
+            case 'processing':
+            case 'syncing':
+                return {
+                    variant: "info",
+                    icon: Loader2,
+                    animate: true
+                };
+
+            case 'paused':
+            case 'suspended':
+            case 'warning':
+                return {
+                    variant: "warning",
+                    icon: PauseCircle,
+                    animate: false
+                };
+
+            case 'pending':
+            case 'waiting':
+            case 'queued':
+                return {
+                    variant: "outline",
+                    icon: Clock,
+                    animate: false
+                };
+
+            default:
+                return {
+                    variant: "secondary",
+                    icon: Clock,
+                    animate: false
+                };
+        }
+    }, [s]);
 
     const Icon = config.icon;
 
+    // Map internal config variant to Badge prop variant
+    // We use a type assertion or mapping because our custom config keys match the Badge variants
+    const badgeVariant = config.variant as "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "info";
+
     return (
-        <Badge 
-            variant="outline" 
+        <Badge
+            variant={badgeVariant}
             className={cn(
-                "text-[10px] uppercase font-bold border px-2.5 py-1 gap-1.5 backdrop-blur-md rounded-full transition-all duration-300 hover:scale-105", 
-                config.styles, 
-                config.animate && "animate-pulse",
+                "h-6 px-2.5 py-0.5 text-[10px] uppercase font-bold tracking-wider transition-all duration-300 hover:scale-105",
                 className
             )}
         >
-            <Icon className={cn("h-3 w-3", config.animate && "animate-spin-slow")} />
-            {status}
+            {showIcon && (
+                <Icon
+                    className={cn(
+                        "h-3 w-3 mr-1.5",
+                        config.animate ? "animate-spin" : ""
+                    )}
+                />
+            )}
+            {status || 'Unknown'}
         </Badge>
     );
 };

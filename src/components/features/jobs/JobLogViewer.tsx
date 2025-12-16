@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect, useRef } from 'react';
-import { useJobLogs } from '@/hooks/useJobLogs'; 
+import { useJobLogs } from '@/hooks/useJobLogs';
 import {
     Terminal, Play, Pause, Download,
     ArrowDown, Wifi, WifiOff, Search
@@ -9,13 +9,33 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { useTheme } from '@/hooks/useTheme'; // Ensure you have access to useTheme
 
 interface JobLogViewerProps {
     initialJobId?: number | null;
     hideControls?: boolean;
 }
 
+// Helper component for cleaner code
+const ActionIcon = ({ onClick, title, children, active }: { onClick: () => void, title: string, children: React.ReactNode, active?: boolean }) => (
+    <button
+        onClick={onClick}
+        className={cn(
+            "p-2 rounded-lg transition-all duration-200",
+            "text-muted-foreground hover:text-foreground hover:bg-muted/30",
+            active && "bg-primary/20 text-primary hover:bg-primary/30 hover:text-primary-foreground"
+        )}
+        title={title}
+    >
+        {children}
+    </button>
+);
+
+
 export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null, hideControls = false }) => {
+    const { theme } = useTheme(); // Get theme context
+    const isDark = theme === 'dark'; // Helper flag
+
     const [jobIdInput, setJobIdInput] = useState<string>('1');
     const [activeJobId, setActiveJobId] = useState<number | null>(initialJobId);
     const [isAutoScroll, setIsAutoScroll] = useState(true);
@@ -36,9 +56,10 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
     useEffect(() => {
         if (isAutoScroll && scrollViewportRef.current) {
             const viewport = scrollViewportRef.current;
-            setTimeout(() => {
-                viewport.scrollTop = viewport.scrollHeight;
-            }, 10);
+            const scroll = () => {
+                 viewport.scrollTop = viewport.scrollHeight;
+            };
+            requestAnimationFrame(scroll);
         }
     }, [logs, isAutoScroll]);
 
@@ -46,6 +67,7 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
         const target = e.currentTarget;
         const { scrollTop, scrollHeight, clientHeight } = target;
         const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+
         if (isAtBottom !== isAutoScroll) {
             setIsAutoScroll(isAtBottom);
         }
@@ -53,7 +75,12 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
 
     const handleConnect = () => {
         const id = parseInt(jobIdInput, 10);
-        if (!isNaN(id)) setActiveJobId(id);
+        if (!isNaN(id)) {
+            setActiveJobId(id);
+            toast.info(`Attempting to connect to Job ID #${id}...`);
+        } else {
+            toast.error("Invalid Job ID", { description: "Please enter a valid number." });
+        }
     };
 
     const handleDownload = () => {
@@ -62,7 +89,7 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `job-${activeJobId}-logs.txt`;
+        a.download = `job-${activeJobId || 'latest'}-logs.txt`;
         a.click();
         toast.success("Logs downloaded");
     };
@@ -72,17 +99,34 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
         l.level.toLowerCase().includes(filter.toLowerCase())
     );
 
+    // Define the base styles for the terminal body based on the theme
+    const terminalBodyClasses = cn(
+        "flex flex-col overflow-hidden relative group transition-all duration-300",
+        // Use semantic background and foreground colors
+        "bg-card text-foreground", 
+        !hideControls ? "rounded-[2.5rem] border border-border/20 shadow-2xl shadow-black/20 dark:shadow-black/40 h-[650px]" : "h-full border-none"
+    );
+
+    // Function to get appropriate message text color for log line
+    const getMessageColor = (level: string) => {
+        // ERROR messages always get high contrast
+        if (level === 'ERROR') return "text-destructive/80";
+
+        // Default log message text color (foreground/zinc-700 in light mode, zinc-300 in dark mode)
+        return isDark ? "text-zinc-300" : "text-zinc-700";
+    }
+
     return (
         <div className={cn(
             "w-full h-full flex flex-col font-sans transition-colors duration-300",
             !hideControls && "p-8 max-w-7xl mx-auto gap-8"
         )}>
 
-            {/* --- External Controls --- */}
+            {/* --- External Controls (Theme-aware card) --- */}
             {!hideControls && (
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between glass-card p-5 gap-6 transition-all">
                     <div className="flex items-center gap-4">
-                        <div className="p-2.5 bg-primary/10 rounded-2xl text-primary ring-1 ring-primary/20 shadow-[0_0_15px_-5px_var(--color-primary)]">
+                        <div className="p-2.5 bg-primary/10 rounded-2xl text-primary ring-1 ring-primary/20 shadow-primary/20 shadow-md">
                             <Terminal className="h-6 w-6" />
                         </div>
                         <div>
@@ -93,7 +137,7 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
 
                     <div className="flex items-center gap-3">
                         <div className="relative group">
-                            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors z-20" />
                             <Input
                                 value={jobIdInput}
                                 onChange={(e) => setJobIdInput(e.target.value)}
@@ -108,31 +152,26 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
                 </div>
             )}
 
-            {/* --- The Terminal Window --- */}
-            <div className={cn(
-                "flex flex-col overflow-hidden relative group transition-all duration-300",
-                "bg-black text-gray-300 dark:bg-[#09090b] dark:text-gray-300", // Keep terminal dark, adjust text
-                !hideControls ? "rounded-[2.5rem] border border-white/10 shadow-2xl h-[650px]" : "h-full border-none"
-            )}>
+            {/* --- The Terminal Window (Theme-aware) --- */}
+            <div className={terminalBodyClasses}>
 
                 {/* Terminal Header */}
                 <div className="flex items-center justify-between px-5 py-3 shrink-0 select-none
-                        bg-white/5 dark:bg-white/[0.03] 
-                        border-b border-white/5 backdrop-blur-sm">
+                        bg-muted/10 border-b border-border/20 backdrop-blur-sm">
                     <div className="flex items-center gap-5">
-                        {/* Window Controls (Mac Style) */}
+                        {/* Window Controls (Mac Style - using semantic colors) */}
                         <div className="flex gap-2 opacity-80 hover:opacity-100 transition-opacity">
-                            <div className="w-3.5 h-3.5 rounded-full bg-[#ff5f57] border border-[#e0443e] shadow-sm" />
-                            <div className="w-3.5 h-3.5 rounded-full bg-[#febc2e] border-[#d89e24] shadow-sm" />
-                            <div className="w-3.5 h-3.5 rounded-full bg-[#28c840] border-[#1aab29] shadow-sm" />
+                            <div className="w-3.5 h-3.5 rounded-full bg-destructive/60 border border-destructive/80 shadow-sm" />
+                            <div className="w-3.5 h-3.5 rounded-full bg-warning/60 border border-warning/80 shadow-sm" />
+                            <div className="w-3.5 h-3.5 rounded-full bg-success/60 border border-success/80 shadow-sm" />
                         </div>
 
-                        {/* Status Pill */}
+                        {/* Status Pill (Semantic) */}
                         <div className={cn(
                             "flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border shadow-sm transition-all duration-500",
                             isConnected
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_-4px_var(--color-emerald-500)]"
-                                : "bg-red-500/10 text-red-400 border-red-500/20"
+                                ? "bg-success/10 text-success border-success/20 shadow-[0_0_10px_-4px_hsl(var(--success))]"
+                                : "bg-destructive/10 text-destructive border-destructive/20"
                         )}>
                             {isConnected ? <Wifi className="h-3 w-3 animate-pulse" /> : <WifiOff className="h-3 w-3" />}
                             <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
@@ -143,10 +182,10 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
                     <div className="flex items-center gap-2">
                         <div className="relative mr-3">
                             <input
-                                className="bg-transparent border-b border-white/10 
-                                   text-xs text-zinc-300 
+                                className="bg-transparent border-b border-border/40 
+                                   text-xs text-foreground/80
                                    focus:border-primary outline-none w-32 py-1
-                                   placeholder:text-zinc-600 font-mono
+                                   placeholder:text-muted-foreground font-mono
                                    transition-all focus:w-56"
                                 placeholder="grep logs..."
                                 value={filter}
@@ -176,7 +215,7 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
                         <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-4 opacity-50">
                             {isConnected ? (
                                 <>
-                                    <div className="h-10 w-10 border-2 border-white/10 border-t-primary rounded-full animate-spin" />
+                                    <div className="h-10 w-10 border-2 border-border/10 border-t-primary rounded-full animate-spin" />
                                     <span className="animate-pulse font-medium">Waiting for log stream...</span>
                                 </>
                             ) : (
@@ -189,10 +228,13 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
                     ) : (
                         <div className="flex flex-col gap-1">
                             {filteredLogs.map((log, idx) => (
-                                <div key={log.id || idx} className="flex gap-4 hover:bg-white/[0.04] p-1 rounded-lg px-3 transition-colors group/line items-start">
-
+                                <div 
+                                    key={log.id || idx} 
+                                    // Use muted for hover background
+                                    className="flex gap-4 hover:bg-muted/30 p-1 rounded-lg px-3 transition-colors group/line items-start"
+                                >
                                     {/* Timestamp */}
-                                    <span className="text-muted-foreground/50 dark:text-zinc-500 shrink-0 select-none min-w-[85px] pt-[1px]">
+                                    <span className="text-muted-foreground/50 shrink-0 select-none min-w-[85px] pt-px">
                                         {new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                                     </span>
 
@@ -200,10 +242,10 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
                                     <span className={cn(
                                         "font-bold shrink-0 w-[60px] select-none text-[10px] pt-0.5 uppercase tracking-wider text-center rounded-md h-5 flex items-center justify-center",
                                         {
-                                            'bg-blue-500/10 text-blue-600 dark:text-blue-400': log.level === 'INFO',
-                                            'bg-amber-500/10 text-amber-600 dark:text-amber-400': log.level === 'WARNING' || log.level === 'WARN',
-                                            'bg-rose-500/10 text-rose-600 dark:text-rose-400': log.level === 'ERROR',
-                                            'bg-zinc-200/50 text-zinc-600 dark:bg-zinc-500/10 dark:text-zinc-400': log.level === 'DEBUG',
+                                            'bg-info/10 text-info': log.level === 'INFO',
+                                            'bg-warning/10 text-warning': log.level === 'WARNING' || log.level === 'WARN',
+                                            'bg-destructive/10 text-destructive': log.level === 'ERROR',
+                                            'bg-muted/30 text-muted-foreground': log.level === 'DEBUG',
                                         }
                                     )}>
                                         {log.level}
@@ -212,9 +254,7 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
                                     {/* Message */}
                                     <span className={cn(
                                         "break-all whitespace-pre-wrap flex-1 leading-relaxed",
-                                        log.level === 'ERROR'
-                                            ? "text-rose-600 dark:text-rose-200"
-                                            : "text-foreground dark:text-zinc-300"
+                                        getMessageColor(log.level) 
                                     )}>
                                         {log.message}
                                     </span>
@@ -230,7 +270,7 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
                         <Button
                             size="sm"
                             onClick={() => setIsAutoScroll(true)}
-                            className="h-9 rounded-full bg-primary text-primary-foreground shadow-[0_0_20px_-5px_var(--color-primary)] gap-2 text-xs font-bold hover:scale-105 transition-transform px-5"
+                            className="h-9 rounded-full bg-primary text-primary-foreground shadow-[0_0_20px_-5px_hsl(var(--primary))] gap-2 text-xs font-bold hover:scale-105 transition-transform px-5"
                         >
                             <ArrowDown className="h-3.5 w-3.5 animate-bounce" />
                             Resume Auto-Scroll
@@ -241,18 +281,3 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ initialJobId = null,
         </div>
     );
 };
-
-// Helper component for cleaner code
-const ActionIcon = ({ onClick, title, children, active }: { onClick: () => void, title: string, children: React.ReactNode, active?: boolean }) => (
-    <button
-        onClick={onClick}
-        className={cn(
-            "p-2 rounded-lg transition-all duration-200",
-            "text-muted-foreground hover:text-foreground hover:bg-white/10",
-            active && "bg-primary/20 text-primary hover:bg-primary/30 hover:text-primary-foreground"
-        )}
-        title={title}
-    >
-        {children}
-    </button>
-);

@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     Plus, XCircle, ShieldCheck, Search,
-    LayoutGrid, List, Link as LinkIcon} from 'lucide-react';
+    LayoutGrid, List, Link as LinkIcon, AlertCircle, Loader2
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
@@ -51,6 +52,7 @@ export const ConnectionsPage: React.FC = () => {
     const handleDelete = (id: number) => {
         toast('Delete this connection?', {
             description: "Pipelines using this connection may break.",
+            icon: <AlertCircle className="h-4 w-4 text-destructive" />,
             action: {
                 label: 'Delete',
                 onClick: () => deleteMutation.mutate(id)
@@ -62,10 +64,15 @@ export const ConnectionsPage: React.FC = () => {
     const handleTest = async (id: number) => {
         setTestingId(id);
         try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Min loader time
             const res = await testConnection(id, {});
-            if (res.success) toast.success("Connection Healthy", { icon: <ShieldCheck className="h-4 w-4 text-emerald-500" /> });
-            else toast.error("Connection Failed", { description: res.message });
+            if (res.success) {
+                toast.success("Connection Healthy", {
+                    icon: <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                });
+            } else {
+                toast.error("Connection Failed", { description: res.message });
+            }
         } catch (e) {
             toast.error("Network Error during test");
         } finally {
@@ -81,41 +88,52 @@ export const ConnectionsPage: React.FC = () => {
         );
     }, [connections, filter]);
 
+    // Error State
     if (error) return (
-        <div className="flex h-full items-center justify-center">
+        <div className="flex h-[50vh] items-center justify-center">
             <div className="text-center space-y-4">
-                <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
-                     <XCircle className="h-10 w-10 text-destructive" />
+                <div className="h-20 w-20 rounded-full bg-destructive/10 flex items-center justify-center mx-auto ring-1 ring-destructive/20 shadow-lg">
+                    <XCircle className="h-10 w-10 text-destructive" />
                 </div>
                 <h3 className="text-xl font-bold">Failed to load connections</h3>
-                <p className="text-muted-foreground max-w-xs mx-auto">Please check your network settings and try again.</p>
+                <p className="text-muted-foreground max-w-xs mx-auto">
+                    Please check your network settings and try again.
+                </p>
+                <Button variant="outline" onClick={() => window.location.reload()} className="gap-2">
+                    <Loader2 className="h-4 w-4" /> Retry
+                </Button>
             </div>
         </div>
     );
 
     return (
-        <div className="flex flex-col h-[calc(100vh-9rem)] gap-8 animate-in fade-in duration-700">
+        // Root container with fixed height constraints to force inner scrolling
+        <div className="flex flex-col h-[calc(100vh-6rem)] gap-6 animate-in fade-in duration-700 pb-4">
             <PageMeta title="Connections" description="Manage data sources and destinations." />
 
-            {/* Header */}
+            {/* --- Header Section --- */}
             <div className="flex items-center justify-between shrink-0 px-1">
-                <div className="space-y-2">
-                    <h2 className="text-4xl font-bold tracking-tighter text-transparent bg-clip-text bg-linear-to-r from-foreground to-foreground/50 flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-2xl ring-1 ring-white/10 backdrop-blur-md">
-                            <LinkIcon className="h-6 w-6 text-primary" />
+                <div className="space-y-1.5">
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 backdrop-blur-md shadow-sm">
+                            <LinkIcon className="h-5 w-5 text-primary" />
                         </div>
                         Connections
                     </h2>
-                    <p className="text-base text-muted-foreground/80 font-medium pl-1">
+                    <p className="text-base text-muted-foreground font-medium pl-1">
                         Manage authentication and configuration for your data sources.
                     </p>
                 </div>
 
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <Button size="lg" onClick={handleCreate} className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:scale-105">
-                        <Plus className="mr-2 h-5 w-5" /> New Connection
+                    <Button
+                        size="sm"
+                        onClick={handleCreate}
+                        className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:-translate-y-0.5"
+                    >
+                        <Plus className="mr-2 h-4 w-4" /> New Connection
                     </Button>
-                    <DialogContent className="max-w-5xl h-[700px] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-[2rem] border-white/10 bg-background/80 backdrop-blur-3xl shadow-2xl">
+                    <DialogContent className="max-w-5xl h-[700px] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-[2rem] border-border/60 bg-background/80 backdrop-blur-3xl shadow-2xl">
                         <CreateConnectionDialog
                             initialData={editingConnection}
                             onClose={() => setIsDialogOpen(false)}
@@ -124,33 +142,40 @@ export const ConnectionsPage: React.FC = () => {
                 </Dialog>
             </div>
 
-            {/* Main Content Pane (Glass) */}
-            <div className="flex-1 min-h-0 flex flex-col bg-card/40 backdrop-blur-2xl rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden relative">
+            {/* --- Main Content Pane (Glass/Ceramic) --- */}
+            {/* flex-1 min-h-0 is CRITICAL for nested scrolling */}
+            <div className="flex-1 min-h-0 flex flex-col bg-card/40 backdrop-blur-2xl rounded-[2rem] border border-border/60 shadow-xl overflow-hidden relative">
 
                 {/* Toolbar */}
-                <div className="p-6 border-b border-white/5 bg-white/5 flex gap-6 items-center justify-between shrink-0">
-                    <div className="relative w-full max-w-md group">
-                        <Search className="absolute left-4 top-3.5 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <div className="p-4 border-b border-border/40 bg-muted/20 flex gap-4 items-center justify-between shrink-0">
+                    <div className="relative w-full max-w-sm group">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors z-10 pointer-events-none" />
                         <Input
                             placeholder="Filter connections..."
-                            className="pl-11 h-11 rounded-2xl bg-black/5 dark:bg-white/5 border-transparent focus:bg-background focus:border-primary/30 transition-all"
+                            className="pl-9 h-10 rounded-xl bg-background/50 border-transparent focus:bg-background focus:border-primary/30 transition-all"
                             value={filter}
                             onChange={(e) => setFilter(e.target.value)}
                         />
                     </div>
-                    <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 border border-white/5 rounded-2xl p-1.5">
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className={cn("h-8 w-8 rounded-xl transition-all", viewMode === 'grid' ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:bg-white/5")} 
+                    <div className="flex items-center gap-1 bg-background/50 border border-border/40 rounded-xl p-1 shadow-sm">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                                "h-8 w-8 rounded-lg transition-all",
+                                viewMode === 'grid' ? "bg-card shadow-sm text-primary" : "text-muted-foreground hover:bg-muted"
+                            )}
                             onClick={() => setViewMode('grid')}
                         >
                             <LayoutGrid className="h-4 w-4" />
                         </Button>
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className={cn("h-8 w-8 rounded-xl transition-all", viewMode === 'list' ? "bg-background shadow-sm text-primary" : "text-muted-foreground hover:bg-white/5")} 
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                                "h-8 w-8 rounded-lg transition-all",
+                                viewMode === 'list' ? "bg-card shadow-sm text-primary" : "text-muted-foreground hover:bg-muted"
+                            )}
                             onClick={() => setViewMode('list')}
                         >
                             <List className="h-4 w-4" />
@@ -158,7 +183,7 @@ export const ConnectionsPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Connection List */}
+
                 <ConnectionsList
                     connections={filteredConnections}
                     isLoading={isLoading}

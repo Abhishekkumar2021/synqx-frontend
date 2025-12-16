@@ -6,14 +6,15 @@ import { subHours, format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
     Activity, CheckCircle2,
-    PlayCircle, Zap, 
-    Workflow, Server} from 'lucide-react';
+    PlayCircle, Zap,
+    Workflow, Server
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { StatsCard } from '@/components/ui/StatsCard';
 import { ExecutionThroughputChart } from '@/components/features/dashboard/ExecutionThroughputChart';
 import { PipelineHealthChart } from '@/components/features/dashboard/PipelineHealthChart';
 import { RecentActivityTable } from '@/components/features/dashboard/RecentActivityTable';
 import { PageMeta } from '@/components/common/PageMeta';
+import { StatsCard } from '@/components/ui/StatsCard';
 
 export const DashboardPage: React.FC = () => {
     // 1. Data Fetching
@@ -28,9 +29,9 @@ export const DashboardPage: React.FC = () => {
         const total = pipelines.length;
         const active = pipelines.filter((p: any) => p.status === 'active').length;
         const completed = jobs.filter((j: any) => j.status === 'completed' || j.status === 'success');
-        const failed = jobs.filter((j: any) => j.status === 'failed' || j.status === 'error');
 
-        const totalRuns = completed.length + failed.length;
+        // Calculate success rate based on jobs
+        const totalRuns = jobs.length;
         const successRate = totalRuns > 0 ? Math.round((completed.length / totalRuns) * 100) : 100;
 
         return {
@@ -38,7 +39,7 @@ export const DashboardPage: React.FC = () => {
             activePipelines: active,
             totalConnections: connections?.length || 0,
             successRate,
-            runCount: jobs.length
+            runCount: jobs.length,
         };
     }, [pipelines, jobs, connections]);
 
@@ -47,10 +48,10 @@ export const DashboardPage: React.FC = () => {
     // 3. Chart Data (Real Aggregation)
     const chartData = useMemo(() => {
         if (!jobs) return [];
-        
+
         const now = new Date();
-        const buckets = Array.from({ length: 25 }, (_, i) => {
-            const time = subHours(now, 24 - i);
+        const buckets = Array.from({ length: 24 }, (_, i) => {
+            const time = subHours(now, 23 - i);
             return {
                 time,
                 key: format(time, 'yyyy-MM-dd-HH'),
@@ -61,23 +62,23 @@ export const DashboardPage: React.FC = () => {
         });
 
         jobs.forEach((job: any) => {
-             const dateStr = job.finished_at || job.started_at;
-             if (!dateStr) return;
-             
-             const date = new Date(dateStr);
-             const key = format(date, 'yyyy-MM-dd-HH');
-             
-             const bucket = buckets.find(b => b.key === key);
-             if (bucket) {
-                 const status = (job.status || '').toLowerCase();
-                 if (status === 'completed' || status === 'success') {
-                     bucket.success++;
-                 } else if (status === 'failed' || status === 'error') {
-                     bucket.failed++;
-                 }
-             }
+            const dateStr = job.finished_at || job.started_at;
+            if (!dateStr) return;
+
+            const date = new Date(dateStr);
+            const key = format(date, 'yyyy-MM-dd-HH');
+
+            const bucket = buckets.find(b => b.key === key);
+            if (bucket) {
+                const status = (job.status || '').toLowerCase();
+                if (status === 'completed' || status === 'success') {
+                    bucket.success++;
+                } else if (status === 'failed' || status === 'error') {
+                    bucket.failed++;
+                }
+            }
         });
-        
+
         return buckets;
     }, [jobs]);
 
@@ -90,11 +91,12 @@ export const DashboardPage: React.FC = () => {
             Draft: pipelines.filter((p: any) => !['active', 'paused', 'broken', 'failed'].includes(p.status as string)).length
         };
 
+        // Use CSS variables for chart colors to support theming
         return [
-            { name: 'Active', value: counts.Active, color: 'var(--chart-2)' },
-            { name: 'Paused', value: counts.Paused, color: 'var(--chart-5)' },
-            { name: 'Error', value: counts.Error, color: 'var(--destructive)' },
-            { name: 'Draft', value: counts.Draft, color: 'var(--muted-foreground)' },
+            { name: 'Active', value: counts.Active, fill: 'hsl(var(--chart-2))' },
+            { name: 'Paused', value: counts.Paused, fill: 'hsl(var(--chart-5))' },
+            { name: 'Error', value: counts.Error, fill: 'hsl(var(--destructive))' },
+            { name: 'Draft', value: counts.Draft, fill: 'hsl(var(--muted))' },
         ].filter(i => i.value > 0);
     }, [pipelines]);
 
@@ -104,17 +106,19 @@ export const DashboardPage: React.FC = () => {
 
             {/* --- Header & Navigation --- */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 px-1">
-                <div className="space-y-2">
-                    <h2 className="text-4xl font-bold tracking-tighter text-transparent bg-clip-text bg-linear-to-r from-foreground to-foreground/50 flex items-center gap-3">
-                        <Activity className="h-8 w-8 text-primary animate-pulse-slow" />
+                <div className="space-y-1.5">
+                    <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 backdrop-blur-md shadow-sm">
+                            <Activity className="h-5 w-5 text-primary" />
+                        </div>
                         System Overview
                     </h2>
-                    <p className="text-base text-muted-foreground/80 font-medium pl-1">
-                        System status for <span className="text-foreground">{format(new Date(), 'MMMM dd, yyyy')}</span>. All systems operational.
+                    <p className="text-base text-muted-foreground font-medium pl-1">
+                        Status for <span className="text-foreground font-semibold">{format(new Date(), 'MMMM dd, yyyy')}</span>. All systems operational.
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <Button size="lg" className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:scale-105">
+                    <Button size="lg" className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:-translate-y-0.5">
                         <PlayCircle className="mr-2 h-5 w-5" />
                         Run Pipeline
                     </Button>
@@ -122,65 +126,63 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {/* --- Stats Cards Grid --- */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                 {isLoading ? (
-                    Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-40 rounded-[2rem] bg-white/5" />)
+                    Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[140px] w-full rounded-[2rem]" />)
                 ) : (
                     <>
                         <StatsCard
                             title="Total Pipelines"
                             value={stats?.totalPipelines || 0}
-                            trend="+2 created"
+                            trend="2 created"
                             trendUp={true}
                             icon={Workflow}
-                            color="text-primary"
-                            bgGlow="bg-primary/10"
                         />
                         <StatsCard
                             title="Active Jobs"
                             value={stats?.activePipelines || 0}
                             subtext="Processing now"
                             icon={Zap}
-                            active={true}
-                            color="text-orange-400"
-                            bgGlow="bg-orange-500/10"
+                            active={true} // Highlight this card
                         />
                         <StatsCard
                             title="Success Rate"
                             value={`${stats?.successRate}%`}
-                            trend="-1.2% from avg"
+                            trend="1.2% vs avg"
                             trendUp={false}
                             icon={CheckCircle2}
-                            color="text-emerald-400"
-                            bgGlow="bg-emerald-500/10"
                         />
                         <StatsCard
                             title="Connections"
                             value={stats?.totalConnections || 0}
                             subtext="All systems healthy"
                             icon={Server}
-                            color="text-blue-400"
-                            bgGlow="bg-blue-500/10"
                         />
                     </>
                 )}
             </div>
 
-            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-7">
+            {/* --- Charts Section --- */}
+            {/* Layout Strategy:
+                - Mobile: Stacked, each chart takes a minimum height of 400px.
+                - Desktop (lg+): Side-by-side grid. We force the grid container to a fixed height (500px).
+                  The child containers use `h-full` to fill this space, ensuring they are exactly the same height.
+            */}
+            <div className="grid grid-cols-1 lg:grid-cols-7 gap-6 lg:h-[500px]">
                 {/* --- Main Area Chart: Throughput --- */}
-                <div className="lg:col-span-4 h-full">
-                     <ExecutionThroughputChart data={chartData} />
+                <div className="lg:col-span-4 min-h-[400px] lg:min-h-0 lg:h-full">
+                    <ExecutionThroughputChart data={chartData} />
                 </div>
 
                 {/* --- Pie Chart: Pipeline Health --- */}
-                <div className="lg:col-span-3 h-full">
-                    <PipelineHealthChart 
-                        data={pipelineDistribution} 
-                        totalPipelines={stats?.totalPipelines || 0} 
+                <div className="lg:col-span-3 min-h-[400px] lg:min-h-0 lg:h-full">
+                    <PipelineHealthChart
+                        data={pipelineDistribution}
+                        totalPipelines={stats?.totalPipelines || 0}
                     />
                 </div>
             </div>
-            
+
             {/* --- Recent Activity Table --- */}
             <div className="mt-2">
                 <RecentActivityTable jobs={jobs || []} />

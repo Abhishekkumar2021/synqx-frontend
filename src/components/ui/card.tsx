@@ -8,14 +8,28 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-[2rem] border border-white/10 bg-card/60 backdrop-blur-2xl text-card-foreground shadow-2xl shadow-black/5 transition-all duration-500 hover:border-white/20 relative overflow-hidden group",
+      // Base Layout & Shape
+      "rounded-[2rem] border relative overflow-hidden group transition-all duration-500",
+
+      // Glass Material (Theme Aware)
+      "bg-card/60 backdrop-blur-2xl border-border/50",
+
+      // Typography
+      "text-card-foreground",
+
+      // Shadows & Depth
+      "shadow-xl shadow-black/5 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1",
+
+      // Interactive Border
+      "hover:border-primary/20",
+
       className
     )}
     {...props}
   >
-     {/* Subtle gradient overlay for depth */}
-     <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-     {props.children}
+    {/* Subtle gradient overlay for depth (Theme Adaptive) */}
+    <div className="absolute inset-0 bg-linear-to-br from-white/5 to-transparent dark:from-white/5 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none mix-blend-overlay" />
+    {props.children}
   </div>
 ))
 Card.displayName = "Card"
@@ -39,7 +53,9 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "text-2xl font-bold leading-none tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/80",
+      "text-2xl font-bold leading-none tracking-tight",
+      // Gradient Text Effect
+      "bg-clip-text text-transparent bg-linear-to-r from-foreground to-foreground/70",
       className
     )}
     {...props}
@@ -53,7 +69,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn("text-sm text-muted-foreground/90 leading-relaxed font-medium", className)}
+    className={cn("text-sm text-muted-foreground leading-relaxed font-medium", className)}
     {...props}
   />
 ))
