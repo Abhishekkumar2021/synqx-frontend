@@ -66,7 +66,7 @@
 :root {
   --radius: 1.25rem;
 
-  /* Light Mode */
+  /* Light Mode (UNCHANGED) */
   --background: oklch(0.99 0 0);
   --foreground: oklch(0.12 0.01 260);
 
@@ -76,7 +76,7 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.12 0.01 260);
 
-  --primary: oklch(0.55 0.25 240); /* NEW: Electric Blue */
+  --primary: oklch(0.55 0.25 240); /* Electric Blue */
   --primary-foreground: oklch(1 0 0);
 
   --secondary: oklch(0.96 0 0);
@@ -95,15 +95,15 @@
   --success-foreground: oklch(1 0 0);
   --warning: oklch(0.7 0.18 55);
   --warning-foreground: oklch(0.15 0.02 55);
-  --info: oklch(0.63 0.18 240); /* NEW: Aligned Info Color */
+  --info: oklch(0.63 0.18 240);
   --info-foreground: oklch(1 0 0);
 
   /* Explicitly defined borders without complexity */
   --border: oklch(0.92 0 0);
   --input: oklch(0.92 0 0);
-  --ring: oklch(0.55 0.25 240 / 0.2); /* NEW: Ring uses new primary hue */
+  --ring: oklch(0.55 0.25 240 / 0.2);
 
-  --chart-1: oklch(0.55 0.25 240); /* NEW: Chart-1 uses new primary hue */
+  --chart-1: oklch(0.55 0.25 240);
   --chart-2: oklch(0.62 0.19 145);
   --chart-3: oklch(0.7 0.18 55);
   --chart-4: oklch(0.55 0.2 300);
@@ -113,68 +113,73 @@
   --sidebar-foreground: oklch(0.3 0 0);
   --sidebar-primary: oklch(
     0.55 0.25 240
-  ); /* NEW: Sidebar primary uses new hue */
+  );
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.94 0 0);
   --sidebar-accent-foreground: oklch(0.12 0.01 260);
   --sidebar-border: oklch(0.92 0 0);
-  --sidebar-ring: oklch(0.55 0.25 240); /* NEW: Sidebar ring uses new hue */
+  --sidebar-ring: oklch(0.55 0.25 240);
 }
 
 .dark {
-  /* Dark Mode */
-  --background: oklch(0.1 0 0);
-  --foreground: oklch(0.98 0 0);
+  /* --- REVISED SOFTER DARK MODE --- */
+  
+  --background: oklch(0.18 0 0);
+  --foreground: oklch(0.95 0 0); /* Slightly less bright white */
 
-  --card: oklch(0.18 0 0 / 0.7);
-  --card-foreground: oklch(0.98 0 0);
+  /* Surfaces (Card/Popover): Lighter than background for elevated feel (removed alpha) */
+  --card: oklch(0.22 0 0);
+  --card-foreground: oklch(0.95 0 0);
 
-  --popover: oklch(0.16 0 0 / 0.95);
-  --popover-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.24 0 0);
+  --popover-foreground: oklch(0.95 0 0);
 
-  --primary: oklch(0.65 0.25 240); /* NEW: Electric Blue */
-  --primary-foreground: oklch(0.1 0 0);
+  /* Primary/Interactive */
+  --primary: oklch(0.68 0.25 240); /* Slightly brighter primary */
+  --primary-foreground: oklch(0.15 0 0);
 
-  --secondary: oklch(0.24 0 0);
-  --secondary-foreground: oklch(0.98 0 0);
+  /* Subtle/Muted */
+  --secondary: oklch(0.35 0 0);
+  --secondary-foreground: oklch(0.95 0 0);
 
-  --muted: oklch(0.2 0 0);
+  --muted: oklch(0.3 0 0);
   --muted-foreground: oklch(0.65 0 0);
 
-  --accent: oklch(0.22 0 0);
-  --accent-foreground: oklch(0.98 0 0);
+  --accent: oklch(0.38 0 0); /* Distinct accent color for highlights */
+  --accent-foreground: oklch(0.95 0 0);
 
-  --destructive: oklch(0.62 0.22 25);
-  --destructive-foreground: oklch(0.98 0 0);
+  /* Semantic Colors (adjusted L for better pop) */
+  --destructive: oklch(0.65 0.22 25);
+  --destructive-foreground: oklch(0.95 0 0);
 
-  --success: oklch(0.68 0.18 145);
-  --success-foreground: oklch(0.05 0 0);
-  --warning: oklch(0.75 0.16 55);
-  --warning-foreground: oklch(0.05 0 0);
-  --info: oklch(0.7 0.18 240); /* NEW: Aligned Info Color */
-  --info-foreground: oklch(0.05 0 0);
+  --success: oklch(0.7 0.18 145);
+  --success-foreground: oklch(0.15 0 0);
+  --warning: oklch(0.78 0.16 55);
+  --warning-foreground: oklch(0.15 0 0);
+  --info: oklch(0.73 0.18 240);
+  --info-foreground: oklch(0.15 0 0);
 
-  /* Fixed Borders: Removed alpha from variable definition to prevent stacking issues */
-  --border: oklch(0.26 0 0);
-  --input: oklch(0.26 0 0);
-  --ring: oklch(0.65 0.25 240 / 0.5); /* NEW: Ring uses new primary hue */
+  /* Borders/Rings (adjusted to be visible on the new darker gray background) */
+  --border: oklch(0.35 0 0);
+  --input: oklch(0.35 0 0);
+  --ring: oklch(0.68 0.25 240 / 0.5); /* Uses new primary L value */
 
-  --chart-1: oklch(0.65 0.25 240); /* NEW: Chart-1 uses new primary hue */
-  --chart-2: oklch(0.68 0.18 145);
-  --chart-3: oklch(0.75 0.16 55);
-  --chart-4: oklch(0.65 0.22 300);
-  --chart-5: oklch(0.62 0.22 25);
-
-  --sidebar: oklch(0.13 0 0 / 0.85);
+  /* Sidebar (slightly darker than main background for separation, solid color) */
+  --sidebar: oklch(0.2 0 0);
   --sidebar-foreground: oklch(0.9 0 0);
-  --sidebar-primary: oklch(
-    0.65 0.25 240
-  ); /* NEW: Sidebar primary uses new hue */
-  --sidebar-primary-foreground: oklch(0.1 0 0);
-  --sidebar-accent: oklch(0.22 0 0);
-  --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: oklch(0.26 0 0);
-  --sidebar-ring: oklch(0.65 0.25 240); /* NEW: Sidebar ring uses new hue */
+  --sidebar-primary: oklch(0.68 0.25 240);
+  --sidebar-primary-foreground: oklch(0.15 0 0);
+  --sidebar-accent: oklch(0.38 0 0);
+  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(0.35 0 0);
+  --sidebar-ring: oklch(0.68 0.25 240);
+
+  /* Chart Colors (adjusted L for better pop) */
+  --chart-1: oklch(0.68 0.25 240);
+  --chart-2: oklch(0.7 0.18 145);
+  --chart-3: oklch(0.78 0.16 55);
+  --chart-4: oklch(0.68 0.22 300);
+  --chart-5: oklch(0.65 0.22 25);
 }
 
 @layer base {

@@ -41,11 +41,11 @@ export const ConnectionsList: React.FC<ConnectionsListProps> = ({
     return (
         <div className="flex-1 min-h-0 w-full">
             <ScrollArea className="h-full w-full">
-                <div className="p-6 pb-20">
+                <div className="p-6">
                     <div className={cn(
                         "grid gap-6",
                         viewMode === 'grid'
-                            ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                            ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
                             : "grid-cols-1"
                     )}>
                         {isLoading ? (
@@ -90,7 +90,6 @@ export const ConnectionsList: React.FC<ConnectionsListProps> = ({
                                         className={cn(
                                             "group relative flex transition-all duration-300",
                                             "border-border/50 bg-card/50 backdrop-blur-sm",
-                                            // Hover effects
                                             "hover:bg-card/80 hover:border-primary/20 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1",
                                             viewMode === 'grid'
                                                 ? "flex-col rounded-[2rem] p-6"

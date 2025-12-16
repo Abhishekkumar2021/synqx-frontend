@@ -64,7 +64,7 @@ export const PipelinesListPage: React.FC = () => {
 
     return (
         // Main Container: Fixed height minus header to allow internal scrolling
-        <div className="flex flex-col h-[calc(100vh-6rem)] md:h-[calc(100vh-9rem)] gap-6 md:gap-8 animate-in fade-in duration-700 p-4 md:p-0">
+        <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 md:gap-8 animate-in fade-in duration-700 p-4 md:p-0 ">
             <PageMeta title="Pipelines" description="Orchestrate and monitor your data workflows." />
 
             {/* --- Page Header --- */}
@@ -156,7 +156,7 @@ export const PipelinesListPage: React.FC = () => {
                 {viewMode === 'list' && (
                     <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-border/50 hover:scrollbar-thumb-border/80 scrollbar-track-transparent">
                         {/* Sticky Header */}
-                        <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border/40 bg-muted/60 text-xs font-bold text-muted-foreground uppercase tracking-widest shrink-0 sticky top-0 backdrop-blur-3xl z-20 shadow-sm">
+                        <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border/40 bg-muted text-xs font-bold text-muted-foreground uppercase tracking-widest shrink-0 sticky top-0 z-20 shadow-sm">
                             <div className="col-span-12 md:col-span-5">Pipeline</div>
                             <div className="col-span-2 hidden md:block">Status</div>
                             <div className="col-span-3 hidden md:block">Last Activity</div>

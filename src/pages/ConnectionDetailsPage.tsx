@@ -195,7 +195,7 @@ const AssetsTabContent = ({
 
 const ConfigurationTabContent = ({ connection }: { connection: any }) => {
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full overflow-y-auto pr-1 pb-4 custom-scrollbar">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-y-auto p-4 custom-scrollbar z-10">
             {/* Config Details */}
             <Card className="lg:col-span-2 border border-border/60 bg-card/40 backdrop-blur-xl shadow-sm h-fit">
                 <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
@@ -374,7 +374,7 @@ export const ConnectionDetailsPage: React.FC = () => {
     );
 
     return (
-        <div className="flex flex-col h-[calc(100vh-6rem)] gap-6 animate-in fade-in duration-500 pb-6">
+        <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 animate-in fade-in duration-500">
             <PageMeta title={connection.name} description={`Manage ${connection.name} connection details.`} />
 
             {/* --- Header Section --- */}
@@ -470,11 +470,11 @@ export const ConnectionDetailsPage: React.FC = () => {
                         <TabsTrigger
                             value="assets"
                             className="
-            flex-1 sm:flex-none inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 
-            text-sm font-medium ring-offset-background transition-all focus-visible:outline-none 
-            disabled:pointer-events-none disabled:opacity-50 
-            data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm
-        "
+                                flex-1 sm:flex-none inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 
+                                text-sm font-medium ring-offset-background transition-all focus-visible:outline-none 
+                                disabled:pointer-events-none disabled:opacity-50 
+                                data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm
+                            "
                         >
                             <Layers className="h-4 w-4" />
                             Metadata
@@ -504,7 +504,7 @@ export const ConnectionDetailsPage: React.FC = () => {
                     </TabsList>
 
                     {/* Tab Content Wrappers */}
-                    <div className="pt-6 h-[calc(100vh-14rem)]">
+                    <div className="pt-6 h-[calc(100vh-16rem)]">
                         <TabsContent value="assets" className="h-full mt-0 focus-visible:outline-none">
                             <AssetsTabContent
                                 connectionId={connectionId}
@@ -514,7 +514,7 @@ export const ConnectionDetailsPage: React.FC = () => {
                             />
                         </TabsContent>
 
-                        <TabsContent value="configuration" className="h-full mt-0 focus-visible:outline-none">
+                        <TabsContent value="configuration" className="h-full mt-0 focus-visible:outline-none overflow-auto">
                             <ConfigurationTabContent connection={connection} />
                         </TabsContent>
                     </div>

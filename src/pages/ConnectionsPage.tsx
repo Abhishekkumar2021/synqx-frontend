@@ -108,7 +108,7 @@ export const ConnectionsPage: React.FC = () => {
 
     return (
         // Root container with fixed height constraints to force inner scrolling
-        <div className="flex flex-col h-[calc(100vh-6rem)] gap-6 animate-in fade-in duration-700 pb-4">
+        <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 animate-in fade-in duration-700">
             <PageMeta title="Connections" description="Manage data sources and destinations." />
 
             {/* --- Header Section --- */}
