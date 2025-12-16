@@ -30,13 +30,45 @@ export const CONNECTOR_META: Record<string, ConnectorMetadata> = {
         id: 'mysql', name: 'MySQL', description: 'The world\'s most popular open-source database.', 
         icon: <Database />, category: 'Database', color: "text-sky-500 bg-sky-500/10 border-sky-500/20"
     },
+    mariadb: { 
+        id: 'mariadb', name: 'MariaDB', description: 'High performance open-source database.', 
+        icon: <Database />, category: 'Database', color: "text-indigo-500 bg-indigo-500/10 border-indigo-500/20"
+    },
+    mssql: { 
+        id: 'mssql', name: 'SQL Server', description: 'Microsoft relational database management system.', 
+        icon: <Database />, category: 'Database', color: "text-red-500 bg-red-500/10 border-red-500/20"
+    },
+    oracle: { 
+        id: 'oracle', name: 'Oracle DB', description: 'Multi-model database management system.', 
+        icon: <Database />, category: 'Database', color: "text-red-600 bg-red-600/10 border-red-600/20"
+    },
+    sqlite: { 
+        id: 'sqlite', name: 'SQLite', description: 'C-language library embedded database.', 
+        icon: <Database />, category: 'Database', color: "text-blue-400 bg-blue-400/10 border-blue-400/20"
+    },
     snowflake: { 
         id: 'snowflake', name: 'Snowflake', description: 'Cloud-native data warehousing platform.', 
         icon: <Cloud />, category: 'Warehouse', color: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20", popular: true 
     },
+    redshift: { 
+        id: 'redshift', name: 'Redshift', description: 'Fast, simple, cost-effective data warehousing.', 
+        icon: <Cloud />, category: 'Warehouse', color: "text-purple-600 bg-purple-600/10 border-purple-600/20"
+    },
+    bigquery: { 
+        id: 'bigquery', name: 'Google BigQuery', description: 'Serverless enterprise data warehouse.', 
+        icon: <Cloud />, category: 'Warehouse', color: "text-blue-600 bg-blue-600/10 border-blue-600/20"
+    },
+    databricks: { 
+        id: 'databricks', name: 'Databricks', description: 'Unified data analytics platform.', 
+        icon: <Cloud />, category: 'Warehouse', color: "text-orange-600 bg-orange-600/10 border-orange-600/20"
+    },
     mongodb: { 
         id: 'mongodb', name: 'MongoDB', description: 'Source-available document database.', 
         icon: <FileJson />, category: 'Database', color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
+    },
+    redis: { 
+        id: 'redis', name: 'Redis', description: 'In-memory key-value store.', 
+        icon: <Database />, category: 'Database', color: "text-red-600 bg-red-600/10 border-red-600/20"
     },
     local_file: { 
         id: 'local_file', name: 'Local File', description: 'Read CSV, JSON, and Parquet from disk.', 
@@ -46,13 +78,13 @@ export const CONNECTOR_META: Record<string, ConnectorMetadata> = {
         id: 's3', name: 'Amazon S3', description: 'Scalable object storage in AWS.', 
         icon: <Cloud />, category: 'File', color: "text-orange-500 bg-orange-500/10 border-orange-500/20", popular: true 
     },
-    redis: { 
-        id: 'redis', name: 'Redis', description: 'In-memory key-value store.', 
-        icon: <Database />, category: 'Database', color: "text-red-600 bg-red-600/10 border-red-600/20"
+    gcs: { 
+        id: 'gcs', name: 'Google Cloud Storage', description: 'Unified object storage for developers.', 
+        icon: <Cloud />, category: 'File', color: "text-blue-500 bg-blue-500/10 border-blue-500/20"
     },
-    bigquery: { 
-        id: 'bigquery', name: 'Google BigQuery', description: 'Serverless enterprise data warehouse.', 
-        icon: <Cloud />, category: 'Warehouse', color: "text-blue-600 bg-blue-600/10 border-blue-600/20"
+    azure_blob: { 
+        id: 'azure_blob', name: 'Azure Blob', description: 'Massively scalable object storage.', 
+        icon: <Cloud />, category: 'File', color: "text-blue-600 bg-blue-600/10 border-blue-600/20"
     },
     rest_api: { 
         id: 'rest_api', name: 'REST API', description: 'Connect to generic HTTP endpoints.', 

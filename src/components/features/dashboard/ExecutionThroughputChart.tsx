@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { subHours, format } from 'date-fns';
+import { format } from 'date-fns';
 import { useTheme } from '@/hooks/useTheme'; // Used for dynamic key and color resolution
 
 interface ExecutionThroughputChartProps {
@@ -40,28 +40,6 @@ const resolveChartColors = (theme: string | undefined) => {
     };
 };
 
-
-// --- Mock Data Generator (Internal) ---
-const generateMockChartData = () => {
-    const mockData = [];
-    const now = new Date();
-    for (let i = 23; i >= 0; i--) {
-        const time = subHours(now, i);
-        const hour = time.getHours();
-        const baseLoad = hour >= 8 && hour <= 18 ? 20 : 5;
-
-        const success = baseLoad + Math.floor(Math.random() * 10);
-        const failed = Math.floor(Math.random() * 4);
-
-        mockData.push({
-            name: format(time, 'HH:mm'),
-            success: success,
-            failed: failed,
-            time: time.toISOString(),
-        })
-    }
-    return mockData;
-};
 
 // --- Custom Tooltip Component ---
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -105,8 +83,7 @@ export const ExecutionThroughputChart: React.FC<ExecutionThroughputChartProps> =
     // Resolve colors based on the current theme state
     const COLORS = useMemo(() => resolveChartColors(theme), [theme]);
 
-    const chartData =  generateMockChartData();
-    useMemo(() => {
+    const chartData = useMemo(() => {
         if (data && data.length > 0) {
             return data.map(item => {
                 const timeValue = item.time;
@@ -121,8 +98,6 @@ export const ExecutionThroughputChart: React.FC<ExecutionThroughputChartProps> =
                 };
             });
         }
-
-        return generateMockChartData();
     }, [data]);
 
 

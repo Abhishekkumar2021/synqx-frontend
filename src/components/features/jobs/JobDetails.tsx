@@ -49,7 +49,7 @@ export const JobDetails: React.FC<JobDetailsProps> = ({ job }) => {
                                 <div className="flex items-center gap-2 bg-muted/20 px-2.5 py-1 rounded-lg border border-border/30">
                                     <Timer className="h-3.5 w-3.5 text-primary" />
                                     Duration: <span className="text-foreground">
-                                        {formatDuration(job.started_at!, job.finished_at!)}
+                                        {formatDuration(job.started_at!, job.completed_at!)}
                                     </span>
                                 </div>
                             </div>

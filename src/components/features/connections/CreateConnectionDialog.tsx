@@ -31,7 +31,7 @@ import { CONNECTOR_META, CONNECTOR_CONFIG_SCHEMAS, SafeIcon } from '@/lib/connec
 // --- Zod Schema ---
 const connectionSchema = z.object({
     name: z.string().min(3, "Name must be at least 3 characters"),
-    type: z.string().min(1, "Connection type is required"),
+    connector_type: z.string().min(1, "Connection type is required"),
     description: z.string().optional(),
     config: z.record(z.string(), z.any()),
 });
@@ -46,12 +46,12 @@ interface CreateConnectionDialogProps {
 export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ initialData, onClose }) => {
     const isEditMode = !!initialData;
     const [step, setStep] = useState<'select' | 'configure'>('select');
-    const [selectedType, setSelectedType] = useState<string | null>(initialData?.type || null);
+    const [selectedType, setSelectedType] = useState<string | null>(initialData?.connector_type || null);
     const queryClient = useQueryClient();
 
     useEffect(() => {
-        if (initialData?.type) {
-            setSelectedType(initialData.type);
+        if (initialData?.connector_type) {
+            setSelectedType(initialData.connector_type);
             setStep('configure');
         }
     }, [initialData]);
@@ -61,7 +61,7 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
         defaultValues: {
             name: initialData?.name || '',
             description: initialData?.description || '',
-            type: initialData?.type || '',
+            connector_type: initialData?.connector_type || '',
             config: initialData?.config || {}
         }
     });
@@ -80,7 +80,7 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
 
     const handleSelect = (type: string) => {
         setSelectedType(type);
-        form.setValue('type', type);
+        form.setValue('connector_type', type);
         if (!isEditMode) {
             const schema = CONNECTOR_CONFIG_SCHEMAS[type];
             if (schema) {
@@ -204,7 +204,7 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                 <div className="grid gap-5 pl-9">
                                     <FormField control={form.control} name="name" render={({ field }) => (
                                         <FormItem>
-                                            <Label className="text-sm font-semibold">Connection Name</Label>
+                                            <Label className="text-sm font-semibold mb-2 block">Connection Name</Label>
                                             <FormControl>
                                                 <Input {...field} placeholder="e.g. Production DB" className="h-10 rounded-lg bg-background" />
                                             </FormControl>
@@ -213,7 +213,7 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                     )} />
                                     <FormField control={form.control} name="description" render={({ field }) => (
                                         <FormItem>
-                                            <Label className="text-sm font-semibold">Description</Label>
+                                            <Label className="text-sm font-semibold mb-2 block">Description</Label>
                                             <FormControl>
                                                 <Input {...field} placeholder="Optional context" className="h-10 rounded-lg bg-background" />
                                             </FormControl>
@@ -241,7 +241,7 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                         return (
                                             <FormField key={field.name} control={form.control} name={`config.${field.name}`} render={({ field: f }) => (
                                                 <FormItem>
-                                                    <Label className="text-sm font-semibold">{field.label}</Label>
+                                                    <Label className="text-sm font-semibold mb-2 block">{field.label}</Label>
                                                     <FormControl>
                                                         {field.type === 'select' ? (
                                                             <Select onValueChange={f.onChange} defaultValue={f.value}>

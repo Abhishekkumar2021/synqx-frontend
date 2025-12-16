@@ -62,7 +62,7 @@ export const ConnectionsList: React.FC<ConnectionsListProps> = ({
                                 </Card>
                             ))
                         ) : connections.length === 0 ? (
-                            <Card className="col-span-full h-[50vh] flex flex-col items-center justify-center text-center p-8 rounded-[2rem] border-dashed border-border/50 bg-card/30">
+                            <Card className="col-span-full h-[58vh] flex flex-col items-center justify-center text-center p-8 rounded-[2rem] border-dashed border-border/50 bg-card/30">
                                 <div className="relative mb-6">
                                     <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full" />
                                     <div className="relative h-24 w-24 bg-muted/50 border border-border rounded-[2rem] flex items-center justify-center shadow-lg backdrop-blur-sm">
@@ -79,8 +79,8 @@ export const ConnectionsList: React.FC<ConnectionsListProps> = ({
                             </Card>
                         ) : (
                             connections.map((conn) => {
-                                const meta = CONNECTOR_META[conn.type] || {
-                                    icon: <Server />, name: conn.type, color: "bg-muted text-muted-foreground"
+                                const meta = CONNECTOR_META[conn.connector_type] || {
+                                    icon: <Server />, name: conn.connector_type, color: "bg-muted text-muted-foreground"
                                 };
                                 const isTesting = testingId === conn.id;
 
@@ -120,7 +120,7 @@ export const ConnectionsList: React.FC<ConnectionsListProps> = ({
                                                         {conn.name}
                                                     </h3>
                                                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                                                        <span className="capitalize font-medium opacity-80">{meta.name || conn.type}</span>
+                                                        <span className="capitalize font-medium opacity-80">{meta.name || conn.connector_type}</span>
                                                         <span className="w-1 h-1 rounded-full bg-border" />
                                                         <span className="font-mono opacity-50">#{conn.id}</span>
                                                     </div>

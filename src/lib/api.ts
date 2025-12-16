@@ -121,47 +121,84 @@ export const getCurrentUser = async () => {
 export interface Connection {
   id: number;
   name: string;
-  connection_url: string; // or hidden in real app
-  type: 'postgres' | 'snowflake' | 'mysql' | 'bigquery' | 's3' | 'rest_api'; // Example types
+  connector_type: 'postgresql' | 'snowflake' | 'mysql' | 'mariadb' | 'mssql' | 'oracle' | 'sqlite' | 'mongodb' | 'redis' | 'elasticsearch' | 'cassandra' | 'dynamodb' | 'bigquery' | 'redshift' | 'databricks' | 'local_file' | 's3' | 'gcs' | 'azure_blob' | 'ftp' | 'sftp' | 'rest_api' | 'graphql' | 'kafka' | 'rabbitmq' | 'google_sheets' | 'airtable' | 'salesforce' | 'hubspot' | 'stripe' | 'custom_script' | 'singer_tap';
   description?: string;
+  config_schema?: Record<string, any>;
+  health_status?: string;
+  last_test_at?: string;
   created_at?: string;
   updated_at?: string;
-  status?: 'active' | 'inactive' | 'error';
 }
 
 export interface ConnectionCreate {
   name: string;
-  config: Record<string, any>; // Updated to send dynamic config
-  type: string;
+  config: Record<string, any>;
+  connector_type: string;
   description?: string;
+  tags?: Record<string, any>;
 }
 
 export interface Pipeline {
   id: number;
   name: string;
   description?: string;
-  schedule_cron?: string; // cron expression
+  schedule_cron?: string;
   schedule_enabled?: boolean;
-  status: 'active' | 'paused' | 'draft';
-  created_at?: string;
-  updated_at?: string;
-  last_run_at?: string;
-  last_run_status?: 'success' | 'failed' | 'running' | null;
+  schedule_timezone?: string;
+  status: 'active' | 'paused' | 'draft' | 'archived' | 'broken';
+  current_version?: number;
+  published_version_id?: number;
+  max_parallel_runs?: number;
+  execution_timeout_seconds?: number;
+  tags?: Record<string, any>;
+  priority?: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface PipelineCreate {
   name: string;
   description?: string;
-  schedule_interval?: string;
+  schedule_cron?: string;
+  schedule_enabled?: boolean;
+  schedule_timezone?: string;
+  max_parallel_runs?: number;
+  execution_timeout_seconds?: number;
+  tags?: Record<string, any>;
+  priority?: number;
+  initial_version: PipelineVersionCreate;
+}
+
+export interface PipelineUpdate {
+  name?: string;
+  description?: string;
+  schedule_cron?: string;
+  schedule_enabled?: boolean;
+  schedule_timezone?: string;
+  status?: string;
+  max_parallel_runs?: number;
+  execution_timeout_seconds?: number;
+  tags?: Record<string, any>;
+  priority?: number;
 }
 
 export interface Job {
   id: number;
   pipeline_id: number;
-  status: "running" | "failed" | "pending" | "completed" | "cancelled" | "success" | "error";
+  pipeline_version_id: number;
+  status: "pending" | "queued" | "running" | "success" | "failed" | "retrying" | "cancelled";
+  retry_count?: number;
+  max_retries?: number;
+  retry_strategy?: string;
+  retry_delay_seconds?: number;
+  infra_error?: string;
+  worker_id?: string;
+  queue_name?: string;
+  execution_time_ms?: number;
   started_at?: string;
-  finished_at?: string;
-  trigger_type: 'manual' | 'scheduled' | 'webhook';
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface StepRun {
@@ -238,6 +275,14 @@ export const testConnection = async (id: number, config: any = {}) => {
     return data;
 };
 
+export interface SchemaDiscoveryResponse {
+    success: boolean;
+    schema_version?: number;
+    is_breaking_change: boolean;
+    message: string;
+    discovered_schema?: Record<string, any>;
+}
+
 export const discoverAssets = async (id: number) => {
     const { data } = await api.post<any>(`/connections/${id}/discover`, { include_metadata: false });
     return data;
@@ -249,7 +294,7 @@ export const getConnectionAssets = async (id: number) => {
 };
 
 export const discoverAssetSchema = async (connectionId: number, assetId: number) => {
-    const { data } = await api.post<any>(`/connections/${connectionId}/assets/${assetId}/discover-schema`, { force_refresh: true });
+    const { data } = await api.post<SchemaDiscoveryResponse>(`/connections/${connectionId}/assets/${assetId}/discover-schema`, { force_refresh: true });
     return data;
 };
 
@@ -260,20 +305,27 @@ export const getAssetSchemaVersions = async (connectionId: number, assetId: numb
 
 // Pipelines
 export interface PipelineNode {
-    id: number;
+    id?: number; // Optional on creation
     node_id: string;
     name: string;
     description?: string;
     operator_type: string;
     operator_class: string;
     config: Record<string, any>;
-    position?: { x: number; y: number }; // Frontend specific, might need to be stored in config or separate
+    order_index: number;
+    source_asset_id?: number;
+    destination_asset_id?: number;
+    max_retries?: number;
+    timeout_seconds?: number;
+    // Frontend-specific fields can remain if optional or handled before sending
+    position?: { x: number; y: number }; 
 }
 
 export interface PipelineEdge {
-    id: number;
+    id?: number; // Optional on creation
     from_node_id: string;
     to_node_id: string;
+    edge_type?: string;
 }
 
 export interface PipelineVersionRead {
@@ -332,8 +384,8 @@ export interface PipelineVersionCreate {
     config_snapshot?: Record<string, any>;
     change_summary?: Record<string, any>;
     version_notes?: string;
-    nodes: any[]; // Using any[] for brevity, ideally strict typed
-    edges: any[];
+    nodes: PipelineNode[];
+    edges: PipelineEdge[];
 }
 
 export const createPipelineVersion = async (id: number, payload: PipelineVersionCreate) => {

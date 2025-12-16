@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/set-state-in-effect */
 import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import '@xyflow/react/dist/style.css'; 
@@ -37,12 +38,14 @@ import { useTheme } from '@/hooks/useTheme';
 // API Imports
 import { 
     getPipeline, 
-    updatePipeline, 
+    updatePipeline,
+    createPipeline,
     triggerPipeline, 
     createPipelineVersion, 
     publishPipelineVersion,
     type PipelineNode as ApiNode, 
-    type PipelineEdge as ApiEdge 
+    type PipelineEdge as ApiEdge,
+    type PipelineCreate
 } from '@/lib/api';
 
 // Custom Components
@@ -172,7 +175,7 @@ export const PipelineCanvas: React.FC = () => {
       };
       setNodes((nds) => nds.concat(newNode));
       setSelectedNodeId(newNodeId);
-      toast("Node Added", { description: "Configure logic in the inspector panel." });
+      toast.info("Node Added", { description: "Configure logic in the inspector panel." });
   };
 
   const onLayout = useCallback(() => {
@@ -198,7 +201,6 @@ export const PipelineCanvas: React.FC = () => {
 
   const saveMutation = useMutation({
       mutationFn: async ({ deploy = false }: { deploy?: boolean }) => {
-          if (isNew) throw new Error("Create shell first");
           setIsSaving(true);
           
           const apiNodes = nodes.map(n => ({
@@ -212,23 +214,49 @@ export const PipelineCanvas: React.FC = () => {
 
           const apiEdges = edges.map(e => ({ from_node_id: e.source, to_node_id: e.target }));
 
-          const newVersion = await createPipelineVersion(parseInt(id!), {
-              nodes: apiNodes,
-              edges: apiEdges,
-              version_notes: deploy ? `Deployed at ${new Date().toLocaleTimeString()}` : 'Auto-save'
-          });
-          
-          if (deploy) await publishPipelineVersion(parseInt(id!), newVersion.id);
-          if (pipelineName !== pipeline?.name) await updatePipeline(parseInt(id!), { name: pipelineName });
+          if (isNew) {
+              // Create New Pipeline
+              const payload: PipelineCreate = {
+                  name: pipelineName || "New Pipeline",
+                  initial_version: {
+                      nodes: apiNodes,
+                      edges: apiEdges,
+                      version_notes: "Initial draft"
+                  }
+              };
+              const createdPipeline = await createPipeline(payload);
+              // Navigate to the new pipeline ID (replacing 'new' in URL)
+              // We can't easily use router navigation inside mutationFn, so we'll do it in onSuccess or return the ID
+              return { type: 'create', pipeline: createdPipeline };
+          } else {
+              // Update Existing Version
+              const newVersion = await createPipelineVersion(parseInt(id!), {
+                  nodes: apiNodes,
+                  edges: apiEdges,
+                  version_notes: deploy ? `Deployed at ${new Date().toLocaleTimeString()}` : 'Auto-save'
+              });
+              
+              if (deploy) await publishPipelineVersion(parseInt(id!), newVersion.id);
+              if (pipelineName !== pipeline?.name) await updatePipeline(parseInt(id!), { name: pipelineName });
+              return { type: 'update' };
+          }
       },
-      onSuccess: (_, vars) => {
-          if (pipeline) initializedId.current = pipeline.id;
-          queryClient.invalidateQueries({ queryKey: ['pipeline', id] });
-          toast.success(vars.deploy ? "Deployed to Production" : "Draft Saved");
+      onSuccess: (result, vars) => {
+          if (result.type === 'create' && result.pipeline) {
+              toast.success("Pipeline Created");
+              // Redirect to the new pipeline URL
+              window.history.replaceState(null, '', `/pipelines/${result.pipeline.id}`);
+              // Force reload to pick up new ID (simpler than refactoring everything to handle ID change dynamically)
+              window.location.reload(); 
+          } else {
+              if (pipeline) initializedId.current = pipeline.id;
+              queryClient.invalidateQueries({ queryKey: ['pipeline', id] });
+              toast.success(vars.deploy ? "Deployed to Production" : "Draft Saved");
+          }
           setIsSaving(false);
       },
-      onError: () => {
-          toast.error("Save Failed");
+      onError: (err: any) => {
+          toast.error("Save Failed", { description: err.message || "Unknown error" });
           setIsSaving(false);
       }
   });

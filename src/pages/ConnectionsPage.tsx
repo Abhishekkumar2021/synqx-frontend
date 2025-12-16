@@ -84,7 +84,7 @@ export const ConnectionsPage: React.FC = () => {
         if (!connections) return [];
         return connections.filter(c =>
             c.name.toLowerCase().includes(filter.toLowerCase()) ||
-            c.type.toLowerCase().includes(filter.toLowerCase())
+            c.connector_type.toLowerCase().includes(filter.toLowerCase())
         );
     }, [connections, filter]);
 
