@@ -76,7 +76,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     title = "No pipelines found", 
     description = "Create your first workflow to get started with data processing." 
 }) => (
-    <div className="flex flex-col items-center justify-center min-h-[600px] w-full p-8 text-center animate-in zoom-in-95 duration-500">
+    <div className="flex flex-col items-center justify-center min-h-[400px] w-full p-8 text-center animate-in zoom-in-95 duration-500">
         <div className="relative group cursor-default">
             {/* Background Decorator */}
             <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-700" />

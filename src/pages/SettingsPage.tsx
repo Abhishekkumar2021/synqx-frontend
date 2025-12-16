@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import {
-    User, Palette, Key, Bell, ShieldAlert,
-    Save, Copy, Check, Mail,
-    Globe, Laptop, Lock, Eye, EyeOff,
+    User, Palette, Bell, ShieldAlert,
+    Save, Mail,
+    Globe, Laptop, Lock, 
     RefreshCw, Trash2, Moon, Sun, Monitor
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -12,12 +12,12 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { PageMeta } from '@/components/common/PageMeta';
 import { useTheme } from '@/hooks/useTheme';
+import { ApiKeysManager } from '@/components/settings/ApiKeysManager';
 
 type SettingsTab = 'general' | 'security' | 'notifications';
 
@@ -196,7 +196,7 @@ export const SettingsPage: React.FC = () => {
 
                     {activeTab === 'security' && (
                         <div className="space-y-6 animate-in slide-in-from-right-4 duration-500 fade-in">
-                            <ApiKeyCard />
+                            <ApiKeysManager />
 
                             <Card className="border-border/60 bg-card/40 backdrop-blur-md">
                                 <CardHeader>
@@ -295,94 +295,5 @@ export const SettingsPage: React.FC = () => {
                 </div>
             </div>
         </div>
-    );
-};
-
-// --- Helper Components ---
-
-const ApiKeyCard = () => {
-    const [apiKey] = useState("sk_live_51Mxq8928349823498234");
-    const [isVisible, setIsVisible] = useState(false);
-    const [copied, setCopied] = useState(false);
-
-    const handleCopy = () => {
-        navigator.clipboard.writeText(apiKey);
-        setCopied(true);
-        toast.success("API Key copied");
-        setTimeout(() => setCopied(false), 2000);
-    };
-
-    return (
-        <Card className="border-border/60 bg-card/40 backdrop-blur-md">
-            <CardHeader>
-                <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                        <CardTitle className="text-base flex items-center gap-2">
-                            <Key className="h-4 w-4 text-amber-500" /> API Access
-                        </CardTitle>
-                        <CardDescription>Use this key to authenticate requests from your external apps.</CardDescription>
-                    </div>
-                    <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
-                        Active
-                    </Badge>
-                </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="space-y-2">
-                    <Label className="text-xs font-semibold uppercase text-muted-foreground">Production Key</Label>
-                    <div className="relative flex items-center">
-                        <div className="relative flex-1 group">
-                            <Input
-                                type={isVisible ? "text" : "password"}
-                                value={apiKey}
-                                readOnly
-                                className="pr-24 font-mono text-sm bg-muted/30 border-muted-foreground/20 text-foreground"
-                            />
-                            {/* Blur effect overlay when hidden - subtle gradient */}
-                            {!isVisible && (
-                                <div className="absolute inset-0 bg-linear-to-r from-transparent via-background/20 to-background/90 pointer-events-none rounded-xl" />
-                            )}
-                        </div>
-
-                        <div className="absolute right-1 top-1 bottom-1 flex items-center gap-1 bg-background/50 backdrop-blur-sm rounded-r-lg pl-2 border-l border-border/20">
-                            <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                                onClick={() => setIsVisible(!isVisible)}
-                            >
-                                {isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                            </Button>
-                            <Separator orientation="vertical" className="h-4 bg-border/40" />
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 px-3 text-xs font-medium text-muted-foreground hover:text-foreground gap-1.5"
-                                onClick={handleCopy}
-                            >
-                                {copied ? (
-                                    <>
-                                        <Check className="h-3 w-3 text-emerald-500" />
-                                        <span className="text-emerald-500">Copied</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Copy className="h-3 w-3" />
-                                        <span>Copy</span>
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground flex items-center gap-2">
-                        <ShieldAlert className="h-3 w-3" />
-                        Never share your API key.
-                        <span className="underline cursor-pointer hover:text-primary decoration-primary/30 underline-offset-2">Roll Key</span> if compromised.
-                    </p>
-                </div>
-            </CardContent>
-        </Card>
     );
 };
