@@ -200,7 +200,7 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                                             </DialogDescription>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-3 mr-8">
                                         {selectedSchema && (
                                             <Button
                                                 variant="outline"
@@ -219,7 +219,7 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                                     {/* Note: We keep the background dark (#09090b) for the code block specifically, 
                                         as developer tools usually favor dark mode for code readability even in light themes. */}
                                     {selectedSchema ? (
-                                        <pre className="p-6 text-xs font-mono text-blue-300 leading-relaxed">
+                                        <pre className="p-6 text-xs font-mono text-blue-300 leading-relaxed overflow-x-auto">
                                             {JSON.stringify(selectedSchema.json_schema, null, 2)}
                                         </pre>
                                     ) : (

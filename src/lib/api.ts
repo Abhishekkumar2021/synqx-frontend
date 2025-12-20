@@ -548,6 +548,16 @@ export const getJobLogs = async (id: number) => {
     return data;
 };
 
+export const cancelJob = async (id: number) => {
+    const { data } = await api.post<Job>(`/jobs/${id}/cancel`);
+    return data;
+};
+
+export const retryJob = async (id: number) => {
+    const { data } = await api.post<Job>(`/jobs/${id}/retry`);
+    return data;
+};
+
 // Alerts
 export interface AlertConfig {
     id: number;

@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardStats } from '@/lib/api';
 import { format, parseISO } from 'date-fns';
@@ -13,10 +13,13 @@ import { Button } from '@/components/ui/button';
 import { ExecutionThroughputChart } from '@/components/features/dashboard/ExecutionThroughputChart';
 import { PipelineHealthChart } from '@/components/features/dashboard/PipelineHealthChart';
 import { RecentActivityTable } from '@/components/features/dashboard/RecentActivityTable';
+import { RunPipelineDialog } from '@/components/features/dashboard/RunPipelineDialog';
 import { PageMeta } from '@/components/common/PageMeta';
 import { StatsCard } from '@/components/ui/StatsCard';
 
 export const DashboardPage: React.FC = () => {
+    const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
+
     // 1. Single API Call
     const { data: stats, isLoading } = useQuery({ 
         queryKey: ['dashboard'], 
@@ -78,7 +81,11 @@ export const DashboardPage: React.FC = () => {
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <Button size="lg" className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:-translate-y-0.5">
+                    <Button 
+                        size="lg" 
+                        className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:-translate-y-0.5"
+                        onClick={() => setIsRunDialogOpen(true)}
+                    >
                         <PlayCircle className="mr-2 h-5 w-5" />
                         Run Pipeline
                     </Button>
@@ -143,6 +150,7 @@ export const DashboardPage: React.FC = () => {
                 <RecentActivityTable jobs={recentJobs} />
             </div>
 
+            <RunPipelineDialog open={isRunDialogOpen} onOpenChange={setIsRunDialogOpen} />
         </div>
     );
 };

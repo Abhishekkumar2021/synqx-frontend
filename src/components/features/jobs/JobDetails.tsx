@@ -1,12 +1,16 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { JobLogViewer } from '@/components/features/jobs/JobLogViewer';
 import { differenceInSeconds } from 'date-fns';
 import {
-    Calendar, Timer, ChevronRight, Terminal
+    Calendar, Timer, ChevronRight, Terminal, RefreshCw, StopCircle
 } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { type Job } from '@/lib/api';
+import { type Job, cancelJob, retryJob } from '@/lib/api';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface JobDetailsProps {
     job: Job | undefined;
@@ -26,6 +30,27 @@ const formatDuration = (start: string, end: string | null) => {
 
 
 export const JobDetails: React.FC<JobDetailsProps> = ({ job }) => {
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
+
+    const cancelMutation = useMutation({
+        mutationFn: cancelJob,
+        onSuccess: () => {
+            toast.success("Job cancellation requested");
+            queryClient.invalidateQueries({ queryKey: ['jobs'] });
+        },
+        onError: () => toast.error("Failed to cancel job")
+    });
+
+    const retryMutation = useMutation({
+        mutationFn: retryJob,
+        onSuccess: () => {
+            toast.success("Job retry initiated");
+            queryClient.invalidateQueries({ queryKey: ['jobs'] });
+        },
+        onError: () => toast.error("Failed to retry job")
+    });
+
     return (
         <div className="lg:col-span-8 flex flex-col h-full bg-transparent overflow-hidden relative">
             {job ? (
@@ -57,14 +82,31 @@ export const JobDetails: React.FC<JobDetailsProps> = ({ job }) => {
 
                         <div className="flex gap-3">
                             {job.status === 'running' && (
-                                <Button variant="destructive" size="sm" className="h-9 shadow-sm rounded-full">
-                                    Stop Execution
+                                <Button 
+                                    variant="destructive" 
+                                    size="sm" 
+                                    className="h-9 shadow-sm rounded-full gap-2"
+                                    onClick={() => cancelMutation.mutate(job.id)}
+                                    disabled={cancelMutation.isPending}
+                                >
+                                    <StopCircle className="h-4 w-4" /> Stop
+                                </Button>
+                            )}
+                            {(job.status === 'failed' || job.status === 'cancelled') && (
+                                <Button 
+                                    variant="secondary" 
+                                    size="sm" 
+                                    className="h-9 shadow-sm rounded-full gap-2"
+                                    onClick={() => retryMutation.mutate(job.id)}
+                                    disabled={retryMutation.isPending}
+                                >
+                                    <RefreshCw className={cn("h-4 w-4", retryMutation.isPending && "animate-spin")} /> Retry
                                 </Button>
                             )}
                             <Button 
                                 variant="outline" 
                                 size="sm" 
-                                // Use semantic borders and hover effects
+                                onClick={() => navigate(`/pipelines/${job.pipeline_id}`)}
                                 className="h-9 gap-2 border-border/70 hover:bg-muted/30 rounded-full hover:border-primary/50 transition-all"
                             >
                                 View Pipeline <ChevronRight className="h-3 w-3" />

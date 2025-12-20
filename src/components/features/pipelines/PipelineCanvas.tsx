@@ -288,6 +288,7 @@ export const PipelineCanvas: React.FC = () => {
           } else {
               if (pipeline) initializedId.current = pipeline.id;
               queryClient.invalidateQueries({ queryKey: ['pipeline', id] });
+              queryClient.invalidateQueries({ queryKey: ['pipelines'] });
               toast.success(vars.deploy ? "Deployed to Production" : "Draft Saved");
           }
           setIsSaving(false);

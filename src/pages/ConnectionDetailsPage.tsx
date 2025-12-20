@@ -92,6 +92,14 @@ const ConfigField = ({ label, value, sensitive = false, copyable = false }: { la
     );
 };
 
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
+} from "@/components/ui/dialog";
+
 const AssetsTabContent = ({
     connectionId,
     assets,
@@ -109,7 +117,28 @@ const AssetsTabContent = ({
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [importingName, setImportingName] = useState<string | null>(null);
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    
+    // Create Form State
+    const [newAssetName, setNewAssetName] = useState('');
+    const [newAssetType, setNewAssetType] = useState('table');
+    const [newUsageType, setNewUsageType] = useState('destination');
+    const [newFullyQualifiedName, setNewFullyQualifiedName] = useState('');
+    const [isIncremental, setIsIncremental] = useState(false);
+    const [configJson, setConfigJson] = useState('{}');
+
     const queryClient = useQueryClient();
+
+    // Reset form when opening dialog
+    const openCreateDialog = () => {
+        setNewAssetName('');
+        setNewAssetType('table');
+        setNewUsageType('destination');
+        setNewFullyQualifiedName('');
+        setIsIncremental(false);
+        setConfigJson('{}');
+        setIsCreateOpen(true);
+    };
 
     // Client-side filtering for responsiveness
     const filteredAssets = useMemo(() => {
@@ -126,6 +155,41 @@ const AssetsTabContent = ({
             (asset.type || asset.asset_type)?.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [discoveredAssets, searchQuery]);
+
+    // Create Asset Mutation
+    const createMutation = useMutation({
+        mutationFn: async () => {
+            let parsedConfig = {};
+            try {
+                parsedConfig = JSON.parse(configJson);
+            } catch (e) {
+                toast.error("Invalid JSON configuration");
+                throw e;
+            }
+
+            const payload: AssetCreate = {
+                name: newAssetName,
+                asset_type: newAssetType,
+                fully_qualified_name: newFullyQualifiedName || undefined,
+                connection_id: connectionId,
+                description: 'Manually created asset',
+                is_source: newUsageType === 'source',
+                is_destination: newUsageType === 'destination',
+                is_incremental_capable: isIncremental,
+                config: parsedConfig
+            };
+            return createAsset(connectionId, payload);
+        },
+        onSuccess: () => {
+            toast.success(`Asset ${newAssetName} created`);
+            queryClient.invalidateQueries({ queryKey: ['assets', connectionId] });
+            setIsCreateOpen(false);
+        },
+        onError: (err) => {
+            console.error(err);
+            toast.error("Failed to create asset");
+        }
+    });
 
     // Import Asset Mutation
     const importMutation = useMutation({
@@ -175,6 +239,15 @@ const AssetsTabContent = ({
                         />
                     </div>
                     <Button
+                        onClick={openCreateDialog}
+                        size="sm"
+                        variant="secondary"
+                        className="rounded-lg shadow-sm"
+                    >
+                        <Plus className="mr-2 h-3.5 w-3.5" />
+                        New
+                    </Button>
+                    <Button
                         onClick={onDiscover}
                         size="sm"
                         variant="outline"
@@ -186,6 +259,90 @@ const AssetsTabContent = ({
                     </Button>
                 </div>
             </CardHeader>
+
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>Create New Asset</DialogTitle>
+                        <DialogDescription>
+                            Define a new table, file, or stream manually.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Asset Name <span className="text-destructive">*</span></Label>
+                                <Input 
+                                    placeholder="e.g. users_processed" 
+                                    value={newAssetName}
+                                    onChange={(e) => setNewAssetName(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Asset Type</Label>
+                                <Select value={newAssetType} onValueChange={setNewAssetType}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="table">Table</SelectItem>
+                                        <SelectItem value="view">View</SelectItem>
+                                        <SelectItem value="file">File</SelectItem>
+                                        <SelectItem value="stream">Stream</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Fully Qualified Name</Label>
+                            <Input 
+                                placeholder="e.g. public.users_processed" 
+                                value={newFullyQualifiedName}
+                                onChange={(e) => setNewFullyQualifiedName(e.target.value)}
+                            />
+                            <p className="text-[10px] text-muted-foreground">Optional schema-qualified name.</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Usage Type</Label>
+                            <Select value={newUsageType} onValueChange={setNewUsageType}>
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="source">Source (Read)</SelectItem>
+                                    <SelectItem value="destination">Destination (Write)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                            <div className="space-y-0.5">
+                                <Label className="text-sm font-medium">Incremental Load</Label>
+                                <p className="text-xs text-muted-foreground">Supports incremental data processing</p>
+                            </div>
+                            <Switch checked={isIncremental} onCheckedChange={setIsIncremental} />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Configuration (JSON)</Label>
+                            <Textarea 
+                                placeholder='{"partition_by": "date", "compression": "snappy"}'
+                                className="font-mono text-xs"
+                                value={configJson}
+                                onChange={(e) => setConfigJson(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+                        <Button onClick={() => createMutation.mutate()} disabled={!newAssetName || createMutation.isPending}>
+                            {createMutation.isPending ? "Creating..." : "Create"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <CardContent className="flex-1 p-0 overflow-hidden">
                 <div className="h-full overflow-y-auto custom-scrollbar">
