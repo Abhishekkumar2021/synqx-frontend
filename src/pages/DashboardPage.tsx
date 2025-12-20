@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getPipelines, getJobs, getConnections } from '@/lib/api';
-import { subHours, format } from 'date-fns';
+import { getDashboardStats } from '@/lib/api';
+import { format, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
     Activity, CheckCircle2,
@@ -17,88 +17,48 @@ import { PageMeta } from '@/components/common/PageMeta';
 import { StatsCard } from '@/components/ui/StatsCard';
 
 export const DashboardPage: React.FC = () => {
-    // 1. Data Fetching
-    const { data: pipelines, isLoading: loadingPipelines } = useQuery({ queryKey: ['pipelines'], queryFn: getPipelines });
-    const { data: jobs, isLoading: loadingJobs } = useQuery({ queryKey: ['jobs'], queryFn: () => getJobs() });
-    const { data: connections, isLoading: loadingConnections } = useQuery({ queryKey: ['connections'], queryFn: getConnections });
+    // 1. Single API Call
+    const { data: stats, isLoading } = useQuery({ 
+        queryKey: ['dashboard'], 
+        queryFn: getDashboardStats,
+        refetchInterval: 30000 // Refresh every 30s
+    });
 
-    // 2. Metrics Calculation
-    const stats = useMemo(() => {
-        if (!pipelines || !jobs) return null;
+    // 2. Chart Data Transformation
+    const throughputData = React.useMemo(() => {
+        if (!stats?.throughput) return [];
+        return stats.throughput.map(p => ({
+            name: format(parseISO(p.timestamp), 'HH:mm'),
+            success: p.success_count,
+            failed: p.failure_count
+        }));
+    }, [stats]);
 
-        const total = pipelines.length;
-        const active = pipelines.filter((p: any) => p.status === 'active').length;
-        const completed = jobs.filter((j: any) => j.status === 'completed' || j.status === 'success');
+    const distributionData = React.useMemo(() => {
+        if (!stats?.pipeline_distribution) return [];
+        return stats.pipeline_distribution.map(d => ({
+            name: d.status.charAt(0).toUpperCase() + d.status.slice(1),
+            value: d.count,
+            fill: d.status === 'active' ? 'hsl(var(--chart-2))' : 
+                  d.status === 'paused' ? 'hsl(var(--chart-5))' :
+                  d.status === 'broken' || d.status === 'failed' ? 'hsl(var(--destructive))' :
+                  'hsl(var(--muted))'
+        })).filter(i => i.value > 0);
+    }, [stats]);
 
-        // Calculate success rate based on jobs
-        const totalRuns = jobs.length;
-        const successRate = totalRuns > 0 ? Math.round((completed.length / totalRuns) * 100) : 100;
-
-        return {
-            totalPipelines: total,
-            activePipelines: active,
-            totalConnections: connections?.length || 0,
-            successRate,
-            runCount: jobs.length,
-        };
-    }, [pipelines, jobs, connections]);
-
-    const isLoading = loadingPipelines || loadingJobs || loadingConnections;
-
-    // 3. Chart Data (Real Aggregation)
-    const chartData = useMemo(() => {
-        if (!jobs) return [];
-
-        const now = new Date();
-        const buckets = Array.from({ length: 24 }, (_, i) => {
-            const time = subHours(now, 23 - i);
-            return {
-                time,
-                key: format(time, 'yyyy-MM-dd-HH'),
-                name: format(time, 'HH:mm'),
-                success: 0,
-                failed: 0
-            };
-        });
-
-        jobs.forEach((job: any) => {
-            const dateStr = job.finished_at || job.started_at;
-            if (!dateStr) return;
-
-            const date = new Date(dateStr);
-            const key = format(date, 'yyyy-MM-dd-HH');
-
-            const bucket = buckets.find(b => b.key === key);
-            if (bucket) {
-                const status = (job.status || '').toLowerCase();
-                if (status === 'completed' || status === 'success') {
-                    bucket.success++;
-                } else if (status === 'failed' || status === 'error') {
-                    bucket.failed++;
-                }
-            }
-        });
-
-        return buckets;
-    }, [jobs]);
-
-    const pipelineDistribution = useMemo(() => {
-        if (!pipelines) return [];
-        const counts = {
-            Active: pipelines.filter((p: any) => p.status === 'active').length,
-            Paused: pipelines.filter((p: any) => p.status === 'paused').length,
-            Error: pipelines.filter((p: any) => (p.status as string) === 'broken' || (p.status as string) === 'failed').length,
-            Draft: pipelines.filter((p: any) => !['active', 'paused', 'broken', 'failed'].includes(p.status as string)).length
-        };
-
-        // Use CSS variables for chart colors to support theming
-        return [
-            { name: 'Active', value: counts.Active, fill: 'hsl(var(--chart-2))' },
-            { name: 'Paused', value: counts.Paused, fill: 'hsl(var(--chart-5))' },
-            { name: 'Error', value: counts.Error, fill: 'hsl(var(--destructive))' },
-            { name: 'Draft', value: counts.Draft, fill: 'hsl(var(--muted))' },
-        ].filter(i => i.value > 0);
-    }, [pipelines]);
+    // 3. Activity Data Transformation (Matching Table expectations)
+    const recentJobs = React.useMemo(() => {
+        if (!stats?.recent_activity) return [];
+        return stats.recent_activity.map(a => ({
+            id: a.id,
+            pipeline_name: a.pipeline_name,
+            status: a.status,
+            started_at: a.started_at,
+            finished_at: a.completed_at,
+            execution_time_ms: a.duration_seconds ? a.duration_seconds * 1000 : null,
+            user_avatar: a.user_avatar
+        }));
+    }, [stats]);
 
     return (
         <div className="flex flex-col gap-8 pb-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
@@ -133,29 +93,29 @@ export const DashboardPage: React.FC = () => {
                     <>
                         <StatsCard
                             title="Total Pipelines"
-                            value={stats?.totalPipelines || 0}
-                            trend="2 created"
+                            value={stats?.total_pipelines || 0}
+                            trend="System wide"
                             trendUp={true}
                             icon={Workflow}
                         />
                         <StatsCard
-                            title="Active Jobs"
-                            value={stats?.activePipelines || 0}
-                            subtext="Processing now"
+                            title="Active Pipelines"
+                            value={stats?.active_pipelines || 0}
+                            subtext="Running / Scheduled"
                             icon={Zap}
-                            active={true} // Highlight this card
+                            active={true}
                         />
                         <StatsCard
-                            title="Success Rate"
-                            value={`${stats?.successRate}%`}
-                            trend="1.2% vs avg"
-                            trendUp={false}
+                            title="Success Rate (24h)"
+                            value={`${stats?.success_rate_24h}%`}
+                            trend="Last 24 hours"
+                            trendUp={true}
                             icon={CheckCircle2}
                         />
                         <StatsCard
-                            title="Connections"
-                            value={stats?.totalConnections || 0}
-                            subtext="All systems healthy"
+                            title="Total Connections"
+                            value={stats?.total_connections || 0}
+                            subtext="Data Sources"
                             icon={Server}
                         />
                     </>
@@ -163,29 +123,24 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {/* --- Charts Section --- */}
-            {/* Layout Strategy:
-                - Mobile: Stacked, each chart takes a minimum height of 400px.
-                - Desktop (lg+): Side-by-side grid. We force the grid container to a fixed height (500px).
-                  The child containers use `h-full` to fill this space, ensuring they are exactly the same height.
-            */}
             <div className="grid grid-cols-1 lg:grid-cols-7 gap-6 lg:h-[500px]">
                 {/* --- Main Area Chart: Throughput --- */}
                 <div className="lg:col-span-4 min-h-[400px] lg:min-h-0 lg:h-full">
-                    <ExecutionThroughputChart data={chartData} />
+                    <ExecutionThroughputChart data={throughputData} />
                 </div>
 
                 {/* --- Pie Chart: Pipeline Health --- */}
                 <div className="lg:col-span-3 min-h-[400px] lg:min-h-0 lg:h-full">
                     <PipelineHealthChart
-                        data={pipelineDistribution}
-                        totalPipelines={stats?.totalPipelines || 0}
+                        data={distributionData}
+                        totalPipelines={stats?.total_pipelines || 0}
                     />
                 </div>
             </div>
 
             {/* --- Recent Activity Table --- */}
             <div className="mt-2">
-                <RecentActivityTable jobs={jobs || []} />
+                <RecentActivityTable jobs={recentJobs} />
             </div>
 
         </div>

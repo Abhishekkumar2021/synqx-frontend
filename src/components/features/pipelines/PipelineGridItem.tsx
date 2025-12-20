@@ -29,8 +29,8 @@ export const PipelineGridItem: React.FC<PipelineGridItemProps> = ({ pipeline, on
     
     // Status Logic
     const isRunning = lastJob?.status === 'running' || lastJob?.status === 'pending';
-    const isSuccess = lastJob?.status === 'completed' || lastJob?.status === 'success';
-    const isFailed = lastJob?.status === 'failed' || lastJob?.status === 'error';
+    const isSuccess = lastJob?.status === 'success';
+    const isFailed = lastJob?.status === 'failed';
 
     return (
         <div 

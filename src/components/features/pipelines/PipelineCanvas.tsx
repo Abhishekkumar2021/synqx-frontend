@@ -75,6 +75,26 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
     return { nodes: layoutedNodes, edges };
 };
 
+// Helper: Map Backend OperatorType to Frontend Node Type
+const mapOperatorToNodeType = (opType: string) => {
+    switch (opType) {
+        case 'extract': return 'source';
+        case 'load': return 'sink';
+        case 'transform': return 'transform';
+        default: return 'default';
+    }
+};
+
+// Helper: Map Frontend Node Type to Backend OperatorType
+const mapNodeTypeToOperator = (nodeType: string) => {
+    switch (nodeType) {
+        case 'source': return 'extract';
+        case 'sink': return 'load';
+        case 'transform': return 'transform';
+        default: return 'transform'; // Default to transform if unknown
+    }
+};
+
 export const PipelineCanvas: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const isNew = id === 'new';
@@ -119,13 +139,19 @@ export const PipelineCanvas: React.FC = () => {
         const version = pipeline.published_version;
         const flowNodes: Node[] = version.nodes.map((n: ApiNode) => ({
             id: n.node_id, 
-            type: n.operator_type || 'default', 
+            type: mapOperatorToNodeType(n.operator_type), 
             data: { 
                 label: n.name, 
                 config: n.config,
-                type: n.operator_type,
+                type: mapOperatorToNodeType(n.operator_type),
                 operator_class: n.operator_class,
-                status: 'idle'
+                status: 'idle',
+                // Populate Asset IDs
+                source_asset_id: n.source_asset_id,
+                destination_asset_id: n.destination_asset_id,
+                // Also map to connection_id if stored in config or inferable (not always easy, 
+                // but usually stored in data by NodeProperties if we saved it there)
+                connection_id: n.config?.connection_id
             },
             position: n.config?.ui?.position || { x: 0, y: 0 },
         }));
@@ -203,14 +229,25 @@ export const PipelineCanvas: React.FC = () => {
       mutationFn: async ({ deploy = false }: { deploy?: boolean }) => {
           setIsSaving(true);
           
-          const apiNodes = nodes.map(n => ({
-              node_id: n.id,
-              name: n.data.label as string,
-              operator_type: n.type || 'default',
-              config: { ...(n.data.config as object), ui: { position: n.position } },
-              order_index: 0, 
-              operator_class: (n.data.operator_class as string) || 'python_operator'
-          }));
+          const apiNodes = nodes.map(n => {
+              const nodeData = n.data as any;
+              return {
+                  node_id: n.id,
+                  name: nodeData.label as string,
+                  operator_type: mapNodeTypeToOperator(n.type || 'default'),
+                  config: { 
+                      ...(nodeData.config as object), 
+                      ui: { position: n.position },
+                      // Persist connection_id in config if available for UI restoration
+                      connection_id: nodeData.connection_id 
+                  },
+                  order_index: 0, 
+                  operator_class: (nodeData.operator_class as string) || 'python_operator',
+                  // Map Asset IDs
+                  source_asset_id: nodeData.source_asset_id,
+                  destination_asset_id: nodeData.destination_asset_id
+              };
+          });
 
           const apiEdges = edges.map(e => ({ from_node_id: e.source, to_node_id: e.target }));
 
@@ -321,7 +358,9 @@ export const PipelineCanvas: React.FC = () => {
                       )}>
                           {isNew ? 'DRAFT' : pipeline?.status?.toUpperCase()}
                       </Badge>
-                      <span className="hidden sm:inline">v1.2</span>
+                      <span className="hidden sm:inline">
+                          {isNew ? 'v1' : `v${pipeline?.published_version?.version || pipeline?.current_version || '?'}`}
+                      </span>
                   </div>
               </div>
           </div>

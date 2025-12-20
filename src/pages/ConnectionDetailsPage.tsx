@@ -5,10 +5,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     getConnection,
     testConnection,
+    deleteConnection,
     discoverAssets,
     getConnectionAssets,
+    createAsset,
     type Asset,
-    type ConnectionTestResult
+    type ConnectionTestResult,
+    type AssetCreate
 } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,7 +25,7 @@ import {
     Layers, History,
     Key, Server, Settings2, Lock,
     MoreVertical, Trash2, Pencil, Copy, Check,
-    CheckCircle2
+    CheckCircle2, Download, Plus
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -31,10 +34,20 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { 
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { format, formatDistanceToNow } from 'date-fns';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { AssetTableRow } from '@/components/features/connections/AssetTableRow';
 import { PageMeta } from '@/components/common/PageMeta';
@@ -82,15 +95,21 @@ const ConfigField = ({ label, value, sensitive = false, copyable = false }: { la
 const AssetsTabContent = ({
     connectionId,
     assets,
+    discoveredAssets,
     isLoading,
-    onDiscover
+    onDiscover,
+    setDiscoveredAssets
 }: {
     connectionId: number,
     assets: Asset[] | undefined,
+    discoveredAssets: any[],
     isLoading: boolean,
-    onDiscover: () => void
+    onDiscover: () => void,
+    setDiscoveredAssets: (assets: any[]) => void
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
+    const [importingName, setImportingName] = useState<string | null>(null);
+    const queryClient = useQueryClient();
 
     // Client-side filtering for responsiveness
     const filteredAssets = useMemo(() => {
@@ -101,14 +120,48 @@ const AssetsTabContent = ({
         );
     }, [assets, searchQuery]);
 
+    const filteredDiscovered = useMemo(() => {
+        return discoveredAssets.filter(asset =>
+            asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (asset.type || asset.asset_type)?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    }, [discoveredAssets, searchQuery]);
+
+    // Import Asset Mutation
+    const importMutation = useMutation({
+        mutationFn: async ({ assetRaw, asDestination = false }: { assetRaw: any, asDestination?: boolean }) => {
+            setImportingName(assetRaw.name);
+            const payload: AssetCreate = {
+                name: assetRaw.name,
+                asset_type: assetRaw.type || assetRaw.asset_type || 'table',
+                connection_id: connectionId,
+                description: assetRaw.description,
+                is_source: !asDestination,
+                is_destination: asDestination
+            };
+            return createAsset(connectionId, payload);
+        },
+        onSuccess: (_, variables) => {
+            toast.success(`Imported ${variables.assetRaw.name} as ${variables.asDestination ? 'Destination' : 'Source'}`);
+            // Remove from discovered list
+            setDiscoveredAssets(discoveredAssets.filter(a => a.name !== variables.assetRaw.name));
+            // Refresh managed assets
+            queryClient.invalidateQueries({ queryKey: ['assets', connectionId] });
+            setImportingName(null);
+        },
+        onError: () => {
+            toast.error("Import failed");
+            setImportingName(null);
+        }
+    });
 
     return (
         <Card className="h-full flex flex-col border border-border/60 bg-card/40 backdrop-blur-xl shadow-sm overflow-hidden rounded-2xl">
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-4 px-6 border-b border-border/40 bg-muted/20 shrink-0 gap-4">
                 <div className="space-y-1">
-                    <CardTitle className="text-base font-semibold">Discovered Assets</CardTitle>
+                    <CardTitle className="text-base font-semibold">Assets</CardTitle>
                     <CardDescription className="text-xs">
-                        {assets?.length || 0} managed objects available for extraction.
+                        {assets?.length || 0} managed, {discoveredAssets.length} discovered.
                     </CardDescription>
                 </div>
                 <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -126,6 +179,7 @@ const AssetsTabContent = ({
                         size="sm"
                         variant="outline"
                         className="rounded-lg border-border/50 shadow-sm"
+                        disabled={isLoading}
                     >
                         <RefreshCw className={cn("mr-2 h-3.5 w-3.5", isLoading && "animate-spin")} />
                         Scan
@@ -135,9 +189,69 @@ const AssetsTabContent = ({
 
             <CardContent className="flex-1 p-0 overflow-hidden">
                 <div className="h-full overflow-y-auto custom-scrollbar">
+                    {/* Discovered Assets Section */}
+                    {filteredDiscovered.length > 0 && (
+                        <div className="mb-6">
+                            <div className="px-6 py-3 bg-amber-500/10 border-b border-amber-500/20 flex items-center gap-2">
+                                <Download className="h-4 w-4 text-amber-500" />
+                                <h3 className="text-sm font-semibold text-amber-600 dark:text-amber-500">Discovered Assets</h3>
+                                <Badge variant="outline" className="ml-auto border-amber-500/30 text-amber-600 bg-amber-500/5">
+                                    {filteredDiscovered.length} Found
+                                </Badge>
+                            </div>
+                            <Table>
+                                <TableHeader className="bg-muted/30">
+                                    <TableRow className="hover:bg-transparent border-b border-border/50">
+                                        <TableHead className="pl-6 w-[40%]">Asset Name</TableHead>
+                                        <TableHead>Type</TableHead>
+                                        <TableHead className="text-right pr-6">Action</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredDiscovered.map((asset, idx) => (
+                                        <TableRow key={idx} className="hover:bg-muted/30 border-b border-border/40">
+                                            <TableCell className="pl-6 font-medium">{asset.name}</TableCell>
+                                            <TableCell className="capitalize text-muted-foreground text-xs">{asset.type || asset.asset_type}</TableCell>
+                                            <TableCell className="text-right pr-6">
+                                                <div className="flex justify-end gap-2">
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button 
+                                                                size="sm" 
+                                                                variant="secondary" 
+                                                                className="h-7 text-xs gap-1"
+                                                                disabled={importingName === asset.name}
+                                                            >
+                                                                {importingName === asset.name ? (
+                                                                    <RefreshCw className="h-3 w-3 animate-spin" />
+                                                                ) : (
+                                                                    <Plus className="h-3 w-3" />
+                                                                )}
+                                                                Import
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem onClick={() => importMutation.mutate({ assetRaw: asset, asDestination: false })}>
+                                                                Import as Source (Read)
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => importMutation.mutate({ assetRaw: asset, asDestination: true })}>
+                                                                Import as Destination (Write)
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
+
+                    {/* Managed Assets Section */}
                     {isLoading && !assets ? (
                         <div className="space-y-4 p-6">
-                            {[1, 2, 3, 4].map(i => (
+                            {[1, 2, 3].map(i => (
                                 <div key={i} className="flex justify-between items-center py-2">
                                     <div className="flex items-center gap-4">
                                         <Skeleton className="h-10 w-10 rounded-lg" />
@@ -151,41 +265,50 @@ const AssetsTabContent = ({
                             ))}
                         </div>
                     ) : filteredAssets.length > 0 ? (
-                        <Table>
-                            <TableHeader className="bg-card sticky top-0 z-10 backdrop-blur-md shadow-sm">
-                                <TableRow className="hover:bg-transparent border-b border-border/50">
-                                    <TableHead className="w-[40%] pl-6">Asset Name</TableHead>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>Schema</TableHead>
-                                    <TableHead>Last Sync</TableHead>
-                                    <TableHead className="text-right pr-6">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredAssets.map((asset) => (
-                                    <AssetTableRow key={asset.id} asset={asset} connectionId={connectionId} />
-                                ))}
-                            </TableBody>
-                        </Table>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground pb-12 p-4 text-center">
-                            <div className="h-20 w-20 bg-muted/30 rounded-full flex items-center justify-center mb-6 ring-1 ring-border/50">
-                                {searchQuery ? <Search className="h-10 w-10 opacity-30" /> : <Database className="h-10 w-10 opacity-30" />}
-                            </div>
-                            <h3 className="font-semibold text-lg text-foreground">
-                                {searchQuery ? "No matching assets" : "No assets discovered yet"}
-                            </h3>
-                            <p className="text-sm mt-2 max-w-sm leading-relaxed">
-                                {searchQuery
-                                    ? `No assets found matching "${searchQuery}". Try a different term.`
-                                    : "Run a scan to automatically detect tables, views, and schemas from this connection."}
-                            </p>
-                            {!searchQuery && (
-                                <Button variant="outline" size="sm" className="mt-6 border-dashed border-border" onClick={onDiscover}>
-                                    Start Discovery Scan
-                                </Button>
+                        <>
+                             {(filteredDiscovered.length > 0) && (
+                                <div className="px-6 py-2 bg-muted/20 border-y border-border/50 font-semibold text-xs text-muted-foreground uppercase tracking-wider">
+                                    Managed Assets
+                                </div>
                             )}
-                        </div>
+                            <Table>
+                                <TableHeader className="bg-card sticky top-0 z-10 backdrop-blur-md shadow-sm">
+                                    <TableRow className="hover:bg-transparent border-b border-border/50">
+                                        <TableHead className="w-[40%] pl-6">Asset Name</TableHead>
+                                        <TableHead>Type</TableHead>
+                                        <TableHead>Schema</TableHead>
+                                        <TableHead>Last Sync</TableHead>
+                                        <TableHead className="text-right pr-6">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredAssets.map((asset) => (
+                                        <AssetTableRow key={asset.id} asset={asset} connectionId={connectionId} />
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </>
+                    ) : (
+                        filteredDiscovered.length === 0 && (
+                            <div className="flex flex-col items-center justify-center h-full text-muted-foreground pb-12 p-4 text-center">
+                                <div className="h-20 w-20 bg-muted/30 rounded-full flex items-center justify-center mb-6 ring-1 ring-border/50">
+                                    {searchQuery ? <Search className="h-10 w-10 opacity-30" /> : <Database className="h-10 w-10 opacity-30" />}
+                                </div>
+                                <h3 className="font-semibold text-lg text-foreground">
+                                    {searchQuery ? "No matching assets" : "No assets managed yet"}
+                                </h3>
+                                <p className="text-sm mt-2 max-w-sm leading-relaxed">
+                                    {searchQuery
+                                        ? `No assets found matching "${searchQuery}".`
+                                        : "Run a scan to find tables, then import them to start building pipelines."}
+                                </p>
+                                {!searchQuery && (
+                                    <Button variant="outline" size="sm" className="mt-6 border-dashed border-border" onClick={onDiscover}>
+                                        Start Discovery Scan
+                                    </Button>
+                                )}
+                            </div>
+                        )
                     )}
                 </div>
             </CardContent>
@@ -208,7 +331,7 @@ const ConfigurationTabContent = ({ connection }: { connection: any }) => {
                 <CardContent className="p-6 space-y-6">
                     <div className="grid gap-6 md:grid-cols-2">
                         <ConfigField label="Connection Name" value={connection.name} copyable />
-                        <ConfigField label="Connector Type" value={<span className="capitalize font-semibold text-foreground">{connection.type}</span>} />
+                        <ConfigField label="Connector Type" value={<span className="capitalize font-semibold text-foreground">{connection.connector_type}</span>} />
                     </div>
                     <ConfigField label="Description" value={connection.description || '—'} />
                     <div className="grid gap-6 md:grid-cols-2">
@@ -287,6 +410,8 @@ export const ConnectionDetailsPage: React.FC = () => {
     const connectionId = parseInt(id!);
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('assets');
+    const [discoveredAssets, setDiscoveredAssets] = useState<any[]>([]);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
     // Fetch Connection
     const {
@@ -297,6 +422,17 @@ export const ConnectionDetailsPage: React.FC = () => {
         queryKey: ['connection', connectionId],
         queryFn: () => getConnection(connectionId),
         retry: 1
+    });
+
+    // Delete Mutation
+    const deleteMutation = useMutation({
+        mutationFn: () => deleteConnection(connectionId),
+        onSuccess: () => {
+            toast.success("Connection deleted");
+            queryClient.invalidateQueries({ queryKey: ['connections'] });
+            navigate('/connections');
+        },
+        onError: () => toast.error("Failed to delete connection")
     });
 
     // Fetch Assets
@@ -331,8 +467,9 @@ export const ConnectionDetailsPage: React.FC = () => {
     const discoverMutation = useMutation({
         mutationFn: () => discoverAssets(connectionId),
         onSuccess: (data: any) => {
-            toast.success(`Discovery Complete`, { description: `Found ${data.length || 0} new assets` });
-            queryClient.invalidateQueries({ queryKey: ['assets', connectionId] });
+            const newAssets = data.assets || [];
+            toast.success(`Discovery Complete`, { description: `Found ${data.discovered_count || newAssets.length || 0} items` });
+            setDiscoveredAssets(newAssets);
         },
         onError: () => toast.error("Discovery failed")
     });
@@ -397,11 +534,11 @@ export const ConnectionDetailsPage: React.FC = () => {
                                 </h2>
                                 <Badge variant="outline" className={cn(
                                     "uppercase text-[10px] tracking-wider font-bold border px-2 py-0.5 rounded-md",
-                                    connection.status === 'active'
+                                    connection.health_status === 'active'
                                         ? "text-emerald-600 bg-emerald-500/10 border-emerald-500/20"
                                         : "text-muted-foreground border-border bg-muted/50"
                                 )}>
-                                    {connection.status || 'UNKNOWN'}
+                                    {connection.health_status || 'UNKNOWN'}
                                 </Badge>
                             </div>
                             <div className="flex items-center gap-4 text-xs text-muted-foreground font-medium flex-wrap">
@@ -409,7 +546,7 @@ export const ConnectionDetailsPage: React.FC = () => {
                                     <div className="p-1 rounded-md bg-muted/50 border border-border/50">
                                         <Database className="h-3 w-3 text-primary" />
                                     </div>
-                                    {connection.type}
+                                    {connection.connector_type}
                                 </span>
                                 <span className="w-1 h-1 rounded-full bg-border" />
                                 <span className="flex items-center gap-1.5 font-mono opacity-80" title="Click to copy ID">
@@ -456,11 +593,35 @@ export const ConnectionDetailsPage: React.FC = () => {
                                     <Pencil className="mr-2 h-3.5 w-3.5" /> Edit Connection
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-border/50" />
-                                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10">
+                                <DropdownMenuItem 
+                                    className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                                    onClick={() => setIsDeleteDialogOpen(true)}
+                                >
                                     <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
+                        
+                        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This will permanently delete the connection "{connection.name}" and all associated metadata.
+                                        Pipelines using this connection may fail.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        onClick={() => deleteMutation.mutate()}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                        {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                     </div>
                 </div>
 
@@ -509,8 +670,10 @@ export const ConnectionDetailsPage: React.FC = () => {
                             <AssetsTabContent
                                 connectionId={connectionId}
                                 assets={assets}
+                                discoveredAssets={discoveredAssets}
                                 isLoading={loadingAssets || discoverMutation.isPending}
                                 onDiscover={() => discoverMutation.mutate()}
+                                setDiscoveredAssets={setDiscoveredAssets}
                             />
                         </TabsContent>
 

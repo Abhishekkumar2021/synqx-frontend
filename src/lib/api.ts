@@ -1,6 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios from 'axios';
 import { toast } from 'sonner';
+import { 
+    ConnectorType, 
+    PipelineStatus, 
+    JobStatus, 
+    OperatorType, 
+    RetryStrategy
+} from './enums';
 
 // --- Configuration ---
 export const API_BASE_URL = 'http://localhost:8000/api/v1'; // Adjust as needed
@@ -116,26 +123,41 @@ export const getCurrentUser = async () => {
     return data;
 };
 
+export const updateUser = async (payload: Partial<User> & { password?: string }) => {
+    const { data } = await api.patch<User>('/auth/me', payload);
+    return data;
+};
+
+export const deleteUser = async () => {
+    await api.delete('/auth/me');
+};
+
 // --- Types (Mirrored from OpenAPI) ---
 
 export interface Connection {
   id: number;
   name: string;
-  connector_type: 'postgresql' | 'snowflake' | 'mysql' | 'mariadb' | 'mssql' | 'oracle' | 'sqlite' | 'mongodb' | 'redis' | 'elasticsearch' | 'cassandra' | 'dynamodb' | 'bigquery' | 'redshift' | 'databricks' | 'local_file' | 's3' | 'gcs' | 'azure_blob' | 'ftp' | 'sftp' | 'rest_api' | 'graphql' | 'kafka' | 'rabbitmq' | 'google_sheets' | 'airtable' | 'salesforce' | 'hubspot' | 'stripe' | 'custom_script' | 'singer_tap';
+  connector_type: ConnectorType;
   description?: string;
   config_schema?: Record<string, any>;
   health_status?: string;
   last_test_at?: string;
   created_at?: string;
   updated_at?: string;
+  asset_count?: number; 
+  max_concurrent_connections?: number;
+  connection_timeout_seconds?: number;
+  tags?: Record<string, any>;
 }
 
 export interface ConnectionCreate {
   name: string;
   config: Record<string, any>;
-  connector_type: string;
+  connector_type: ConnectorType;
   description?: string;
   tags?: Record<string, any>;
+  max_concurrent_connections?: number;
+  connection_timeout_seconds?: number;
 }
 
 export interface Pipeline {
@@ -145,7 +167,7 @@ export interface Pipeline {
   schedule_cron?: string;
   schedule_enabled?: boolean;
   schedule_timezone?: string;
-  status: 'active' | 'paused' | 'draft' | 'archived' | 'broken';
+  status: PipelineStatus;
   current_version?: number;
   published_version_id?: number;
   max_parallel_runs?: number;
@@ -175,7 +197,7 @@ export interface PipelineUpdate {
   schedule_cron?: string;
   schedule_enabled?: boolean;
   schedule_timezone?: string;
-  status?: string;
+  status?: PipelineStatus;
   max_parallel_runs?: number;
   execution_timeout_seconds?: number;
   tags?: Record<string, any>;
@@ -186,10 +208,10 @@ export interface Job {
   id: number;
   pipeline_id: number;
   pipeline_version_id: number;
-  status: "pending" | "queued" | "running" | "success" | "failed" | "retrying" | "cancelled";
+  status: JobStatus;
   retry_count?: number;
   max_retries?: number;
-  retry_strategy?: string;
+  retry_strategy?: RetryStrategy;
   retry_delay_seconds?: number;
   infra_error?: string;
   worker_id?: string;
@@ -199,13 +221,15 @@ export interface Job {
   completed_at?: string;
   created_at: string;
   updated_at: string;
+  celery_task_id?: string;
+  correlation_id?: string;
 }
 
 export interface StepRun {
     id: number;
     step_id: number; // or string name
     job_id: number;
-    status: 'pending' | 'running' | 'completed' | 'failed';
+    status: 'pending' | 'running' | 'completed' | 'failed'; // kept simple or import OperatorRunStatus
     started_at?: string;
     finished_at?: string;
     row_count?: number;
@@ -231,9 +255,19 @@ export interface Asset {
     id: number;
     name: string;
     asset_type: string;
+    fully_qualified_name?: string;
+    is_source: boolean;
+    is_destination: boolean;
+    is_incremental_capable: boolean;
     schema_metadata?: any;
     current_schema_version?: number;
+    description?: string;
+    config?: Record<string, any>;
+    tags?: Record<string, any>;
+    row_count_estimate?: number;
+    size_bytes_estimate?: number;
     updated_at: string;
+    created_at: string;
 }
 
 export interface AssetListResponse {
@@ -241,6 +275,35 @@ export interface AssetListResponse {
     total: number;
     limit: number;
     offset: number;
+}
+
+export interface AssetCreate {
+    name: string;
+    asset_type: string;
+    connection_id: number;
+    schema_metadata?: Record<string, any>;
+    description?: string;
+    is_source?: boolean;
+    is_destination?: boolean;
+    is_incremental_capable?: boolean;
+    config?: Record<string, any>;
+    tags?: Record<string, any>;
+    fully_qualified_name?: string;
+    row_count_estimate?: number;
+    size_bytes_estimate?: number;
+}
+
+export interface AssetUpdate {
+    name?: string;
+    description?: string;
+    asset_type?: string;
+    fully_qualified_name?: string;
+    is_source?: boolean;
+    is_destination?: boolean;
+    is_incremental_capable?: boolean;
+    config?: Record<string, any>;
+    tags?: Record<string, any>;
+    schema_metadata?: Record<string, any>;
 }
 
 export interface SchemaVersion {
@@ -293,6 +356,20 @@ export const getConnectionAssets = async (id: number) => {
     return data.assets;
 };
 
+export const createAsset = async (connectionId: number, payload: AssetCreate) => {
+    const { data } = await api.post<Asset>(`/connections/${connectionId}/assets`, payload);
+    return data;
+};
+
+export const updateAsset = async (connectionId: number, assetId: number, payload: AssetUpdate) => {
+    const { data } = await api.patch<Asset>(`/connections/${connectionId}/assets/${assetId}`, payload);
+    return data;
+};
+
+export const deleteAsset = async (connectionId: number, assetId: number) => {
+    await api.delete(`/connections/${connectionId}/assets/${assetId}`);
+};
+
 export const discoverAssetSchema = async (connectionId: number, assetId: number) => {
     const { data } = await api.post<SchemaDiscoveryResponse>(`/connections/${connectionId}/assets/${assetId}/discover-schema`, { force_refresh: true });
     return data;
@@ -309,7 +386,7 @@ export interface PipelineNode {
     node_id: string;
     name: string;
     description?: string;
-    operator_type: string;
+    operator_type: OperatorType | string; // Allow string for flexibility or strict OperatorType
     operator_class: string;
     config: Record<string, any>;
     order_index: number;
@@ -370,6 +447,46 @@ export const getPipelineStats = async (id: number) => {
     return data;
 };
 
+// Dashboard
+export interface ThroughputDataPoint {
+    timestamp: string;
+    success_count: number;
+    failure_count: number;
+}
+
+export interface PipelineDistribution {
+    status: string;
+    count: number;
+}
+
+export interface RecentActivity {
+    id: number;
+    pipeline_id: number;
+    pipeline_name: string;
+    status: string;
+    started_at?: string;
+    completed_at?: string;
+    duration_seconds?: number;
+    user_avatar?: string;
+}
+
+export interface DashboardStats {
+    total_pipelines: number;
+    active_pipelines: number;
+    total_jobs_24h: number;
+    success_rate_24h: number;
+    avg_duration_24h: number;
+    total_connections: number;
+    throughput: ThroughputDataPoint[];
+    pipeline_distribution: PipelineDistribution[];
+    recent_activity: RecentActivity[];
+}
+
+export const getDashboardStats = async () => {
+    const { data } = await api.get<DashboardStats>('/dashboard/stats');
+    return data;
+};
+
 export const createPipeline = async (payload: PipelineCreate) => {
     const { data } = await api.post<PipelineDetailRead>('/pipelines', payload);
     return data;
@@ -378,6 +495,10 @@ export const createPipeline = async (payload: PipelineCreate) => {
 export const updatePipeline = async (id: number, payload: any) => {
     const { data } = await api.patch<PipelineDetailRead>(`/pipelines/${id}`, payload);
     return data;
+};
+
+export const deletePipeline = async (id: number) => {
+    await api.delete(`/pipelines/${id}`);
 };
 
 export interface PipelineVersionCreate {
@@ -425,4 +546,68 @@ export const getJob = async (id: number) => {
 export const getJobLogs = async (id: number) => {
     const { data } = await api.get<any[]>(`/jobs/${id}/logs`);
     return data;
+};
+
+// Alerts
+export interface AlertConfig {
+    id: number;
+    name: string;
+    description?: string;
+    alert_type: string;
+    delivery_method: string;
+    recipient: string;
+    enabled: boolean;
+    created_at: string;
+}
+
+export interface AlertConfigUpdate {
+    enabled?: boolean;
+    recipient?: string;
+}
+
+export const getAlertConfigs = async () => {
+    const { data } = await api.get<AlertConfig[]>('/alerts');
+    return data;
+};
+
+export const updateAlertConfig = async (id: number, payload: AlertConfigUpdate) => {
+    const { data } = await api.patch<AlertConfig>(`/alerts/${id}`, payload);
+    return data;
+};
+
+// API Keys
+export interface ApiKey {
+  id: number;
+  name: string;
+  prefix: string;
+  scopes?: string;
+  created_at: string;
+  expires_at?: string;
+  last_used_at?: string;
+  is_active: boolean;
+}
+
+export interface ApiKeyCreate {
+  name: string;
+  expires_in_days?: number;
+  scopes?: string;
+}
+
+export interface ApiKeyCreated extends ApiKey {
+  key: string; 
+}
+
+export const getApiKeys = async () => {
+  const { data } = await api.get<ApiKey[]>('/api-keys');
+  return data;
+};
+
+export const createApiKey = async (payload: ApiKeyCreate) => {
+  const { data } = await api.post<ApiKeyCreated>('/api-keys', payload);
+  return data;
+};
+
+export const revokeApiKey = async (id: number) => {
+  const { data } = await api.delete<ApiKey>(`/api-keys/${id}`);
+  return data;
 };

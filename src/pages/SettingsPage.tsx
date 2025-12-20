@@ -2,15 +2,17 @@ import React, { useState } from 'react';
 import {
     User, Palette, Bell, ShieldAlert,
     Save, Mail,
-    Globe, Laptop, Lock, 
+    Laptop, Lock, 
     RefreshCw, Trash2, Moon, Sun, Monitor
 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -18,22 +20,66 @@ import { useAuth } from '@/hooks/useAuth';
 import { PageMeta } from '@/components/common/PageMeta';
 import { useTheme } from '@/hooks/useTheme';
 import { ApiKeysManager } from '@/components/settings/ApiKeysManager';
+import { updateUser, deleteUser, getAlertConfigs, updateAlertConfig } from '@/lib/api';
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog';
 
 type SettingsTab = 'general' | 'security' | 'notifications';
 
 export const SettingsPage: React.FC = () => {
-    const { user } = useAuth();
+    const { user } = useAuth(); 
     const { theme, setTheme } = useTheme();
+    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<SettingsTab>('general');
-    const [isLoading, setIsLoading] = useState(false);
+    
+    // Profile State
+    const [displayName, setDisplayName] = useState(user?.full_name || '');
+    const [email, setEmail] = useState(user?.email || '');
+    
+    // Danger Zone State
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-    const handleSave = () => {
-        setIsLoading(true);
-        setTimeout(() => {
-            setIsLoading(false);
-            toast.success("Settings updated successfully");
-        }, 1000);
+    // Profile Mutation
+    const profileMutation = useMutation({
+        mutationFn: updateUser,
+        onSuccess: () => {
+            toast.success("Profile updated successfully");
+            // Ideally update local user context. Assuming useAuth has a way or reload page.
+            // For now, simple toast.
+        },
+        onError: () => toast.error("Failed to update profile")
+    });
+
+    const handleSaveProfile = () => {
+        profileMutation.mutate({ full_name: displayName, email: email !== user?.email ? email : undefined });
     };
+
+    // Account Deletion Mutation
+    const deleteAccountMutation = useMutation({
+        mutationFn: deleteUser,
+        onSuccess: () => {
+            toast.success("Account deleted");
+            window.location.href = '/login';
+        },
+        onError: () => toast.error("Failed to delete account")
+    });
+
+    // Alerts Query
+    const { data: alerts, isLoading: loadingAlerts } = useQuery({
+        queryKey: ['alerts'],
+        queryFn: getAlertConfigs,
+        enabled: activeTab === 'notifications'
+    });
+
+    // Alert Toggle Mutation
+    const toggleAlertMutation = useMutation({
+        mutationFn: ({ id, enabled }: { id: number, enabled: boolean }) => 
+            updateAlertConfig(id, { enabled }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['alerts'] });
+            toast.success("Alert settings updated");
+        },
+        onError: () => toast.error("Failed to update alert")
+    });
 
     const tabs = [
         { id: 'general', label: 'General', icon: User, description: 'Profile & Appearance' },
@@ -108,33 +154,34 @@ export const SettingsPage: React.FC = () => {
                                     </div>
                                     <div className="ml-32 pt-4">
                                         <CardTitle className="text-xl">{user?.full_name || 'User'}</CardTitle>
-                                        <CardDescription>{user?.email || 'guest@synqx.dev'} • Administrator</CardDescription>
+                                        <CardDescription>{user?.email || 'guest@synqx.dev'}</CardDescription>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="space-y-6 mt-4">
                                     <div className="grid gap-6 md:grid-cols-2">
                                         <div className="space-y-2">
                                             <Label htmlFor="display-name">Display Name</Label>
-                                            <Input id="display-name" defaultValue={user?.full_name || ''} className="bg-background/50" />
+                                            <Input 
+                                                id="display-name" 
+                                                value={displayName}
+                                                onChange={(e) => setDisplayName(e.target.value)}
+                                                className="bg-background/50" 
+                                            />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label htmlFor="username">Username</Label>
-                                            <div className="flex">
-                                                <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-input bg-muted/30 text-muted-foreground text-sm">
-                                                    synqx.dev/
-                                                </span>
-                                                <Input id="username" defaultValue={user?.email?.split('@')[0] || ''} className="rounded-l-none bg-background/50" />
-                                            </div>
+                                            <Label htmlFor="email">Email</Label>
+                                            <Input 
+                                                id="email" 
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                className="bg-background/50" 
+                                            />
                                         </div>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="bio">Bio</Label>
-                                        <Input id="bio" placeholder="Tell us a little bit about yourself" className="bg-background/50" />
                                     </div>
                                 </CardContent>
                                 <CardFooter className="bg-muted/30 border-t border-border/40 py-4 flex justify-end">
-                                    <Button onClick={handleSave} disabled={isLoading} className="shadow-lg shadow-primary/20">
-                                        {isLoading ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                    <Button onClick={handleSaveProfile} disabled={profileMutation.isPending} className="shadow-lg shadow-primary/20">
+                                        {profileMutation.isPending ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                                         Save Changes
                                     </Button>
                                 </CardFooter>
@@ -212,24 +259,10 @@ export const SettingsPage: React.FC = () => {
                                                 <Laptop className="h-4 w-4" />
                                             </div>
                                             <div>
-                                                <p className="text-sm font-medium">MacBook Pro 16"</p>
-                                                <p className="text-xs text-muted-foreground">Pune, India • <span className="text-green-500 font-medium">Current Session</span></p>
+                                                <p className="text-sm font-medium">Current Browser</p>
+                                                <p className="text-xs text-muted-foreground"><span className="text-green-500 font-medium">Active Now</span></p>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center justify-between p-3 border-b border-border/40 last:border-0">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-muted text-muted-foreground rounded-lg border border-border/50">
-                                                <Globe className="h-4 w-4" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium">Chrome on Windows</p>
-                                                <p className="text-xs text-muted-foreground">New York, USA • 2 days ago</p>
-                                            </div>
-                                        </div>
-                                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                            Revoke
-                                        </Button>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -242,16 +275,42 @@ export const SettingsPage: React.FC = () => {
                                 </CardHeader>
                                 <CardContent className="flex items-center justify-between">
                                     <div className="space-y-1">
-                                        <p className="text-sm font-medium text-foreground">Delete Workspace</p>
+                                        <p className="text-sm font-medium text-foreground">Delete Account</p>
                                         <p className="text-xs text-muted-foreground max-w-sm">
-                                            Permanently delete your account and all associated data pipelines. This action cannot be undone.
+                                            Permanently delete your account and all associated data. This action cannot be undone.
                                         </p>
                                     </div>
-                                    <Button variant="destructive" size="sm" className="gap-2">
+                                    <Button 
+                                        variant="destructive" 
+                                        size="sm" 
+                                        className="gap-2"
+                                        onClick={() => setIsDeleteDialogOpen(true)}
+                                    >
                                         <Trash2 className="h-4 w-4" /> Delete Account
                                     </Button>
                                 </CardContent>
                             </Card>
+
+                            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This will permanently delete your account, all connections, pipelines, and history. 
+                                            You cannot recover this account.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction
+                                            onClick={() => deleteAccountMutation.mutate()}
+                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        >
+                                            {deleteAccountMutation.isPending ? "Deleting..." : "Delete Account"}
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                         </div>
                     )}
 
@@ -265,26 +324,36 @@ export const SettingsPage: React.FC = () => {
                                     <CardDescription>Choose what updates you want to receive via email.</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-6">
-                                    <div className="flex items-center justify-between space-x-4">
-                                        <div className="flex flex-col space-y-1">
-                                            <Label className="text-sm font-medium leading-none">Weekly Digests</Label>
-                                            <p className="text-xs text-muted-foreground">Summary of pipeline performance and costs.</p>
+                                    {loadingAlerts ? (
+                                        <div className="space-y-4">
+                                            <Skeleton className="h-12 w-full" />
+                                            <Skeleton className="h-12 w-full" />
                                         </div>
-                                        <Switch />
-                                    </div>
-                                    <Separator className="bg-border/40" />
-                                    <div className="flex items-center justify-between space-x-4">
-                                        <div className="flex flex-col space-y-1">
-                                            <Label className="text-sm font-medium leading-none">Pipeline Failures</Label>
-                                            <p className="text-xs text-muted-foreground">Immediate alerts when a critical job fails.</p>
+                                    ) : alerts && alerts.length > 0 ? (
+                                        alerts.map((alert) => (
+                                            <div key={alert.id} className="flex items-center justify-between space-x-4">
+                                                <div className="flex flex-col space-y-1">
+                                                    <Label className="text-sm font-medium leading-none">{alert.name}</Label>
+                                                    <p className="text-xs text-muted-foreground">{alert.description || alert.alert_type}</p>
+                                                </div>
+                                                <Switch 
+                                                    checked={alert.enabled} 
+                                                    onCheckedChange={(enabled) => toggleAlertMutation.mutate({ id: alert.id, enabled })}
+                                                />
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center text-muted-foreground text-sm py-4">
+                                            No alert configurations found.
                                         </div>
-                                        <Switch defaultChecked />
-                                    </div>
+                                    )}
+                                    
                                     <Separator className="bg-border/40" />
-                                    <div className="flex items-center justify-between space-x-4">
+                                    
+                                    <div className="flex items-center justify-between space-x-4 opacity-50 cursor-not-allowed">
                                         <div className="flex flex-col space-y-1">
-                                            <Label className="text-sm font-medium leading-none">Maintenance & Security</Label>
-                                            <p className="text-xs text-muted-foreground">Important updates about your account security.</p>
+                                            <Label className="text-sm font-medium leading-none">System Announcements</Label>
+                                            <p className="text-xs text-muted-foreground">Major feature releases and maintenance.</p>
                                         </div>
                                         <Switch defaultChecked disabled />
                                     </div>

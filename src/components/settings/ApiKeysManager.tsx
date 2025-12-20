@@ -35,7 +35,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 
-import { getApiKeys, createApiKey, revokeApiKey, type ApiKeyCreate } from '@/services/apiKeyService';
+import { getApiKeys, createApiKey, revokeApiKey, type ApiKeyCreate } from '@/lib/api';
 
 export const ApiKeysManager = () => {
   const queryClient = useQueryClient();
