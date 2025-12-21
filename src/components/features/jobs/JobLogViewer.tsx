@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useTheme } from '@/hooks/useTheme';
 import { format } from 'date-fns';
@@ -150,11 +151,11 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ jobId }) => {
 
                 <div className="flex items-center gap-1">
                     <div className="relative group mr-2">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                        <input
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground group-focus-within:text-primary transition-colors z-10" />
+                        <Input
                             type="text"
                             placeholder="Search logs..."
-                            className="bg-background/30 border border-border/30 rounded-lg pl-7 pr-3 py-1 text-[11px] w-32 focus:w-48 focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all duration-300"
+                            className="bg-background/30 border border-border/30 rounded-lg pl-7 pr-3 h-7 text-[11px] w-32 focus:w-48 transition-all duration-300"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />

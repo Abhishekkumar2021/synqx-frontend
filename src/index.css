@@ -313,26 +313,42 @@
 
 @utility status-success {
   background-color: oklch(from var(--color-success) l c h / 0.15);
-  color: var(--color-success);
+  color: oklch(from var(--color-success) calc(l * 0.7) c h);
   border: 1px solid oklch(from var(--color-success) l c h / 0.2);
+}
+
+.dark .status-success {
+  color: var(--color-success);
 }
 
 @utility status-warning {
   background-color: oklch(from var(--color-warning) l c h / 0.15);
-  color: var(--color-warning);
+  color: oklch(from var(--color-warning) calc(l * 0.7) c h);
   border: 1px solid oklch(from var(--color-warning) l c h / 0.2);
+}
+
+.dark .status-warning {
+  color: var(--color-warning);
 }
 
 @utility status-error {
   background-color: oklch(from var(--color-destructive) l c h / 0.15);
-  color: var(--color-destructive);
+  color: oklch(from var(--color-destructive) calc(l * 0.7) c h);
   border: 1px solid oklch(from var(--color-destructive) l c h / 0.2);
+}
+
+.dark .status-error {
+  color: var(--color-destructive);
 }
 
 @utility status-info {
   background-color: oklch(from var(--color-info) l c h / 0.15);
-  color: var(--color-info);
+  color: oklch(from var(--color-info) calc(l * 0.7) c h);
   border: 1px solid oklch(from var(--color-info) l c h / 0.2);
+}
+
+.dark .status-info {
+  color: var(--color-info);
 }
 
 @utility pipeline-step {

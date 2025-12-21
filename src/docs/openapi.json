@@ -5,7 +5,7 @@
     "description": "Universal ETL Engine",
     "version": "1.0.0"
   },
-  "servers": [
+    "servers": [
     {
       "url": "http://localhost:8000",
       "description": "Local server"
@@ -66,17 +66,16 @@
           "authentication"
         ],
         "summary": "Login Access Token",
-        "description": "OAuth2 compatible token login, get an access token for future requests",
+        "description": "Get an access token for future requests using email and password",
         "operationId": "login_access_token_api_v1_auth_login_post",
         "requestBody": {
           "content": {
-            "application/x-www-form-urlencoded": {
+            "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Body_login_access_token_api_v1_auth_login_post"
+                "$ref": "#/components/schemas/UserLogin"
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
@@ -4760,65 +4759,6 @@
         "type": "object",
         "title": "AssetUpdate"
       },
-      "Body_login_access_token_api_v1_auth_login_post": {
-        "properties": {
-          "grant_type": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^password$"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grant Type"
-          },
-          "username": {
-            "type": "string",
-            "title": "Username"
-          },
-          "password": {
-            "type": "string",
-            "format": "password",
-            "title": "Password"
-          },
-          "scope": {
-            "type": "string",
-            "title": "Scope",
-            "default": ""
-          },
-          "client_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Client Id"
-          },
-          "client_secret": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "format": "password",
-            "title": "Client Secret"
-          }
-        },
-        "type": "object",
-        "required": [
-          "username",
-          "password"
-        ],
-        "title": "Body_login_access_token_api_v1_auth_login_post"
-      },
       "ConnectionCreate": {
         "properties": {
           "name": {
@@ -7871,6 +7811,25 @@
           "password"
         ],
         "title": "UserCreate"
+      },
+      "UserLogin": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "format": "email",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "UserLogin"
       },
       "UserRead": {
         "properties": {
