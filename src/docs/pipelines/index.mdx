@@ -1,0 +1,54 @@
+---
+title: "Pipelines: Visual Orchestration"
+description: "Designing, versioning, and scheduling complex DAGs."
+---
+
+# Pipelines & Orchestration
+
+SynqX treats data pipelines as strictly versioned objects rather than loose scripts. This section explains how pipelines are built, validated, and scheduled.
+
+## 1. Visual Design (Visual Editor)
+
+The SynqX Console provides a high-fidelity visual editor where you build pipelines by dragging **Nodes** and connecting them with **Edges**.
+
+### Node Architecture
+Every node in the DAG represents an instance of an **Operator**:
+-   **Properties**: Each node stores its own configuration (e.g., table name, SQL script, API endpoint).
+-   **Validation**: The backend validates node configurations against the operator's expected schema before saving.
+
+### Directed Edges
+Edges define the flow of data and control:
+-   **Upstream/Downstream**: Nodes are topologically sorted by the backend.
+-   **Data Passing**: Edges define which DataFrame iterators are passed from upstream nodes to downstream ones.
+
+---
+
+## 2. Immutable Versioning
+
+Versioning is the core of SynqX reliability. You never execute a "Pipeline"; you execute a specific **Pipeline Version**.
+
+### The Publish Workflow
+1.  **Draft**: The user designs the workflow in the editor.
+2.  **Snapshot**: Upon clicking "Publish", the backend creates a `config_snapshot` - a full, recursive JSON representation of the entire graph.
+3.  **Validation**:
+    -   **Cycle Detection**: Ensures the graph is acyclic.
+    -   **Connectivity**: Ensures no nodes are orphaned.
+    -   **Operator Validation**: Verifies all required fields for each node are provided.
+4.  **Immutability**: Once created, a `PipelineVersion` cannot be edited. Any change results in a new version (e.g., v1 -> v2).
+
+---
+
+## 3. Advanced Scheduling
+
+The SynqX Scheduler is a high-availability service integrated with the Celery worker cluster.
+
+### Cron-Based Triggers
+Pipelines support standard cron expressions (e.g., `0 0 * * *` for daily at midnight).
+
+### Overlap Handling
+SynqX manages execution overlap via the `max_parallel_runs` setting:
+-   **Sequential**: Set to `1` to ensure only one run of a pipeline exists at any time.
+-   **Parallel**: Higher values allow for concurrent processing of different batches.
+
+### Scheduler Audit Trail
+Every scheduling decision is logged in the `scheduler_events` table, providing full visibility into why a job was triggered or skipped (e.g., due to concurrency limits).

@@ -22,6 +22,7 @@ const ConnectionDetailsPage = lazy(() => import('./pages/ConnectionDetailsPage')
 const PipelinesListPage = lazy(() => import('./pages/PipelinesListPage').then(module => ({ default: module.PipelinesListPage })));
 const PipelineEditorPage = lazy(() => import('./pages/PipelineEditorPage').then(module => ({ default: module.PipelineEditorPage })));
 const JobsPage = lazy(() => import('./pages/JobsPage').then(module => ({ default: module.JobsPage })));
+const DocsPage = lazy(() => import('./pages/DocsPage').then(module => ({ default: module.DocsPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(module => ({ default: module.SettingsPage })));
 
 // React Query Configuration
@@ -128,6 +129,7 @@ const AppRoutes = () => (
       <Route path="/pipelines/:id" element={<PipelineEditorPage />} />
 
       <Route path="/jobs/:id?" element={<JobsPage />} />
+      <Route path="/docs/*" element={<DocsPage />} />
       <Route path="/settings" element={<SettingsPage />} />
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

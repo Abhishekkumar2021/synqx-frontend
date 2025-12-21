@@ -1,0 +1,46 @@
+---
+title: "Universal Connectivity"
+description: "How SynqX abstracts data sources into versioned Assets and Schemas."
+---
+
+# Connectors & Schema Intelligence
+
+SynqX abstracts physical infrastructure into a three-tier hierarchy: **Connections**, **Assets**, and **Schemas**. This allows the engine to treat a PostgreSQL table, an S3 bucket, and a REST API with the same logical consistency.
+
+## 1. Connections: The Physical Layer
+
+A `Connection` contains the technical details required to authenticate with a system.
+
+### Security & The Vault Service
+SynqX implements a zero-trust credential strategy:
+-   **AES-256 GCM**: All credentials (passwords, API keys, service accounts) are encrypted at the API layer before hitting the database.
+-   **In-Memory Decryption**: Decryption keys are never stored in the database. Workers only decrypt credentials in RAM during the `RUNNING` phase.
+-   **Health Checks**: The backend provides on-demand connectivity testing to validate credentials instantly.
+
+---
+
+## 2. Assets: The Logical Layer
+
+An `Asset` represents a specific subset of data (e.g., a specific table or a specific S3 prefix).
+
+### Automated Asset Discovery
+SynqX can scan physical connections to populate assets automatically:
+-   **RDBMS**: Queries `information_schema.tables` to find all available objects.
+-   **Object Storage**: Scans bucket prefixes to identify distinct datasets.
+-   **APIs**: Discovers endpoints defined in the connector configuration.
+
+---
+
+## 3. Schema Intelligence: The Structural Layer
+
+Every asset in SynqX is fingerprinted via **Schema Inference**.
+
+### The Inference Engine
+1.  **Sampling**: The engine reads a small sample of records (default: 1,000).
+2.  **Type Detection**: Automatically identifies data types (String, Integer, Timestamp, JSON).
+3.  **Versioning**: Generates an immutable `AssetSchemaVersion`.
+
+### Drift Detection Logic
+SynqX calculates a `schema_hash` for every version. 
+-   **Consistency Check**: Before a pipeline starts, it compares the current physical schema with the version used when the pipeline was designed.
+-   **Breaking Change Protection**: If a mandatory column is deleted upstream, SynqX flags it as a breaking change and can pause affected pipelines to prevent data corruption.

@@ -1,0 +1,53 @@
+---
+title: "Operators"
+description: "The building blocks of SynqX pipelines."
+---
+
+# Operator Reference
+
+SynqX comes with a library of built-in operators.
+
+## Common Telemetry
+All built-in operators automatically capture the following metrics for the **Execution Forensic** logs:
+-   `records_in`: Number of records read from the source.
+-   `records_out`: Number of records successfully processed/loaded.
+-   `execution_time_ms`: Precision duration of the specific node's execution.
+
+## Extract (Source)
+
+| Operator | Description | Capabilities |
+| :--- | :--- | :--- |
+| `PostgresSource` | Reads from PostgreSQL. | Incremental (Timestamp/ID), Full Load. |
+| `MySQLSource` | Reads from MySQL/MariaDB. | Incremental, Binlog (CDC planned). |
+| `SnowflakeSource` | Reads from Snowflake tables/queries. | Batch Export. |
+| `S3Source` | Reads files (CSV, Parquet, JSON) from S3. | Prefix matching, File tracking. |
+| `SalesforceSource` | Queries Salesforce Objects (SOQL). | Incremental, Bulk API. |
+| `RestApiSource` | Generic HTTP GET wrapper. | Pagination, Auth handling. |
+
+## Transform
+
+| Operator | Description |
+| :--- | :--- |
+| `FieldMapper` | Renames, drops, or casts columns. |
+| `PythonTransform` | Executes arbitrary Python code (Pandas/Polars). |
+| `SqlTransform` | Executes SQL on a warehouse (ELT mode). |
+| `DbtRunner` | Triggers a dbt job or cloud run. |
+| `Filter` | Drops rows based on conditions. |
+
+## Load (Destination)
+
+| Operator | Description | Capabilities |
+| :--- | :--- | :--- |
+| `PostgresLoader` | Writes to Postgres. | Insert, Upsert, Replace. |
+| `SnowflakeLoader` | Writes to Snowflake. | COPY INTO, Merge. |
+| `S3Sink` | Writes files to S3. | Partitioning, Compression. |
+| `RestApiSink` | HTTP POST/PUT for each record/batch. | Batching, Rate limiting. |
+
+## Utility
+
+| Operator | Description |
+| :--- | :--- |
+| `EmailOperator` | Sends an email notification. |
+| `SlackOperator` | Sends a message to a Slack channel. |
+| `TriggerPipeline` | Kicks off another pipeline execution. |
+| `Sensor` | Waits for an external condition (file arrival, API status). |

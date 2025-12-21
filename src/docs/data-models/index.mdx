@@ -1,0 +1,51 @@
+---
+title: "Data Models"
+description: "Reference for the SynqX Database Schema."
+---
+
+# Data Models
+
+The SynqX database schema is the source of truth for the system. It is designed using **SQLAlchemy** 2.0+ style declarative mapping.
+
+<div className="w-full h-[600px] border rounded-lg overflow-hidden my-6 bg-background">
+  <iframe 
+    src="/erd.html" 
+    className="w-full h-full border-0 bg-background"
+    title="SynqX ERD"
+  />
+</div>
+
+## Model Organization
+
+The schema is divided into logical domains:
+
+<Cards>
+  <Card title="Core Entities" href="/docs/data-models/core" description="Connections, Assets, and Multi-tenancy mixins." />
+  <Card title="Pipelines & Versioning" href="/docs/data-models/pipelines" description="Pipelines, Versions, Nodes, and Edges." />
+  <Card title="Execution State" href="/docs/data-models/execution" description="Jobs, Runs, StepRuns, and Context." />
+  <Card title="Observability" href="/docs/data-models/observability" description="Logs, Alerts, and Scheduler Events." />
+</Cards>
+
+## Common Mixins
+
+Almost all tables in SynqX inherit from these base mixins to ensure consistent auditing.
+
+### `TimestampMixin`
+Automatically tracks creation and update times.
+-   `created_at`: `DateTime` (Immutable)
+-   `updated_at`: `DateTime` (Auto-update)
+
+### `UserTrackingMixin`
+Tracks the actor responsible for changes.
+-   `created_by`: `String`
+-   `updated_by`: `String`
+
+### `TenantMixin`
+Enforces security. **Every critical query must filter by `user_id`.**
+-   `user_id`: `String(64)` (Indexed)
+
+### `SoftDeleteMixin`
+Allows for safe deletion and recovery.
+-   `deleted_at`: `DateTime` (Nullable)
+-   `deleted_by`: `String`
+-   `is_deleted`: `property` (Checks if `deleted_at` is not null)

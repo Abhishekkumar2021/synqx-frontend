@@ -1,0 +1,62 @@
+---
+title: "Execution Engine: Under the Hood"
+description: "How SynqX orchestrates distributed data processing with Celery and Pandas."
+---
+
+
+# Execution Runtime Deep Dive
+
+The SynqX execution engine is designed for reliability, micro-batch efficiency, and high-fidelity observability. It leverages **Celery** for distributed task management and **Pandas** for high-performance data manipulation.
+
+## 1. The Physical Trigger (Celery)
+
+When a pipeline is triggered (manually or by the scheduler), a `Job` record is created, and an `execute_pipeline_task` is dispatched to Redis.
+
+### Worker Lifecycle
+1.  **Job Acquisition**: A worker pulls the task. It immediately marks the `Job` as `RUNNING` and captures the `worker_id`.
+2.  **Environment Setup**: The worker fetches the **Immutable Pipeline Version** and the **Active Watermarks**.
+3.  **Runner Initialization**: The worker instantiates a `PipelineRunner`, which is responsible for the DAG execution logic.
+
+---
+
+## 2. DAG Orchestration (PipelineRunner)
+
+The `PipelineRunner` is the core logic unit that traverses the DAG.
+
+### Topological Sorting
+Before execution, the runner uses a Kahn's algorithm variant to perform a **Topological Sort** of all nodes. This ensures that every node only executes after its upstream dependencies have completed successfully.
+
+### DataFrame Streaming
+To manage memory effectively, SynqX operators use a **Streaming Iterator** pattern:
+-   **Extraction**: Source nodes return a `Generator[pd.DataFrame]`, reading data in batches (e.g., 10,000 rows at a time).
+-   **Transformation**: Transform nodes consume the iterator, apply logic, and yield a new `pd.DataFrame`.
+-   **Loading**: Destination nodes consume the final iterator and perform batch inserts or bulk copies.
+
+<Callout type="info" title="Memory Management">
+    This iterator pattern prevents the worker from loading the entire dataset into RAM, allowing SynqX to process gigabytes of data on lightweight worker nodes.
+</Callout>
+
+---
+
+## 3. Real-time Telemetry (DBLogger)
+
+Every operation within the runner is wrapped in a telemetry layer.
+
+-   **Step Runs**: For every node in the DAG, a `StepRun` record tracks `records_in`, `records_out`, and `duration_seconds`.
+-   **Structured Logging**: Operators use `DBLogger.log_step()`. This service performs two critical actions:
+    1.  **Persistent Storage**: Writes the log entry to the `step_logs` table.
+    2.  **Real-time Broadcast**: Publishes the log entry to a **Redis Channel** (`step:{id}` or `job:{id}`).
+
+The **FastAPI WebSocket Manager** subscribes to these Redis channels and pushes the logs to the **Console UI** instantly.
+
+---
+
+## 4. Resilience & Error Handling
+
+### Node-Level Retries
+If an operator raises an exception, the worker consults the node's `retry_strategy`. 
+-   **Exponential Backoff**: Calculated as `base_delay * (2 ** retry_count)`.
+-   **Jitter**: Added to prevent "Thundering Herd" issues on upstream databases.
+
+### Transactional Integrity
+Watermarks are updated **atomically** after the successful completion of a Load node. If a Load fails, the watermark remains at its previous position, ensuring that the next run will re-process the missing data.

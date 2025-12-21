@@ -1,0 +1,61 @@
+---
+title: REST API Connector
+description: Learn how to use the Generic REST API Connector in SynqX.
+---
+
+# REST API Connector
+
+The **REST API Connector** allows you to connect to any HTTP-based API to read data (GET) or write data (POST/PUT). It is a versatile connector suitable for fetching data from SaaS platforms, internal microservices, or public datasets.
+
+## Configuration
+
+The connector requires the following configuration parameters:
+
+```json
+{
+  "base_url": "https://api.example.com/v1",
+  "auth": {
+    "type": "bearer",
+    "token": "YOUR_API_TOKEN"
+  },
+  "headers": {
+    "Accept": "application/json"
+  },
+  "timeout": 30
+}
+```
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+| :--- | :--- | :--- | :--- |
+| `base_url` | string | Yes | The root URL of the API. |
+| `auth` | object | No | Authentication configuration. |
+| `headers` | object | No | Custom HTTP headers to include in every request. |
+| `timeout` | number | No | Request timeout in seconds (default: 30). |
+
+### Authentication Types
+
+Supported `auth.type` values:
+
+- **`basic`**: Requires `username` and `password`.
+- **`bearer`**: Requires `token`.
+- **`api_key`**: Requires `key_name`, `key_value`, and `in` ("header" or "query").
+
+## Usage
+
+### Reading Data (Source)
+
+When used as a source, you specify the endpoint path as the asset.
+
+- **Asset**: `/users` (appended to `base_url`)
+- **Method**: `GET`
+- **Pagination**: The connector attempts to handle standard pagination parameters (`limit`, `offset`) if passed by the execution engine.
+
+### Writing Data (Destination)
+
+When used as a destination, data is sent as a JSON body.
+
+- **Asset**: `/users`
+- **Method**: `POST` (default) or `PUT` (if mode is `replace`).
+- **Batching**: Records are sent individually or in batches depending on the pipeline configuration.

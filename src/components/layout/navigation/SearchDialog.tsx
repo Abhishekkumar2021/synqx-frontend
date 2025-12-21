@@ -7,9 +7,10 @@ import {
     DialogContent,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, Workflow, ChevronRight, Command, Hash, Activity } from 'lucide-react';
+import { Search, Workflow, ChevronRight, Command, Hash, Activity, Book } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { docsRegistry } from '@/lib/docs';
 
 interface SearchDialogProps {
     isOpen: boolean;
@@ -31,6 +32,12 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose }) =
 
     const handleSelectJob = useCallback((id: number) => {
         navigate(`/jobs/${id}`);
+        onClose();
+        setSearch('');
+    }, [navigate, onClose]);
+
+    const handleSelectDoc = useCallback((href: string) => {
+        navigate(href);
         onClose();
         setSearch('');
     }, [navigate, onClose]);
@@ -74,7 +81,21 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose }) =
         ).slice(0, 5);
     }, [jobs, search]);
 
-    const totalResults = useMemo(() => [...filteredJobs, ...filteredPipelines], [filteredJobs, filteredPipelines]);
+    const filteredDocs = useMemo(() => {
+        const s = search.toLowerCase();
+        if (!s) return docsRegistry.slice(0, 5);
+        return docsRegistry.filter(d => 
+            d.title.toLowerCase().includes(s) ||
+            d.description.toLowerCase().includes(s)
+        ).slice(0, 5);
+    }, [search]);
+
+    const totalResults = useMemo(() => [
+        ...filteredJobs.map(j => ({ ...j, type: 'job' })), 
+        ...filteredPipelines.map(p => ({ ...p, type: 'pipeline' })),
+        ...filteredDocs.map(d => ({ ...d, type: 'doc' }))
+    ], [filteredJobs, filteredPipelines, filteredDocs]);
+
     const isLoading = pipelinesQuery.isLoading || jobsQuery.isLoading;
 
     // --- 4. Effects ---
@@ -94,13 +115,11 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose }) =
                 setSelectedIndex(prev => (prev - 1 + totalResults.length) % totalResults.length);
             } else if (e.key === 'Enter') {
                 e.preventDefault();
-                const selected = totalResults[selectedIndex];
+                const selected: any = totalResults[selectedIndex];
                 if (selected) {
-                    if ('pipeline_id' in selected) { // It's a job
-                        handleSelectJob(selected.id);
-                    } else { // It's a pipeline
-                        handleSelectPipeline(selected.id);
-                    }
+                    if (selected.type === 'job') handleSelectJob(selected.id);
+                    else if (selected.type === 'pipeline') handleSelectPipeline(selected.id);
+                    else if (selected.type === 'doc') handleSelectDoc(selected.href);
                 }
             }
         };
@@ -109,7 +128,7 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose }) =
             window.addEventListener('keydown', handleKeyDown);
         }
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, selectedIndex, totalResults, handleSelectJob, handleSelectPipeline]);
+    }, [isOpen, selectedIndex, totalResults, handleSelectJob, handleSelectPipeline, handleSelectDoc]);
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -254,6 +273,51 @@ export const SearchDialog: React.FC<SearchDialogProps> = ({ isOpen, onClose }) =
                                                     <ChevronRight className={cn(
                                                         "h-4 w-4 transition-all duration-500",
                                                         selectedIndex === actualIdx ? "text-blue-500 opacity-100 translate-x-0" : "text-muted-foreground opacity-0 -translate-x-4"
+                                                    )} />
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Docs Section */}
+                            {filteredDocs.length > 0 && (
+                                <div className="space-y-2">
+                                    <div className="px-4 py-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.25em] text-amber-500/60">
+                                        <Book className="h-3 w-3" />
+                                        Knowledge Base
+                                    </div>
+                                    <div className="space-y-1">
+                                        {filteredDocs.map((d, idx) => {
+                                            const actualIdx = idx + filteredJobs.length + filteredPipelines.length;
+                                            return (
+                                                <button
+                                                    key={`doc-${d.href}`}
+                                                    onClick={() => handleSelectDoc(d.href)}
+                                                    onMouseEnter={() => setSelectedIndex(actualIdx)}
+                                                    className={cn(
+                                                        "w-full flex items-center justify-between p-4 rounded-2xl transition-all duration-300 group text-left",
+                                                        selectedIndex === actualIdx 
+                                                            ? "bg-amber-500/10 border border-amber-500/20 shadow-lg shadow-amber-500/5 translate-x-1" 
+                                                            : "hover:bg-muted/30 border border-transparent"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={cn(
+                                                            "h-11 w-11 rounded-xl flex items-center justify-center transition-all duration-500",
+                                                            selectedIndex === actualIdx ? "bg-amber-500 text-white rotate-6 scale-110 shadow-lg shadow-amber-500/20" : "bg-muted/50 text-muted-foreground"
+                                                        )}>
+                                                            <Book className="h-5 w-5" />
+                                                        </div>
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <span className="text-sm font-bold tracking-tight">{d.title}</span>
+                                                            <span className="text-xs text-muted-foreground/60 line-clamp-1 font-medium italic">{d.description || 'View documentation page'}</span>
+                                                        </div>
+                                                    </div>
+                                                    <ChevronRight className={cn(
+                                                        "h-4 w-4 transition-all duration-500",
+                                                        selectedIndex === actualIdx ? "text-amber-500 opacity-100 translate-x-0" : "text-muted-foreground opacity-0 -translate-x-4"
                                                     )} />
                                                 </button>
                                             );

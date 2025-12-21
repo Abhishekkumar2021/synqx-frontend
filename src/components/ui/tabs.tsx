@@ -12,10 +12,10 @@ const TabsList = React.forwardRef<
     ref={ref}
     className={cn(
       // Layout & Shape
-      "inline-flex h-11 items-center justify-center rounded-xl p-1",
+      "inline-flex h-12 items-center justify-center rounded-2xl p-1.5",
 
       // Colors (Theme Aware)
-      "bg-muted/60 backdrop-blur-sm border border-border/40 text-muted-foreground",
+      "bg-muted/30 backdrop-blur-xl border border-border/40 text-muted-foreground shadow-2xl shadow-black/5",
 
       className
     )}
@@ -32,16 +32,16 @@ const TabsTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       // Base Layout
-      "inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-1.5 text-sm font-medium ring-offset-background transition-all duration-300",
+      "inline-flex items-center justify-center whitespace-nowrap rounded-xl px-6 py-2 text-xs font-black uppercase tracking-[0.15em] ring-offset-background transition-all duration-500",
 
       // Focus States
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
 
       // Disabled States
       "disabled:pointer-events-none disabled:opacity-50",
 
       // Active State (Card Pop Effect)
-      "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:shadow-black/5",
+      "data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-xl data-[state=active]:shadow-primary/10 data-[state=active]:border data-[state=active]:border-primary/20",
 
       // Hover State
       "hover:text-foreground hover:bg-background/40",

@@ -3,7 +3,7 @@ import { useLocation, Link, Outlet } from 'react-router-dom';
 import {
     LayoutDashboard, Cable, Workflow, Activity, Settings,
     Search, Menu, X, ChevronRight, Home, LogOut,
-    User, CreditCard, Users, PanelLeft, Command
+    User, CreditCard, Users, PanelLeft, Command, Book
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ModeToggle } from './ModeToggle';
@@ -24,6 +24,7 @@ import { NavItem } from './navigation/NavItem';
 
 import { SearchDialog } from './navigation/SearchDialog';
 import { NotificationsBell } from './navigation/NotificationsBell';
+import { DocsSidebar } from './navigation/DocsSidebar';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -108,19 +109,29 @@ export const Layout: React.FC<LayoutProps> = () => {
                     {/* Navigation Items */}
                     <div className="flex-1 overflow-y-auto py-6 px-3 scrollbar-none space-y-6">
                         <nav className="flex flex-col gap-1.5">
-                            <NavGroup collapsed={isSidebarCollapsed}>
-                                <NavItem to="/dashboard" icon={<LayoutDashboard />} label="Dashboard" collapsed={isSidebarCollapsed} />
-                                <NavItem to="/connections" icon={<Cable />} label="Connections" collapsed={isSidebarCollapsed} />
-                                <NavItem to="/pipelines" icon={<Workflow />} label="Pipelines" collapsed={isSidebarCollapsed} />
-                                <NavItem to="/jobs" icon={<Activity />} label="Jobs & Runs" collapsed={isSidebarCollapsed} />
-                            </NavGroup>
+                            {location.pathname.startsWith('/docs') ? (
+                                <DocsSidebar collapsed={isSidebarCollapsed} />
+                            ) : (
+                                <>
+                                    <NavGroup collapsed={isSidebarCollapsed}>
+                                        <NavItem to="/dashboard" icon={<LayoutDashboard />} label="Dashboard" collapsed={isSidebarCollapsed} />
+                                        <NavItem to="/connections" icon={<Cable />} label="Connections" collapsed={isSidebarCollapsed} />
+                                        <NavItem to="/pipelines" icon={<Workflow />} label="Pipelines" collapsed={isSidebarCollapsed} />
+                                        <NavItem to="/jobs" icon={<Activity />} label="Jobs & Runs" collapsed={isSidebarCollapsed} />
+                                    </NavGroup>
 
-                            {/* Theme-aware divider */}
-                            <div className={cn("mx-4 border-t border-border/40 transition-all duration-300", isSidebarCollapsed && "mx-2")} />
+                                    {/* Theme-aware divider */}
+                                    <div className={cn("mx-4 border-t border-border/40 transition-all duration-300", isSidebarCollapsed && "mx-2")} />
 
-                            <NavGroup collapsed={isSidebarCollapsed} title="Configuration">
-                                <NavItem to="/settings" icon={<Settings />} label="Settings" collapsed={isSidebarCollapsed} />
-                            </NavGroup>
+                                    <NavGroup collapsed={isSidebarCollapsed} title="Knowledge">
+                                        <NavItem to="/docs/intro" icon={<Book />} label="Knowledge Base" collapsed={isSidebarCollapsed} />
+                                    </NavGroup>
+
+                                    <NavGroup collapsed={isSidebarCollapsed} title="Configuration">
+                                        <NavItem to="/settings" icon={<Settings />} label="Settings" collapsed={isSidebarCollapsed} />
+                                    </NavGroup>
+                                </>
+                            )}
                         </nav>
                     </div>
 
