@@ -112,6 +112,11 @@ export const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
             { name: "password", label: "Password", type: "password", required: true },
         ]
     },
+    sqlite: {
+        fields: [
+            { name: "database_path", label: "Database Path", type: "text", required: true, placeholder: "/path/to/database.db" }
+        ]
+    },
     mongodb: {
         fields: [
             { name: "connection_string", label: "Connection String (URI)", type: "text", placeholder: "mongodb://user:pass@host:27017/db" },

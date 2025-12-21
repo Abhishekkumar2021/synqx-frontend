@@ -56,36 +56,38 @@ export const JobDetails: React.FC<JobDetailsProps> = ({ job }) => {
             {job ? (
                 <>
                     {/* Active Job Header (Theme-aware Glass Header) */}
-                    <div className="px-6 py-5 border-b border-border/40 bg-card/70 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 sticky top-0 z-10">
-                        <div className="space-y-1.5">
-                            <div className="flex items-center gap-3">
-                                <h3 className="text-xl font-bold flex items-center gap-2 text-foreground">
-                                    Execution #{job.id}
-                                </h3>
-                                <StatusBadge status={job.status || 'Unknown'} />
+                    <div className="px-6 py-4 border-b border-border/40 bg-muted/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sticky top-0 z-10">
+                        <div className="flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary ring-1 ring-primary/20 shadow-sm">
+                                <Terminal className="h-6 w-6" />
                             </div>
-                            <div className="flex items-center gap-5 text-xs text-muted-foreground font-medium">
-                                {/* Theme-aware Date Pill */}
-                                <div className="flex items-center gap-2 bg-muted/20 px-2.5 py-1 rounded-lg border border-border/30">
-                                    <Calendar className="h-3.5 w-3.5 text-primary" />
-                                    {job.started_at ? new Date(job.started_at).toLocaleString() : '-'}
+                            <div className="space-y-1">
+                                <div className="flex items-center gap-3">
+                                    <h3 className="text-lg font-bold tracking-tight text-foreground">
+                                        Execution #{job.id}
+                                    </h3>
+                                    <StatusBadge status={job.status || 'Unknown'} />
                                 </div>
-                                {/* Theme-aware Duration Pill */}
-                                <div className="flex items-center gap-2 bg-muted/20 px-2.5 py-1 rounded-lg border border-border/30">
-                                    <Timer className="h-3.5 w-3.5 text-primary" />
-                                    Duration: <span className="text-foreground">
+                                <div className="flex items-center gap-4 text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
+                                    <span className="flex items-center gap-1.5">
+                                        <Calendar className="h-3 w-3 opacity-70" />
+                                        {job.started_at ? new Date(job.started_at).toLocaleString() : '-'}
+                                    </span>
+                                    <span className="h-1 w-1 rounded-full bg-border" />
+                                    <span className="flex items-center gap-1.5">
+                                        <Timer className="h-3 w-3 opacity-70" />
                                         {formatDuration(job.started_at!, job.completed_at!)}
                                     </span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex gap-3">
+                        <div className="flex items-center gap-2">
                             {job.status === 'running' && (
                                 <Button 
                                     variant="destructive" 
                                     size="sm" 
-                                    className="h-9 shadow-sm rounded-full gap-2"
+                                    className="h-9 shadow-lg shadow-destructive/20 rounded-xl gap-2 px-4"
                                     onClick={() => cancelMutation.mutate(job.id)}
                                     disabled={cancelMutation.isPending}
                                 >
@@ -96,7 +98,7 @@ export const JobDetails: React.FC<JobDetailsProps> = ({ job }) => {
                                 <Button 
                                     variant="secondary" 
                                     size="sm" 
-                                    className="h-9 shadow-sm rounded-full gap-2"
+                                    className="h-9 shadow-sm rounded-xl gap-2 px-4 border border-border/50"
                                     onClick={() => retryMutation.mutate(job.id)}
                                     disabled={retryMutation.isPending}
                                 >
@@ -107,7 +109,7 @@ export const JobDetails: React.FC<JobDetailsProps> = ({ job }) => {
                                 variant="outline" 
                                 size="sm" 
                                 onClick={() => navigate(`/pipelines/${job.pipeline_id}`)}
-                                className="h-9 gap-2 border-border/70 hover:bg-muted/30 rounded-full hover:border-primary/50 transition-all"
+                                className="h-9 gap-2 border-border/70 hover:bg-muted/30 rounded-xl hover:border-primary/50 transition-all px-4"
                             >
                                 View Pipeline <ChevronRight className="h-3 w-3" />
                             </Button>
@@ -116,7 +118,7 @@ export const JobDetails: React.FC<JobDetailsProps> = ({ job }) => {
 
 
                     {/* Job Log Viewer is passed the job ID, inheriting the active theme */}
-                    <JobLogViewer initialJobId={job.id} hideControls={true} />
+                    <JobLogViewer jobId={job.id} />
                 </>
             ) : (
                 /* Empty State (Theme-aware) */

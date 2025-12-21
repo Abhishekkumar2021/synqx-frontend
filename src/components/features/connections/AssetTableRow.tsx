@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import {
     Table as TableIcon, Eye, MoreHorizontal, RefreshCw, FileJson, Terminal,
@@ -114,7 +115,7 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
 
     return (
         <TableRow className="group transition-colors border-b border-border/40 hover:bg-muted/30">
-            <TableCell className="pl-6 font-medium">
+            <TableCell className="pl-6 py-2.5 font-medium">
                 <div className="flex items-center gap-3">
                     <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary ring-1 ring-primary/20 shadow-sm">
                         {getAssetIcon(asset.asset_type || 'table')}
@@ -122,8 +123,8 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                     <span className="text-foreground font-semibold">{asset.name}</span>
                 </div>
             </TableCell>
-            <TableCell className="capitalize text-muted-foreground text-xs font-medium">{asset.asset_type}</TableCell>
-            <TableCell>
+            <TableCell className="px-6 py-2.5 capitalize text-muted-foreground text-xs font-medium">{asset.asset_type}</TableCell>
+            <TableCell className="px-6 py-2.5">
                 {asset.current_schema_version ? (
                     <Badge variant="secondary" className="font-mono text-[10px] bg-muted text-muted-foreground border-border/50">
                         v{asset.current_schema_version}
@@ -134,10 +135,10 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                     </span>
                 )}
             </TableCell>
-            <TableCell className="text-muted-foreground text-xs font-mono">
+            <TableCell className="px-6 py-2.5 text-muted-foreground text-xs font-mono">
                 {asset.updated_at ? formatDistanceToNow(new Date(asset.updated_at), { addSuffix: true }) : '-'}
             </TableCell>
-            <TableCell className="text-right pr-6">
+            <TableCell className="text-right pr-6 py-2.5">
                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button
                         variant="ghost"

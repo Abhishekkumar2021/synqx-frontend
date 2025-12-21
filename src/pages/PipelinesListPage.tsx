@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getPipelines, getJobs, triggerPipeline, type Pipeline } from '@/lib/api';
+import { useQuery, useMutation, useQueryClient, useQueries } from '@tanstack/react-query';
+import { getPipelines, getJobs, triggerPipeline, getPipelineStats, type Pipeline } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -24,11 +24,20 @@ export const PipelinesListPage: React.FC = () => {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     // Data Fetching
-    const { data: pipelines, isLoading } = useQuery({ queryKey: ['pipelines'], queryFn: getPipelines });
+    const { data: pipelines, isLoading: isLoadingPipelines } = useQuery({ queryKey: ['pipelines'], queryFn: getPipelines });
     const { data: recentJobs } = useQuery({
         queryKey: ['jobs', 'recent'],
         queryFn: () => getJobs(),
         refetchInterval: 5000
+    });
+
+    // Fetch stats for all pipelines
+    const pipelineStatsQueries = useQueries({
+        queries: (pipelines || []).map(pipeline => ({
+            queryKey: ['pipeline-stats', pipeline.id],
+            queryFn: () => getPipelineStats(pipeline.id),
+            enabled: !!pipelines, // Only run these queries if pipelines data is available
+        })),
     });
 
     // Mutations
@@ -36,9 +45,11 @@ export const PipelinesListPage: React.FC = () => {
         mutationFn: (id: number) => triggerPipeline(id),
         onSuccess: (data) => {
             toast.success("Pipeline Triggered", {
-                description: `Execution started successfully. Job ID: ${data.id}`
+                description: `Execution started successfully. Job ID: ${data.job_id}`
             });
             queryClient.invalidateQueries({ queryKey: ['jobs'] });
+            queryClient.invalidateQueries({ queryKey: ['pipeline-stats', data.pipeline_id] }); // Invalidate stats for this pipeline
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] }); // Refresh dashboard stats
         },
         onError: (err: any) => {
             toast.error("Trigger Failed", {
@@ -55,18 +66,20 @@ export const PipelinesListPage: React.FC = () => {
 
     // Derived State
     const enrichedPipelines = useMemo(() => {
-        if (!pipelines) return [];
+        if (!pipelines) return []; 
+        
         return pipelines.map(p => {
             const jobs = recentJobs?.filter(j => j.pipeline_id === p.id) || [];
             const lastJob = jobs.sort((a, b) => b.id - a.id)[0];
-            return { ...p, lastJob };
+            const stats = pipelineStatsQueries.find(q => q.data?.pipeline_id === p.id)?.data;
+            return { ...p, lastJob, stats };
         }).filter(p =>
             p.name.toLowerCase().includes(filter.toLowerCase()) ||
             p.description?.toLowerCase().includes(filter.toLowerCase())
         );
-    }, [pipelines, recentJobs, filter]);
+    }, [pipelines, recentJobs, filter, pipelineStatsQueries]);
 
-    if (isLoading) return <LoadingSkeleton />;
+    if (isLoadingPipelines) return <LoadingSkeleton />;
 
     return (
         // Main Container: Fixed height minus header to allow internal scrolling
@@ -163,9 +176,10 @@ export const PipelinesListPage: React.FC = () => {
                     <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-border/50 hover:scrollbar-thumb-border/80 scrollbar-track-transparent">
                         {/* Sticky Header */}
                         <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border/40 bg-muted text-xs font-bold text-muted-foreground uppercase tracking-widest shrink-0 sticky top-0 z-20 shadow-sm">
-                            <div className="col-span-12 md:col-span-5">Pipeline</div>
+                            <div className="col-span-12 md:col-span-4">Pipeline</div>
                             <div className="col-span-2 hidden md:block">Status</div>
-                            <div className="col-span-3 hidden md:block">Last Activity</div>
+                            <div className="col-span-2 hidden md:block">Runs</div>
+                            <div className="col-span-2 hidden md:block">Avg. Duration</div>
                             <div className="col-span-2 hidden md:block text-right">Actions</div>
                         </div>
 

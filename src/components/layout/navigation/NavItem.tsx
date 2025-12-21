@@ -23,7 +23,7 @@ export const NavItem: React.FC<NavItemProps> = ({ to, icon, label, collapsed, on
           isActive
             ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 font-medium"
             : // FIX: Use semantic background for hover state
-            "text-muted-foreground hover:bg-muted/10 hover:text-foreground",
+            "text-muted-foreground hover:bg-muted hover:text-foreground",
         )
       }
     >

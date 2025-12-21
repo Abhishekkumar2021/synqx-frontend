@@ -342,10 +342,12 @@ export function LandingPage() {
                                     <IntegrationItem icon={<BarChart3 className="h-4 w-4 text-chart-4" />} text="AWS S3, Azure Blob" />
                                 </ul>
 
-                                <Button variant="outline" className="group h-12 px-6 glass-card hover:bg-primary/5 transition-all rounded-full border-border/60">
-                                    View All Connectors
-                                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform text-primary" />
-                                </Button>
+                                <Link to="/connections">
+                                    <Button variant="outline" className="group h-12 px-6 glass-card hover:bg-primary/5 transition-all rounded-full border-border/60">
+                                        View All Connectors
+                                        <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform text-primary" />
+                                    </Button>
+                                </Link>
                             </div>
 
                             <div className="relative h-[500px] w-full flex items-center justify-center perspective-[1000px]">
@@ -382,9 +384,9 @@ export function LandingPage() {
                                     Start Free Trial
                                 </Button>
                             </Link>
-                            <Button variant="outline" size="lg" className="h-14 px-10 text-lg rounded-full glass-card hover:bg-muted/50 transition-all">
+                            <a href="#" className="h-14 px-10 text-lg rounded-full glass-card hover:bg-muted/50 transition-all flex items-center justify-center border-border/60">
                                 Schedule Demo
-                            </Button>
+                            </a>
                         </div>
                         <div className="flex items-center justify-center gap-8 pt-8 text-muted-foreground text-sm">
                             <div className="flex items-center gap-2">

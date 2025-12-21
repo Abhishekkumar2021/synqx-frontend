@@ -1,18 +1,45 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getJobs, type Job } from '@/lib/api';
+import { getJobs, getPipelines, type Job } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import {
-    History, RefreshCw, Terminal, Activity
+    History, RefreshCw, Terminal, Activity, Filter, ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { JobsList } from '@/components/features/jobs/JobsList';
 import { JobDetails } from '@/components/features/jobs/JobDetails';
 import { PageMeta } from '@/components/common/PageMeta';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator,
+    DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
 
 export const JobsPage: React.FC = () => {
-    const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const [selectedJobId, setSelectedJobId] = useState<number | null>(id ? parseInt(id) : null);
     const [filter, setFilter] = useState('');
+    const [pipelineIdFilter, setPipelineIdFilter] = useState<number | null>(null);
+
+    // Sync state with URL parameter
+    useEffect(() => {
+        if (id) {
+            const parsedId = parseInt(id);
+            if (parsedId !== selectedJobId) {
+                setSelectedJobId(parsedId);
+            }
+        }
+    }, [id, selectedJobId]);
+
+    const handleJobSelect = (jobId: number) => {
+        setSelectedJobId(jobId);
+        navigate(`/jobs/${jobId}`);
+    };
 
     const { data: jobs, isLoading, refetch, isRefetching } = useQuery({
         queryKey: ['jobs'],
@@ -20,57 +47,94 @@ export const JobsPage: React.FC = () => {
         refetchInterval: 3000,
     });
 
+    const { data: pipelines } = useQuery({
+        queryKey: ['pipelines'],
+        queryFn: () => getPipelines(),
+    });
+
     const selectedJob = useMemo(() => jobs?.find((j: Job) => j.id === selectedJobId), [jobs, selectedJobId]);
 
     const filteredJobs = useMemo(() => {
         if (!jobs) return [];
-        if (!filter) return jobs;
-        return jobs.filter((j: Job) =>
-            j.id.toString().includes(filter) ||
-            j.status.toLowerCase().includes(filter.toLowerCase()) ||
-            j.pipeline_id.toString().includes(filter)
-        );
-    }, [jobs, filter]);
+        let result = jobs;
+        
+        if (pipelineIdFilter) {
+            result = result.filter((j: Job) => j.pipeline_id === pipelineIdFilter);
+        }
+
+        if (filter) {
+            result = result.filter((j: Job) =>
+                j.id.toString().includes(filter) ||
+                j.status.toLowerCase().includes(filter.toLowerCase()) ||
+                j.pipeline_id.toString().includes(filter)
+            );
+        }
+        return result;
+    }, [jobs, filter, pipelineIdFilter]);
+
+    const selectedPipelineName = useMemo(() => {
+        if (!pipelineIdFilter) return 'All Pipelines';
+        return pipelines?.find(p => p.id === pipelineIdFilter)?.name || `Pipeline #${pipelineIdFilter}`;
+    }, [pipelineIdFilter, pipelines]);
 
     return (
         <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 animate-in fade-in duration-700">
             <PageMeta title="Execution History" description="Monitor pipeline runs and logs." />
 
             {/* --- Header Section --- */}
-            <div className="flex items-center justify-between shrink-0 px-1">
-                <div className="space-y-1.5">
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 backdrop-blur-md shadow-sm">
-                            <History className="h-5 w-5 text-primary" />
-                        </div>
-                        Execution History
-                    </h2>
-                    <p className="text-base text-muted-foreground font-medium pl-1">
-                        Real-time monitoring and forensic logs for pipeline executions.
-                    </p>
+            <div className="flex items-center justify-between shrink-0 px-2 pb-2">
+                <div className="flex items-center gap-5">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-primary/10 border border-primary/20 backdrop-blur-md shadow-xl shadow-primary/5">
+                        <History className="h-7 w-7 text-primary" />
+                    </div>
+                    <div className="space-y-1">
+                        <h2 className="text-3xl font-black tracking-tight text-foreground">
+                            Execution Forensic
+                        </h2>
+                        <p className="text-sm text-muted-foreground font-semibold uppercase tracking-[0.1em] opacity-70">
+                            Real-time pipeline monitoring & log inspection
+                        </p>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-background/50 rounded-full border border-border shadow-sm">
-                        <span className="relative flex h-2.5 w-2.5">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                        </span>
-                        <span className="text-xs font-bold text-muted-foreground tracking-wide uppercase">Live Stream</span>
-                    </div>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-10 rounded-xl border-border/40 bg-card/50 backdrop-blur-sm gap-3 px-4 hover:border-primary/30 transition-all">
+                                <div className="flex items-center justify-center h-5 w-5 rounded-md bg-primary/10">
+                                    <Filter className="h-3 w-3 text-primary" />
+                                </div>
+                                <span className="font-bold text-xs">{selectedPipelineName}</span>
+                                <ChevronDown className="h-3.5 w-3.5 opacity-40" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-64 glass-card rounded-[1.25rem] p-2">
+                            <DropdownMenuLabel className="px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-widest opacity-50">Filter Pipelines</DropdownMenuLabel>
+                            <DropdownMenuSeparator className="bg-border/10 my-2" />
+                            <DropdownMenuItem onClick={() => setPipelineIdFilter(null)} className="rounded-xl px-3 py-2 cursor-pointer focus:bg-primary/10">
+                                <span className="font-bold text-sm">All Pipelines</span>
+                            </DropdownMenuItem>
+                            {pipelines?.map(p => (
+                                <DropdownMenuItem key={p.id} onClick={() => setPipelineIdFilter(p.id)} className="rounded-xl px-3 py-2 cursor-pointer focus:bg-primary/10">
+                                    <span className="font-bold text-sm truncate">{p.name}</span>
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    <div className="h-8 w-px bg-border/20 mx-1 hidden md:block"></div>
 
                     <Button
                         variant="outline"
-                        size="sm"
+                        size="icon"
                         onClick={() => refetch()}
                         className={cn(
-                            "gap-2 rounded-full border-border/50 bg-card hover:bg-muted/50 transition-all shadow-sm",
+                            "h-10 w-10 rounded-xl border-border/40 bg-card/50 hover:bg-muted/50 transition-all",
                             isRefetching && "opacity-80"
                         )}
                         disabled={isRefetching}
                     >
-                        <RefreshCw className={cn("h-4 w-4", isRefetching && "animate-spin")} />
-                        Refresh
+                        <RefreshCw className={cn("h-4 w-4 text-muted-foreground", isRefetching && "animate-spin text-primary")} />
                     </Button>
                 </div>
             </div>
@@ -87,9 +151,10 @@ export const JobsPage: React.FC = () => {
                 <div className="lg:col-span-4 h-full rounded-[2rem] border border-border/60 bg-card/40 backdrop-blur-xl shadow-lg shadow-black/5 overflow-hidden flex flex-col relative">
                     <JobsList
                         jobs={filteredJobs}
+                        pipelines={pipelines || []}
                         isLoading={isLoading}
                         selectedJobId={selectedJobId}
-                        onSelect={setSelectedJobId}
+                        onSelect={handleJobSelect}
                         filter={filter}
                         onFilterChange={setFilter}
                     />
@@ -100,30 +165,33 @@ export const JobsPage: React.FC = () => {
                     {selectedJob ? (
                         <JobDetails job={selectedJob} />
                     ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground/60 space-y-6">
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground/60 space-y-8 animate-in fade-in zoom-in-95 duration-500">
                             <div className="relative group">
-                                <div className="absolute -inset-1 bg-linear-to-r from-primary to-purple-600 rounded-full blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
-                                <div className="relative p-8 rounded-full bg-background border border-border/50 shadow-2xl">
-                                    <Terminal className="h-12 w-12 opacity-50" />
+                                <div className="absolute -inset-4 bg-linear-to-r from-primary/20 to-purple-600/20 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition duration-1000"></div>
+                                <div className="relative p-10 rounded-[2.5rem] bg-background/40 border border-border/50 shadow-2xl backdrop-blur-sm group-hover:scale-105 transition-transform duration-500">
+                                    <Terminal className="h-16 w-16 opacity-20 group-hover:opacity-100 group-hover:text-primary transition-all duration-500" />
                                 </div>
                             </div>
-                            <div className="text-center space-y-2">
-                                <h3 className="text-xl font-semibold text-foreground">No Execution Selected</h3>
-                                <p className="max-w-xs mx-auto text-sm">
-                                    Select a job from the list on the left to view detailed logs and metrics.
+                            <div className="text-center space-y-3 px-6">
+                                <h3 className="text-2xl font-bold text-foreground tracking-tight">System Monitor Ready</h3>
+                                <p className="max-w-xs mx-auto text-sm font-medium leading-relaxed">
+                                    Select an execution from the forensic history to inspect real-time logs, performance metrics, and error traces.
                                 </p>
                             </div>
 
-                            {/* Decorative Fake Stats */}
-                            <div className="flex gap-8 mt-8 opacity-40 grayscale">
-                                <div className="flex flex-col items-center gap-1">
-                                    <Activity className="h-5 w-5" />
-                                    <span className="text-xs font-mono">IDLE</span>
+                            {/* Decorative Telemetry Grid */}
+                            <div className="grid grid-cols-3 gap-8 pt-8 opacity-20 grayscale group-hover:grayscale-0 group-hover:opacity-40 transition-all duration-700">
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="h-1 w-8 bg-primary rounded-full mb-1" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Network</span>
                                 </div>
-                                <div className="h-8 w-px bg-border"></div>
-                                <div className="flex flex-col items-center gap-1">
-                                    <span className="text-xs font-bold font-mono">0ms</span>
-                                    <span className="text-[10px] uppercase">Latency</span>
+                                <div className="flex flex-col items-center gap-2 border-x border-border px-8">
+                                    <div className="h-1 w-8 bg-emerald-500 rounded-full mb-1 animate-pulse" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">CPU</span>
+                                </div>
+                                <div className="flex flex-col items-center gap-2">
+                                    <div className="h-1 w-8 bg-blue-500 rounded-full mb-1" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Memory</span>
                                 </div>
                             </div>
                         </div>

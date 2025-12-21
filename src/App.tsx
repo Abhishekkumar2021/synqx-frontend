@@ -127,7 +127,7 @@ const AppRoutes = () => (
       <Route path="/pipelines" element={<PipelinesListPage />} />
       <Route path="/pipelines/:id" element={<PipelineEditorPage />} />
 
-      <Route path="/jobs" element={<JobsPage />} />
+      <Route path="/jobs/:id?" element={<JobsPage />} />
       <Route path="/settings" element={<SettingsPage />} />
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -143,7 +143,7 @@ function App() {
           <AuthProvider>
             <BrowserRouter>
               <AppRoutes />
-              <Toaster position='top-center' closeButton richColors theme="system" />
+              <Toaster position='top-right' closeButton richColors theme="system" />
             </BrowserRouter>
           </AuthProvider>
         </QueryClientProvider>

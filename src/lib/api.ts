@@ -314,6 +314,11 @@ export const createConnection = async (payload: ConnectionCreate) => {
   return data;
 };
 
+export const updateConnection = async (id: number, payload: any) => {
+  const { data } = await api.patch<Connection>(`/connections/${id}`, payload);
+  return data;
+};
+
 export const deleteConnection = async (id: number) => {
     await api.delete(`/connections/${id}`);
 };
@@ -376,6 +381,28 @@ export const getAssetSampleData = async (connectionId: number, assetId: number, 
     return data;
 };
 
+export interface ConnectionImpact {
+    pipeline_count: number;
+}
+
+export interface ConnectionUsageStats {
+    sync_success_rate: number;
+    average_latency_ms?: number;
+    data_extracted_gb_24h?: number;
+    last_24h_runs: number;
+    last_7d_runs: number;
+}
+
+export const getConnectionImpact = async (connectionId: number) => {
+    const { data } = await api.get<ConnectionImpact>(`/connections/${connectionId}/impact`);
+    return data;
+};
+
+export const getConnectionUsageStats = async (connectionId: number) => {
+    const { data } = await api.get<ConnectionUsageStats>(`/connections/${connectionId}/usage-stats`);
+    return data;
+};
+
 // Pipelines
 export interface PipelineNode {
     id?: number;
@@ -425,6 +452,8 @@ export interface PipelineStatsResponse {
     successful_runs: number;
     failed_runs: number;
     average_duration_seconds?: number;
+    last_run_at?: string;
+    next_scheduled_run?: string;
 }
 
 export const getPipelines = async () => {
@@ -554,6 +583,21 @@ export const retryJob = async (id: number) => {
 };
 
 // Alerts
+export interface Alert {
+    id: number;
+    alert_config_id?: number;
+    pipeline_id?: number;
+    job_id?: number;
+    message: string;
+    level: string;
+    status: string;
+    delivery_method: string;
+    recipient: string;
+    sent_at?: string;
+    acknowledged_at?: string;
+    created_at: string;
+}
+
 export interface AlertConfig {
     id: number;
     name: string;
@@ -577,6 +621,16 @@ export const getAlertConfigs = async () => {
 
 export const updateAlertConfig = async (id: number, payload: AlertConfigUpdate) => {
     const { data } = await api.patch<AlertConfig>(`/alerts/${id}`, payload);
+    return data;
+};
+
+export const getAlertHistory = async (skip: number = 0, limit: number = 100) => {
+    const { data } = await api.get<Alert[]>('/alerts/history', { params: { skip, limit } });
+    return data;
+};
+
+export const acknowledgeAlert = async (id: number) => {
+    const { data } = await api.patch<Alert>(`/alerts/history/${id}`, { status: 'acknowledged', acknowledged_at: new Date().toISOString() });
     return data;
 };
 

@@ -75,7 +75,8 @@ export const RecentActivityTable: React.FC<RecentActivityTableProps> = ({ jobs }
                                 <TableRow
                                     key={job.id}
                                     // Use muted/30 for row hover (theme agnostic)
-                                    className="hover:bg-muted/30 border-b border-border/40 group transition-colors"
+                                    className="hover:bg-muted/30 border-b border-border/40 group transition-colors cursor-pointer"
+                                    onClick={() => window.location.href = `/jobs/${job.id}`} // Make the whole row clickable
                                 >
                                     <TableCell className="font-mono text-xs font-semibold text-foreground pl-6">
                                         <span className="opacity-60 text-muted-foreground/80">#</span>{job.id}
@@ -93,12 +94,12 @@ export const RecentActivityTable: React.FC<RecentActivityTableProps> = ({ jobs }
                                         <StatusBadge status={job.status} className="shadow-none border-none" />
                                     </TableCell>
                                     <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground font-medium">
-                                        {getDurationDisplay(job.duration_ms)}
+                                        {getDurationDisplay(job.execution_time_ms)}
                                     </TableCell>
                                     <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground font-medium pr-6">
                                         {format(new Date(job.started_at), 'HH:mm:ss')}
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell onClick={(e) => e.stopPropagation()}> {/* Prevent row click when clicking dropdown */}
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
                                                 <Button
@@ -113,8 +114,18 @@ export const RecentActivityTable: React.FC<RecentActivityTableProps> = ({ jobs }
                                                 align="end"
                                                 className="rounded-xl border-border/60 bg-popover/95 backdrop-blur-xl shadow-xl"
                                             >
-                                                <DropdownMenuItem className="cursor-pointer">View Logs</DropdownMenuItem>
-                                                <DropdownMenuItem className="cursor-pointer">Rerun</DropdownMenuItem>
+                                                <DropdownMenuItem 
+                                                    className="cursor-pointer"
+                                                    onClick={() => window.location.href = `/jobs/${job.id}/logs`}
+                                                >
+                                                    View Logs
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem 
+                                                    className="cursor-pointer"
+                                                    onClick={() => console.log('Rerun job', job.id)} // Placeholder for rerun action
+                                                >
+                                                    Rerun
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>

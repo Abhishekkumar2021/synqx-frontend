@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getConnections, deleteConnection, testConnection } from '@/lib/api';
+import { getConnections, getConnection, deleteConnection, testConnection } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -51,9 +51,15 @@ export const ConnectionsPage: React.FC = () => {
         },
     });
 
-    const handleEdit = (connection: any) => {
-        setEditingConnection(connection);
-        setIsDialogOpen(true);
+    const handleEdit = async (connection: any) => {
+        try {
+            // Fetch full details including config
+            const fullConnection = await getConnection(connection.id);
+            setEditingConnection(fullConnection);
+            setIsDialogOpen(true);
+        } catch (e) {
+            toast.error("Failed to load connection details");
+        }
     };
 
     const handleCreate = () => {

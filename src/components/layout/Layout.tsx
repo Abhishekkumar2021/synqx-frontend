@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, Link, Outlet } from 'react-router-dom';
 import {
     LayoutDashboard, Cable, Workflow, Activity, Settings,
-    Bell, Search, Menu, X, ChevronRight, Home, LogOut,
-    User, CreditCard, Users, PanelLeft
+    Search, Menu, X, ChevronRight, Home, LogOut,
+    User, CreditCard, Users, PanelLeft, Command
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ModeToggle } from './ModeToggle';
@@ -22,6 +22,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { NavGroup } from './navigation/NavGroup';
 import { NavItem } from './navigation/NavItem';
 
+import { SearchDialog } from './navigation/SearchDialog';
+import { NotificationsBell } from './navigation/NotificationsBell';
+
 interface LayoutProps {
     children: React.ReactNode;
 }
@@ -31,6 +34,19 @@ export const Layout: React.FC<LayoutProps> = () => {
     const { user, logout } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+    // Global CMD+K Shortcut
+    useEffect(() => {
+        const down = (e: KeyboardEvent) => {
+            if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                setIsSearchOpen((open) => !open);
+            }
+        };
+        window.addEventListener("keydown", down, { capture: true });
+        return () => window.removeEventListener("keydown", down, { capture: true });
+    }, []);
 
     const handleMobileNavClick = () => {
         setIsMobileMenuOpen(false);
@@ -69,21 +85,21 @@ export const Layout: React.FC<LayoutProps> = () => {
                 </Button>
 
                 {/* Inner Content Wrapper (Glass & Clipped) */}
-                <div className="absolute inset-0 rounded-3xl overflow-hidden sidebar-glass flex flex-col border">
+                <div className="absolute inset-0 rounded-[2rem] overflow-hidden flex flex-col border border-border/60 bg-card/40 backdrop-blur-3xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
                     {/* Brand Header */}
                     <div className={cn(
-                        "flex h-20 items-center transition-all duration-500 overflow-hidden shrink-0",
-                        isSidebarCollapsed ? "justify-center px-0" : "px-6 gap-3"
+                        "flex h-24 items-center transition-all duration-500 overflow-hidden shrink-0",
+                        isSidebarCollapsed ? "justify-center px-0" : "px-8 gap-4"
                     )}>
-                        <div className="shrink-0 flex items-center justify-center h-10 w-10 rounded-xl bg-linear-to-br from-primary to-blue-600 text-primary-foreground shadow-lg ring-1 ring-primary/20">
-                            <Workflow className="h-6 w-6" />
+                        <div className="shrink-0 flex items-center justify-center h-12 w-12 rounded-2xl bg-linear-to-br from-primary to-blue-600 text-primary-foreground shadow-xl ring-1 ring-white/20 dark:ring-primary/30 rotate-3 hover:rotate-0 transition-transform duration-300">
+                            <Workflow className="h-7 w-7" />
                         </div>
 
                         <motion.div
                             animate={{ opacity: isSidebarCollapsed ? 0 : 1, width: isSidebarCollapsed ? 0 : "auto" }}
                             className="flex flex-col whitespace-nowrap overflow-hidden"
                         >
-                            <span className="font-bold text-xl tracking-tight bg-clip-text text-transparent bg-linear-to-r from-foreground to-foreground/70">
+                            <span className="font-black text-2xl tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-foreground to-foreground/60">
                                 SynqX
                             </span>
                         </motion.div>
@@ -161,7 +177,7 @@ export const Layout: React.FC<LayoutProps> = () => {
             {/* --- Main Content Area --- */}
             <div className="flex flex-1 flex-col overflow-hidden relative">
                 {/* Floating Header */}
-                <header className="flex h-16 items-center justify-between glass mx-4 mt-4 rounded-3xl px-6 z-20 sticky top-0 transition-all">
+                <header className="flex h-16 items-center justify-between mx-4 mt-4 rounded-[2rem] px-6 z-20 sticky top-0 transition-all border border-border/60 bg-card/40 backdrop-blur-2xl shadow-[0_16px_32px_-8px_rgba(0,0,0,0.1)] dark:shadow-[0_16px_32px_-8px_rgba(0,0,0,0.4)]">
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileMenuOpen(true)}>
                             <Menu className="h-5 w-5" />
@@ -183,29 +199,33 @@ export const Layout: React.FC<LayoutProps> = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <button className="hidden lg:flex items-center gap-2 h-10 rounded-full border border-border/50 bg-muted/10 px-4 text-sm text-muted-foreground shadow-sm hover:bg-muted/30 hover:text-foreground transition-all w-64 group">
+                        <button 
+                            onClick={() => setIsSearchOpen(true)}
+                            className="hidden lg:flex items-center gap-3 h-10 rounded-2xl border border-border/60 bg-background/40 px-4 text-sm text-muted-foreground shadow-sm hover:bg-muted/30 hover:text-foreground hover:border-primary/30 transition-all w-64 group"
+                        >
                             <Search className="h-4 w-4 group-hover:text-primary transition-colors" />
-                            <span>Search pipelines...</span>
+                            <span className="font-medium">Search pipelines...</span>
                             {/* Theme-aware kbd element */}
-                            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-border/30 bg-muted/20 px-1.5 font-mono text-[10px] font-medium text-muted-foreground ml-auto opacity-70">
-                                <span className="text-xs">⌘</span>K
-                            </kbd>
+                            <div className="flex items-center gap-1 rounded-md border border-border/40 bg-muted/20 px-1.5 font-mono text-[10px] font-bold text-muted-foreground ml-auto opacity-70">
+                                <Command className="h-2.5 w-2.5" />
+                                <span>K</span>
+                            </div>
                         </button>
-                        <div className="h-8 w-px bg-border/50 mx-1 hidden sm:block"></div>
+                        <div className="h-8 w-px bg-border/30 mx-1 hidden sm:block"></div>
                         <ModeToggle />
                         {/* Theme-aware Notification Button */}
-                        <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground hover:bg-muted/10 rounded-full h-10 w-10">
-                            <Bell className="h-5 w-5" />
-                            <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-destructive border-2 border-background shadow-sm"></span>
-                        </Button>
+                        <NotificationsBell />
                     </div>
                 </header>
+
+                {/* Search Dialog */}
+                <SearchDialog isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
                 {/* Scrollable Content with Page Transitions */}
                 <main className="flex-1 overflow-auto p-4 md:p-6 scrollbar-thin scrollbar-thumb-border/50">
                     <AnimatePresence mode="wait">
                         <motion.div
-                            key={location.pathname}
+                            key={location.pathname.startsWith('/jobs') ? '/jobs' : location.pathname}
                             initial={{ opacity: 0, y: 20, scale: 0.98 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, y: -20, scale: 0.98 }}

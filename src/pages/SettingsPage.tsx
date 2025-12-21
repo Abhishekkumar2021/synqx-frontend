@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import {
     User, Palette, Bell, ShieldAlert,
@@ -316,13 +317,13 @@ export const SettingsPage: React.FC = () => {
                                                 className={buttonVariants({ variant: "destructive" })}
                                             >
                                                 {deleteAccountMutation.isPending ? "Deleting..." : "Delete Account"}
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                        </div>
-                    )}
-
+                                                                                    </AlertDialogAction>
+                                                                                </AlertDialogFooter>
+                                                                            </AlertDialogContent>
+                                                                        </AlertDialog>
+                                                                        </Card> {/* ADDED: Missing closing Card tag */}
+                                                                    </div>
+                                                                )}
                     {activeTab === 'notifications' && (
                         <div className="space-y-6 animate-in slide-in-from-right-4 duration-500 fade-in">
                             <Card className="border-border/60 bg-card/40 backdrop-blur-md">

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import {
-    GitBranch, MoreVertical, Settings, History, Trash2,
-    CheckCircle2, AlertCircle, Loader2, Play
+import { type Pipeline, type Job, type PipelineStatsResponse, deletePipeline } from '@/lib/api';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { 
+    GitBranch, Play, MoreVertical, Settings, History, 
+    Trash2, CheckCircle2, AlertCircle, Loader2 
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -12,7 +14,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
+import {
     AlertDialog,
     AlertDialogAction,
     AlertDialogCancel,
@@ -22,25 +24,34 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { formatDistanceToNow } from 'date-fns';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
 import { PipelineStatusBadge } from './PipelineStatusBadge';
-import { type Pipeline, type Job, deletePipeline } from '@/lib/api';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 
 interface PipelineListItemProps {
-    pipeline: Pipeline & { lastJob?: Job };
+    pipeline: Pipeline & { lastJob?: Job; stats?: PipelineStatsResponse };
     onRun: (id: number) => void;
     isRunningMutation: boolean;
+}
+
+const formatDuration = (seconds?: number) => {
+    if (seconds === undefined || seconds === null) return '—';
+    if (seconds < 1) return `${(seconds * 1000).toFixed(0)}ms`;
+    if (seconds < 60) return `${seconds.toFixed(1)}s`;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = (seconds % 60).toFixed(0);
+    return `${minutes}m ${remainingSeconds}s`;
 }
 
 export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, onRun, isRunningMutation }) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const lastJob = pipeline.lastJob;
+    
+    console.log("Rendering PipelineListItem for", pipeline.name); // Diagnostic log
 
+    const lastJob = pipeline.lastJob;
     const isSuccess = lastJob?.status === 'success';
     const isFailed = lastJob?.status === 'failed';
     const isRunning = lastJob?.status === 'running' || lastJob?.status === 'pending';
@@ -61,7 +72,7 @@ export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, on
                 className="group grid grid-cols-12 gap-4 items-center px-6 py-4 hover:bg-muted/30 transition-all duration-200 border-b border-border/40 last:border-0"
             >
                 {/* --- Column 1: Identity --- */}
-                <div className="col-span-12 md:col-span-5 flex items-center gap-4">
+                <div className="col-span-12 md:col-span-4 flex items-center gap-4">
                     <div className="p-2.5 rounded-xl bg-muted/50 border border-border/50 text-muted-foreground group-hover:text-primary group-hover:border-primary/20 group-hover:bg-primary/5 transition-all duration-300">
                         <GitBranch className="h-5 w-5" />
                     </div>
@@ -83,9 +94,21 @@ export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, on
                     <PipelineStatusBadge status={pipeline.status} />
                 </div>
 
-                {/* --- Column 3: Last Run Info --- */}
-                <div className="col-span-6 md:col-span-3 flex items-center mt-1 md:mt-0">
-                    {lastJob ? (
+                {/* --- Column 3: Stats --- */}
+                <div className="col-span-6 md:col-span-3 flex flex-col justify-center mt-1 md:mt-0">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="font-semibold">Runs:</span>
+                        <span className="font-mono">{pipeline.stats?.total_runs ?? 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="font-semibold">Avg. Duration:</span>
+                        <span className="font-mono">{formatDuration(pipeline.stats?.average_duration_seconds)}</span>
+                    </div>
+                </div>
+
+                {/* --- Column 4: Last Run Info --- */}
+                <div className="col-span-6 md:col-span-2 flex flex-col justify-center mt-1 md:mt-0">
+                    {pipeline.stats?.last_run_at ? (
                         <div className="flex flex-col gap-1">
                             <div className={cn(
                                 "flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide",
@@ -96,22 +119,23 @@ export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, on
                                 {isSuccess ? <CheckCircle2 className="h-3.5 w-3.5" /> :
                                     isFailed ? <AlertCircle className="h-3.5 w-3.5" /> :
                                         isRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                                <span>{lastJob.status}</span>
+                                <span>{lastJob?.status || 'N/A'}</span>
                             </div>
                             <span className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
-                                {formatDistanceToNow(new Date(lastJob.started_at!), { addSuffix: true })}
+                                {formatDistanceToNow(new Date(pipeline.stats.last_run_at), { addSuffix: true })}
                             </span>
                         </div>
                     ) : (
-                        <span className="text-xs text-muted-foreground/50 italic pl-1 flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground/50 italic flex items-center gap-1">
                             <div className="h-1.5 w-1.5 rounded-full bg-border" />
                             No runs yet
                         </span>
                     )}
                 </div>
 
-                {/* --- Column 4: Actions --- */}
-                <div className="col-span-12 md:col-span-2 flex items-center justify-end gap-2 mt-1 md:mt-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200">
+
+                {/* --- Column 5: Actions --- */}
+                <div className="col-span-12 md:col-span-1 flex items-center justify-end gap-2 mt-1 md:mt-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200">
                     <Button
                         variant="outline"
                         size="sm"

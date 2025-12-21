@@ -9,6 +9,8 @@ import {
     discoverAssets,
     getConnectionAssets,
     createAsset,
+    getConnectionImpact,
+    getConnectionUsageStats,
     type Asset,
     type ConnectionTestResult,
     type AssetCreate
@@ -351,7 +353,7 @@ const AssetsTabContent = ({
                 <div className="h-full overflow-y-auto custom-scrollbar">
                     {/* Discovered Assets Section */}
                     {filteredDiscovered.length > 0 && (
-                        <div className="mb-6">
+                        <div className="mb-6 border-b border-border/40">
                             <div className="px-6 py-3 bg-amber-500/10 border-b border-amber-500/20 flex items-center gap-2">
                                 <Download className="h-4 w-4 text-amber-500" />
                                 <h3 className="text-sm font-semibold text-amber-600 dark:text-amber-500">Discovered Assets</h3>
@@ -363,16 +365,16 @@ const AssetsTabContent = ({
                                 <TableHeader className="bg-muted/30">
                                     <TableRow className="hover:bg-transparent border-b border-border/50">
                                         <TableHead className="pl-6 w-[40%]">Asset Name</TableHead>
-                                        <TableHead>Type</TableHead>
+                                        <TableHead className="px-6 py-3">Type</TableHead>
                                         <TableHead className="text-right pr-6">Action</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filteredDiscovered.map((asset, idx) => (
                                         <TableRow key={idx} className="hover:bg-muted/30 border-b border-border/40">
-                                            <TableCell className="pl-6 font-medium">{asset.name}</TableCell>
-                                            <TableCell className="capitalize text-muted-foreground text-xs">{asset.type || asset.asset_type}</TableCell>
-                                            <TableCell className="text-right pr-6">
+                                            <TableCell className="pl-6 py-2.5 font-medium">{asset.name}</TableCell>
+                                            <TableCell className="px-6 py-2.5 capitalize text-muted-foreground text-xs">{asset.type || asset.asset_type}</TableCell>
+                                            <TableCell className="text-right pr-6 py-2.5">
                                                 <div className="flex justify-end gap-2">
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
@@ -435,9 +437,9 @@ const AssetsTabContent = ({
                                 <TableHeader className="bg-card sticky top-0 z-10 backdrop-blur-md shadow-sm">
                                     <TableRow className="hover:bg-transparent border-b border-border/50">
                                         <TableHead className="w-[40%] pl-6">Asset Name</TableHead>
-                                        <TableHead>Type</TableHead>
-                                        <TableHead>Schema</TableHead>
-                                        <TableHead>Last Sync</TableHead>
+                                        <TableHead className="px-6 py-3">Type</TableHead>
+                                        <TableHead className="px-6 py-3">Schema</TableHead>
+                                        <TableHead className="px-6 py-3">Last Sync</TableHead>
                                         <TableHead className="text-right pr-6">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -476,7 +478,19 @@ const AssetsTabContent = ({
     );
 };
 
-const ConfigurationTabContent = ({ connection }: { connection: any }) => {
+const ConfigurationTabContent = ({ 
+    connection, 
+    impactData, 
+    loadingImpact, 
+    usageStats, 
+    loadingUsageStats 
+}: { 
+    connection: any; // Type 'Connection' from lib/api would be better here
+    impactData: any; // Type 'ConnectionImpact' from lib/api would be better here
+    loadingImpact: boolean;
+    usageStats: any; // Type 'ConnectionUsageStats' from lib/api would be better here
+    loadingUsageStats: boolean;
+}) => {
     const config = connection.config || {};
     
     // Define fields we want to show prominently or specifically format
@@ -558,16 +572,21 @@ const ConfigurationTabContent = ({ connection }: { connection: any }) => {
 
             {/* Side Panel Info */}
             <div className="space-y-6">
-                <Card className="border-border/60 bg-card/40 backdrop-blur-xl shadow-sm">
+                <Card className="border-amber-500/20 bg-amber-500/5 shadow-sm backdrop-blur-sm">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-bold text-muted-foreground flex items-center gap-2">
+                        <CardTitle className="text-sm font-bold text-amber-600 dark:text-amber-500 flex items-center gap-2">
                             <AlertTriangle className="h-4 w-4" /> Impact Analysis
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="text-xs text-muted-foreground leading-relaxed">
-                        Usage statistics for this connection are not yet available.
-                        <br/>
-                        This feature will provide insights into how this connection is utilized by pipelines.
+                        {loadingImpact ? (
+                            <Skeleton className="h-4 w-full" />
+                        ) : (
+                            <>
+                                This connection is actively used by <strong>{impactData?.pipeline_count || 0} pipelines</strong>.
+                                Changing credentials or host details may cause immediate failures in scheduled jobs.
+                            </>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -578,15 +597,73 @@ const ConfigurationTabContent = ({ connection }: { connection: any }) => {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex items-center justify-center h-24 text-muted-foreground text-sm italic">
-                            No usage statistics available yet.
-                        </div>
+                        {loadingUsageStats ? (
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-3/4" />
+                                <Skeleton className="h-4 w-1/2" />
+                                <Skeleton className="h-4 w-2/3" />
+                            </div>
+                        ) : (
+                            <>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">Sync Success Rate (24h)</span>
+                                    <span className="font-mono font-bold text-emerald-500">{usageStats?.sync_success_rate}%</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">Avg. Latency (24h)</span>
+                                    <span className="font-mono text-foreground">{usageStats?.average_latency_ms ? `${usageStats.average_latency_ms}ms` : 'N/A'}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">Total Runs (24h)</span>
+                                    <span className="font-mono text-foreground">{usageStats?.last_24h_runs || 0}</span>
+                                </div>
+                                 <div className="flex justify-between items-center text-sm">
+                                    <span className="text-muted-foreground">Total Runs (7d)</span>
+                                    <span className="font-mono text-foreground">{usageStats?.last_7d_runs || 0}</span>
+                                </div>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
             </div>
         </div>
     );
 };
+
+
+// New component to encapsulate ConfigurationTabContent and its data fetching
+const ConnectionConfigStats = ({ connection, connectionId }: { connection: any; connectionId: number }) => {
+    // Fetch Impact Analysis
+    const {
+        data: impactData,
+        isLoading: loadingImpact
+    } = useQuery({
+        queryKey: ['connectionImpact', connectionId],
+        queryFn: () => getConnectionImpact(connectionId),
+        enabled: !!connection,
+    });
+
+    // Fetch Usage Stats
+    const {
+        data: usageStats,
+        isLoading: loadingUsageStats
+    } = useQuery({
+        queryKey: ['connectionUsageStats', connectionId],
+        queryFn: () => getConnectionUsageStats(connectionId),
+        enabled: !!connection,
+    });
+
+    return (
+        <ConfigurationTabContent
+            connection={connection}
+            impactData={impactData}
+            loadingImpact={loadingImpact}
+            usageStats={usageStats}
+            loadingUsageStats={loadingUsageStats}
+        />
+    );
+};
+
 
 // --- Main Page Component ---
 
@@ -866,7 +943,10 @@ export const ConnectionDetailsPage: React.FC = () => {
                         </TabsContent>
 
                         <TabsContent value="configuration" className="h-full mt-0 focus-visible:outline-none overflow-auto">
-                            <ConfigurationTabContent connection={connection} />
+                            <ConnectionConfigStats
+                                connection={connection}
+                                connectionId={connectionId}
+                            />
                         </TabsContent>
                     </div>
                 </Tabs>

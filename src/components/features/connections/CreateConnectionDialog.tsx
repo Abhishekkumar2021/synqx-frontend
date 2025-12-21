@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createConnection, type ConnectionCreate } from '@/lib/api';
+import { createConnection, updateConnection, type ConnectionCreate } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label'; // Use primitive Label for robustness
@@ -69,7 +69,12 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
     const configValues = form.watch('config') || {};
 
     const mutation = useMutation({
-        mutationFn: (data: ConnectionFormValues) => createConnection(data as ConnectionCreate),
+        mutationFn: (data: ConnectionFormValues) => {
+            if (isEditMode && initialData?.id) {
+                return updateConnection(initialData.id, data);
+            }
+            return createConnection(data as ConnectionCreate);
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['connections'] });
             toast.success(`Connection ${isEditMode ? 'Updated' : 'Created'}`, {
@@ -84,19 +89,28 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
         }
     });
 
-    const handleSelect = (type: string) => {
-        setSelectedType(type);
-        form.setValue('connector_type', type);
-        if (!isEditMode) {
-            const schema = CONNECTOR_CONFIG_SCHEMAS[type];
-            if (schema) {
-                const defaults: any = {};
-                schema.fields?.forEach((f: any) => { if (f.defaultValue) defaults[f.name] = f.defaultValue; });
-                form.setValue('config', defaults);
-            }
+    // Reset form when initialData changes
+    useEffect(() => {
+        if (initialData) {
+            form.reset({
+                name: initialData.name || '',
+                description: initialData.description || '',
+                connector_type: initialData.connector_type || '',
+                config: initialData.config || {}
+            });
+            setSelectedType(initialData.connector_type);
+            setStep('configure');
+        } else {
+            form.reset({
+                name: '',
+                description: '',
+                connector_type: '',
+                config: {}
+            });
+            setSelectedType(null);
+            setStep('select');
         }
-        setStep('configure');
-    };
+    }, [initialData, form]);
 
     // --- STEP 1: Selection View ---
     if (step === 'select' && !isEditMode) {
