@@ -75,15 +75,27 @@ const resolveSchema = (schema: any, spec: any = openapiSpec): any => {
   return schema;
 };
 
-const generateCodeSnippet = (method: string, url: string, lang: string, params: any, body: string) => {
-  const fullUrl = new URL(url);
+const generateCodeSnippet = (method: string, baseUrl: string, path: string, lang: string, params: any, parameters: Parameter[] | undefined, body: string, apiKey: string) => {
+  let finalPath = path;
+  const queryParams = new URLSearchParams();
+
   Object.entries(params || {}).forEach(([k, v]) => {
-    if (v) fullUrl.searchParams.append(k, String(v));
+    if (!v) return;
+    const paramDef = parameters?.find(p => p.name === k);
+    if (paramDef?.in === 'path') {
+      finalPath = finalPath.replace(`{${k}}`, encodeURIComponent(String(v)));
+    } else {
+      queryParams.append(k, String(v));
+    }
   });
+
+  const queryString = queryParams.toString();
+  const fullUrl = `${baseUrl}${finalPath}${queryString ? `?${queryString}` : ''}`;
+  const token = apiKey || "YOUR_API_KEY";
 
   const snippets: Record<string, string> = {
     curl: `curl -X ${method} "${fullUrl}" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Authorization: Bearer ${token}" \\
   -H "Content-Type: application/json"${body ? ` \\
   -d '${body}'` : ''}`,
 
@@ -91,7 +103,7 @@ const generateCodeSnippet = (method: string, url: string, lang: string, params: 
 
 url = "${fullUrl}"
 headers = {
-    "Authorization": "Bearer YOUR_API_KEY",
+    "Authorization": "Bearer ${token}",
     "Content-Type": "application/json"
 }
 ${body ? `data = ${body}\n` : ''}response = requests.${method.toLowerCase()}(url, headers=headers${body ? ', json=data' : ''})
@@ -100,7 +112,7 @@ print(response.json())`,
     javascript: `fetch("${fullUrl}", {
   method: "${method}",
   headers: {
-    "Authorization": "Bearer YOUR_API_KEY",
+    "Authorization": "Bearer ${token}",
     "Content-Type": "application/json"
   }${body ? `,
   body: JSON.stringify(${body})` : ''}
@@ -118,7 +130,7 @@ import (
 
 func main() {
     req, _ := http.NewRequest("${method}", "${fullUrl}", nil)
-    req.Header.Add("Authorization", "Bearer YOUR_API_KEY")
+    req.Header.Add("Authorization", "Bearer ${token}")
     
     client := &http.Client{}
     resp, _ := client.Do(req)
@@ -374,10 +386,21 @@ export function ApiReference() {
       }
 
       // Build URL with params
-      const url = new URL(`${baseUrl}${activeOp.path}`);
+      let finalPath = activeOp.path;
+      const queryParams = new URLSearchParams();
+
       Object.entries(paramValues).forEach(([k, v]) => {
-        if (v) url.searchParams.append(k, String(v));
+        if (!v) return;
+        const paramDef = activeOp.parameters?.find(p => p.name === k);
+        if (paramDef?.in === 'path') {
+          finalPath = finalPath.replace(`{${k}}`, encodeURIComponent(String(v)));
+        } else {
+          queryParams.append(k, String(v));
+        }
       });
+
+      const queryString = queryParams.toString();
+      const url = `${baseUrl}${finalPath}${queryString ? `?${queryString}` : ''}`;
 
       // Prepare headers
       const headers: HeadersInit = {
@@ -388,7 +411,7 @@ export function ApiReference() {
       }
 
       // Execute Request
-      const response = await fetch(url.toString(), {
+      const response = await fetch(url, {
         method: activeOp.method,
         headers,
         body: bodyData ? JSON.stringify(bodyData) : undefined,
@@ -638,8 +661,8 @@ export function ApiReference() {
           ) : (
             <div className="flex-1 flex flex-col lg:flex-row min-h-0 h-full overflow-hidden lg:overflow-visible">
               {/* Left: Documentation */}
-              <div className="flex-1 border-b lg:border-b-0 lg:border-r border-white/5 glass-panel rounded-none border-y-0 border-l-0 bg-transparent h-full min-w-0 lg:min-w-[500px] overflow-hidden">
-                <ScrollArea className="h-full">
+              <div className="flex-1 border-b lg:border-b-0 lg:border-r border-white/5 glass-panel rounded-none border-y-0 border-l-0 bg-transparent h-full min-w-0 lg:min-w-[500px] overflow-hidden flex flex-col">
+                <ScrollArea className="flex-1">
                   <div className="p-6 lg:p-8 space-y-8">
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -772,8 +795,8 @@ export function ApiReference() {
               </div>
 
               {/* Right: Playground */}
-              <div className="w-full lg:w-[450px] glass-panel rounded-none border-none bg-white/5 dark:bg-black/10 backdrop-blur-2xl h-full border-t lg:border-t-0 lg:border-l border-white/5 overflow-hidden">
-                <ScrollArea className="h-full">
+              <div className="w-full lg:w-[450px] glass-panel rounded-none border-none bg-white/5 dark:bg-black/10 backdrop-blur-2xl h-full border-t lg:border-t-0 lg:border-l border-white/5 overflow-hidden flex flex-col">
+                <ScrollArea className="flex-1">
                   <div className="p-6 lg:p-8 space-y-6">
                     {/* Code Examples */}
                     <section className="space-y-3">
@@ -801,75 +824,75 @@ export function ApiReference() {
                                                 {/* Code Block */}
                                                 {['curl', 'python', 'javascript', 'go'].map(lang => (
                                                   <TabsContent key={lang} value={lang} className="mt-0 relative group">
-                                                    <CodeBlock
-                                                      code={generateCodeSnippet(
-                                                        activeOp.method,
-                                                        `${baseUrl}${activeOp.path}`,
-                                                        lang,
-                                                        paramValues,
-                                                        requestBody
-                                                      )}
-                                                      language={lang === 'curl' ? 'bash' : lang}
-                                                      className="max-h-[300px]"
-                                                    />
-                                                  </TabsContent>
+                                                                                <CodeBlock
+                                                                                  code={generateCodeSnippet(
+                                                                                    activeOp.method,
+                                                                                    baseUrl,
+                                                                                    activeOp.path,
+                                                                                    lang,
+                                                                                    paramValues,
+                                                                                    activeOp.parameters,
+                                                                                    requestBody,
+                                                                                    apiKey
+                                                                                  )}
+                                                                                  language={lang === 'curl' ? 'bash' : lang}
+                                                                                  className="max-h-[300px]"
+                                                                                />                                                  </TabsContent>
                                                 ))}                        </Tabs>
                       </section>
 
-                      {/* Try It Out */}
-                      <section className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Send size={16} className="text-primary" />
-                        <h3 className="text-[10px] font-black uppercase tracking-widest">Try It Out</h3>
-                      </div>
-
-                      <div className="rounded-xl border border-primary/10 p-4 space-y-4 glass-card shadow-xl bg-white/5 dark:bg-black/5 backdrop-blur-xl">
-
-                        {/* Request Body Editor */}
-                        {['POST', 'PUT', 'PATCH'].includes(activeOp.method) && (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-                                <Braces size={12} /> Request Body
-                              </label>
-                              <div className="flex gap-1.5">
-                                {activeOp.requestBody && (
-                                  <Button
-                                    onClick={generateExampleBody}
-                                    variant="soft"
-                                    size="xs"
-                                    className="h-auto py-0.5 text-[9px] gap-1 px-2"
-                                  >
-                                    <Zap size={10} />
-                                    Generate
-                                  </Button>
-                                )}
-                                {requestBody && (
-                                  <Button
-                                    onClick={() => setRequestBody('')}
-                                    variant="ghost"
-                                    size="xs"
-                                    className="h-auto py-0.5 bg-muted/20 text-muted-foreground text-[9px] hover:bg-muted/30 px-2"
-                                  >
-                                    Clear
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                            <CodeBlock
-                              code={requestBody}
-                              language="json"
-                              editable
-                              onChange={(value) => setRequestBody(value)}
-                              placeholder='{ "key": "value" }'
-                              className="min-h-[120px]"
-                            />
-                          </div>
-                        )}
-
-                        {/* Send Button */}
-                        <Button
-                          onClick={handleTryItOut}
+                                            {/* Try It Out */}
+                                            <section className="space-y-3">
+                                              <div className="flex items-center gap-2">
+                                                <Send size={16} className="text-primary" />
+                                                <h3 className="text-[10px] font-black uppercase tracking-widest">Try It Out</h3>
+                                              </div>
+                      
+                                              {/* Request Body Editor */}
+                                              {['POST', 'PUT', 'PATCH'].includes(activeOp.method) && (
+                                                <div className="space-y-2">
+                                                  <div className="flex items-center justify-between">
+                                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                                                      <Braces size={12} /> Request Body
+                                                    </label>
+                                                    <div className="flex gap-1.5">
+                                                      {activeOp.requestBody && (
+                                                        <Button
+                                                          onClick={generateExampleBody}
+                                                          variant="soft"
+                                                          size="xs"
+                                                          className="h-auto py-0.5 text-[9px] gap-1 px-2"
+                                                        >
+                                                          <Zap size={10} />
+                                                          Generate
+                                                        </Button>
+                                                      )}
+                                                      {requestBody && (
+                                                        <Button
+                                                          onClick={() => setRequestBody('')}
+                                                          variant="ghost"
+                                                          size="xs"
+                                                          className="h-auto py-0.5 bg-muted/20 text-muted-foreground text-[9px] hover:bg-muted/30 px-2"
+                                                        >
+                                                          Clear
+                                                        </Button>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                  <CodeBlock
+                                                    code={requestBody}
+                                                    language="json"
+                                                    editable
+                                                    onChange={(value) => setRequestBody(value)}
+                                                    placeholder='{ "key": "value" }'
+                                                    className="min-h-[120px]"
+                                                  />
+                                                </div>
+                                              )}
+                      
+                                              <div className="rounded-xl border border-primary/10 p-4 space-y-4 glass-card shadow-xl bg-white/5 dark:bg-black/5 backdrop-blur-xl">
+                                                {/* Send Button */}
+                                                <Button                          onClick={handleTryItOut}
                           isLoading={requestState.loading}
                           loadingText="Sending..."
                           className="w-full py-4 rounded-lg font-black text-[10px] tracking-[0.2em] uppercase shadow-lg bg-linear-to-r from-primary to-primary/80 hover:scale-[1.01] transition-transform h-auto"

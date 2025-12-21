@@ -61,14 +61,14 @@ export const CodeBlock = ({
   };
 
   const renderContent = (isExpanded: boolean) => (
-    <div className={cn("w-full", isExpanded ? "h-full" : "h-auto")}>
+    <div className={cn("w-full max-w-full", isExpanded ? "h-full" : "h-auto")}>
       {editable ? (
         <Textarea
           value={code}
           onChange={(e) => onChange?.(e.target.value)}
           placeholder={placeholder}
           className={cn(
-            "font-mono glass-input bg-transparent border-0 focus-visible:ring-0 resize-none w-full transition-all",
+            "font-mono glass-input bg-transparent border-0 focus-visible:ring-0 resize-none w-full transition-all overflow-auto whitespace-pre-wrap break-all",
             isExpanded ? "text-sm leading-relaxed p-6 h-full" : "text-[10px] p-4 min-h-[100px]"
           )}
           autoFocus={isExpanded}
@@ -83,12 +83,13 @@ export const CodeBlock = ({
       ) : (
         <div 
           className={cn(
-            "font-mono w-full", 
+            "font-mono w-full max-w-full overflow-hidden", 
             isExpanded ? "text-sm h-full" : "text-[10px] h-auto",
-            "[&>pre]:!bg-transparent [&>pre]:!p-4 [&>pre]:!m-0 [&>pre]:w-full",
+            "[&>pre]:!bg-transparent [&>pre]:!p-4 [&>pre]:!m-0 [&>pre]:w-full [&>pre]:overflow-auto [&>pre]:custom-scrollbar",
+            "[&>pre]:whitespace-pre-wrap [&>pre]:break-all",
             isExpanded ? "[&>pre]:min-h-full [&>pre]:!rounded-none" : "[&>pre]:rounded-[calc(var(--radius)-4px)]"
           )}
-          dangerouslySetInnerHTML={{ __html: highlightedCode || `<pre class="p-4 text-muted-foreground">${code}</pre>` }}
+          dangerouslySetInnerHTML={{ __html: highlightedCode || `<pre class="p-4 text-muted-foreground whitespace-pre-wrap break-all">${code}</pre>` }}
         />
       )}
     </div>
@@ -96,7 +97,7 @@ export const CodeBlock = ({
 
   return (
     <>
-      <div className={cn("relative group border border-white/5 bg-black/20 rounded-xl transition-all duration-300", className)} ref={containerRef}>
+      <div className={cn("relative group border border-white/5 bg-black/20 rounded-xl transition-all duration-300 w-full max-w-full overflow-hidden flex flex-col", className)} ref={containerRef}>
         <div className="absolute right-2 top-2 z-20 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           <Button
             size="icon"
@@ -117,7 +118,7 @@ export const CodeBlock = ({
             </Button>
           </motion.div>
         </div>
-        <div className="w-full h-full overflow-auto custom-scrollbar">
+        <div className="w-full flex-1 overflow-auto custom-scrollbar">
           {renderContent(false)}
         </div>
       </div>
