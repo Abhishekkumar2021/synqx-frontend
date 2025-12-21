@@ -37,9 +37,22 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import { getApiKeys, createApiKey, revokeApiKey, type ApiKeyCreate } from '@/lib/api';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 export const ApiKeysManager = () => {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isRevokeAlertOpen, setIsRevokeAlertOpen] = useState(false);
+  const [keyToRevoke, setKeyToRevoke] = useState<number | null>(null);
   const [newKeyName, setNewKeyName] = useState('');
   const [expiryDays, setExpiryDays] = useState<string>('');
   const [createdKey, setCreatedKey] = useState<string | null>(null);
@@ -54,12 +67,16 @@ export const ApiKeysManager = () => {
     onSuccess: (data) => {
       setCreatedKey(data.key);
       queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
-      toast.success('API Key created successfully');
+      toast.success('API Key Generated', {
+        description: 'Your new key is ready. Please copy it now.'
+      });
       setNewKeyName('');
       setExpiryDays('');
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to create API key');
+      toast.error('Generation Failed', {
+        description: error.response?.data?.detail || 'Failed to create API key'
+      });
     },
   });
 
@@ -67,12 +84,23 @@ export const ApiKeysManager = () => {
     mutationFn: (id: number) => revokeApiKey(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
-      toast.success('API Key revoked successfully');
+      toast.success('Key Revoked', {
+        description: 'The API key has been permanently deactivated.'
+      });
+      setIsRevokeAlertOpen(false);
+      setKeyToRevoke(null);
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.detail || 'Failed to revoke API key');
+      toast.error('Revocation Failed', {
+        description: error.response?.data?.detail || 'Failed to revoke API key'
+      });
     },
   });
+
+  const handleRevokeClick = (id: number) => {
+    setKeyToRevoke(id);
+    setIsRevokeAlertOpen(true);
+  };
 
   const handleCreate = () => {
     if (!newKeyName.trim()) return;
@@ -251,7 +279,7 @@ export const ApiKeysManager = () => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive/90"
-                          onClick={() => revokeMutation.mutate(key.id)}
+                          onClick={() => handleRevokeClick(key.id)}
                           disabled={revokeMutation.isPending}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -271,6 +299,26 @@ export const ApiKeysManager = () => {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={isRevokeAlertOpen} onOpenChange={setIsRevokeAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke API Key?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Any applications or scripts using this key will immediately lose access to the API. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setKeyToRevoke(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => keyToRevoke && revokeMutation.mutate(keyToRevoke)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Revoke Key
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { type Node } from '@xyflow/react';
+import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     AlertDialog,
@@ -175,7 +176,9 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
             // Close after save for better UX
             // onClose(); 
         } catch (e) {
-            alert("Invalid JSON configuration");
+            toast.error("Invalid JSON configuration", {
+                description: "Please check your manual JSON input for syntax errors."
+            });
         }
     };
 
@@ -441,17 +444,16 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
 
                     {/* --- Footer Actions --- */}
                     <div className="p-6 border-t border-border/40 bg-background/60 backdrop-blur-xl shrink-0 flex gap-4 z-10">
-                        <Button type="submit" className="flex-1 shadow-lg shadow-primary/20 rounded-xl h-12 font-semibold text-base hover:scale-[1.02] transition-transform">
+                        <Button type="submit" className="flex-1 rounded-xl h-12 font-semibold text-base">
                             <Save className="mr-2 h-4 w-4" /> Apply Changes
                         </Button>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button
                                     type="button"
-                                    variant="secondary"
+                                    variant="destructive"
                                     size="icon"
-                                    className="h-12 w-12 rounded-xl border border-destructive/20
-                 bg-destructive/5 text-destructive hover:bg-destructive/10"
+                                    className="h-12 w-12 rounded-xl"
                                 >
                                     <Trash2 className="h-5 w-5" />
                                 </Button>

@@ -40,34 +40,23 @@ api.interceptors.response.use(
         
         // Handle 401 Unauthorized (Session Expired)
         if (response && response.status === 401) {
-            // Only redirect if we are not already on the login page to avoid loops
             if (!window.location.pathname.includes('/login')) {
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
                 toast.error('Session expired. Please login again.');
-                // Slight delay to allow toast to be seen
                 setTimeout(() => {
                     window.location.href = '/login';
                 }, 1000);
             }
         } 
-        // Handle 403 Forbidden
         else if (response && response.status === 403) {
             toast.error('You do not have permission to perform this action.');
         }
-        // Handle 500 Server Errors
         else if (response && response.status >= 500) {
             toast.error('Server error. Please try again later.');
         }
-        // Handle Network Errors
         else if (error.message === 'Network Error') {
             toast.error('Network error. Please check your connection.');
-        }
-        // Let specific 400 errors be handled by the caller if needed, 
-        // but provide a default message if none exists
-        else if (response && response.data && response.data.detail) {
-             // Optional: Toast specific API errors globally if desired, 
-             // or let components handle them. For now, we pass it through.
         }
 
         return Promise.reject(error);
@@ -89,7 +78,7 @@ export interface User {
 }
 
 export interface LoginRequest {
-    username: string; // OAuth2 expects username/password form fields usually, but here handling as JSON or Form
+    username: string;
     password: string;
 }
 
@@ -102,7 +91,6 @@ export interface RegisterRequest {
 // --- Auth Functions ---
 
 export const loginUser = async (credentials: LoginRequest) => {
-    // FastAPIs OAuth2PasswordRequestForm expects form-data usually
     const params = new URLSearchParams();
     params.append('username', credentials.username);
     params.append('password', credentials.password);
@@ -132,7 +120,7 @@ export const deleteUser = async () => {
     await api.delete('/auth/me');
 };
 
-// --- Types (Mirrored from OpenAPI) ---
+// --- Types ---
 
 export interface Connection {
   id: number;
@@ -227,17 +215,14 @@ export interface Job {
 
 export interface StepRun {
     id: number;
-    step_id: number; // or string name
+    step_id: number;
     job_id: number;
-    status: 'pending' | 'running' | 'completed' | 'failed'; // kept simple or import OperatorRunStatus
+    status: 'pending' | 'running' | 'completed' | 'failed';
     started_at?: string;
     finished_at?: string;
     row_count?: number;
 }
 
-// --- API Functions ---
-
-// Connections
 export interface ConnectionListResponse {
     connections: Connection[];
     total: number;
@@ -382,11 +367,11 @@ export const getAssetSchemaVersions = async (connectionId: number, assetId: numb
 
 // Pipelines
 export interface PipelineNode {
-    id?: number; // Optional on creation
+    id?: number;
     node_id: string;
     name: string;
     description?: string;
-    operator_type: OperatorType | string; // Allow string for flexibility or strict OperatorType
+    operator_type: OperatorType | string;
     operator_class: string;
     config: Record<string, any>;
     order_index: number;
@@ -394,12 +379,11 @@ export interface PipelineNode {
     destination_asset_id?: number;
     max_retries?: number;
     timeout_seconds?: number;
-    // Frontend-specific fields can remain if optional or handled before sending
     position?: { x: number; y: number }; 
 }
 
 export interface PipelineEdge {
-    id?: number; // Optional on creation
+    id?: number;
     from_node_id: string;
     to_node_id: string;
     edge_type?: string;

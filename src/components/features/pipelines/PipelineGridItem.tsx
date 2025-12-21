@@ -15,7 +15,8 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { PipelineStatusBadge } from './PipelineStatusBadge';
-import { type Pipeline, type Job } from '@/lib/api';
+import { type Pipeline, type Job, getPipelineStats } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 
 interface PipelineGridItemProps {
     pipeline: Pipeline & { lastJob?: Job };
@@ -26,11 +27,22 @@ interface PipelineGridItemProps {
 export const PipelineGridItem: React.FC<PipelineGridItemProps> = ({ pipeline, onRun, onOpenSettings }) => {
     const navigate = useNavigate();
     const lastJob = pipeline.lastJob;
+
+    // Fetch pipeline stats
+    const { data: stats } = useQuery({
+        queryKey: ['pipeline-stats', pipeline.id],
+        queryFn: () => getPipelineStats(pipeline.id),
+        staleTime: 30000
+    });
     
     // Status Logic
     const isRunning = lastJob?.status === 'running' || lastJob?.status === 'pending';
     const isSuccess = lastJob?.status === 'success';
     const isFailed = lastJob?.status === 'failed';
+
+    const successRate = stats && stats.total_runs > 0 
+        ? Math.round((stats.successful_runs / stats.total_runs) * 100) 
+        : null;
 
     return (
         <div 
@@ -60,8 +72,18 @@ export const PipelineGridItem: React.FC<PipelineGridItemProps> = ({ pipeline, on
                         >
                             {pipeline.name}
                         </Link>
-                        <div>
+                        <div className="flex items-center gap-2">
                             <PipelineStatusBadge status={pipeline.status} />
+                            {successRate !== null && (
+                                <span className={cn(
+                                    "text-[10px] font-bold px-1.5 py-0.5 rounded border",
+                                    successRate > 90 ? "text-emerald-500 border-emerald-500/20 bg-emerald-500/5" :
+                                    successRate > 70 ? "text-amber-500 border-amber-500/20 bg-amber-500/5" :
+                                    "text-destructive border-destructive/20 bg-destructive/5"
+                                )}>
+                                    {successRate}% Success
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -89,10 +111,25 @@ export const PipelineGridItem: React.FC<PipelineGridItemProps> = ({ pipeline, on
             </div>
 
             {/* --- Body (Description) --- */}
-            <div className="relative z-10 flex-1 min-h-12">
+            <div className="relative z-10 flex-1 min-h-12 flex flex-col gap-3">
                 <p className="text-sm text-muted-foreground/80 line-clamp-2 leading-relaxed font-medium">
                     {pipeline.description || <span className="italic opacity-50">No description provided for this pipeline.</span>}
                 </p>
+                
+                {stats && stats.total_runs > 0 && (
+                    <div className="flex gap-4">
+                        <div className="flex flex-col">
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Avg. Duration</span>
+                            <span className="text-xs font-mono font-bold">
+                                {stats.average_duration_seconds ? `${stats.average_duration_seconds.toFixed(1)}s` : '—'}
+                            </span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Runs</span>
+                            <span className="text-xs font-mono font-bold">{stats.total_runs}</span>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* --- Footer --- */}

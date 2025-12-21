@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -42,11 +42,16 @@ export const SettingsPage: React.FC = () => {
     const profileMutation = useMutation({
         mutationFn: updateUser,
         onSuccess: () => {
-            toast.success("Profile updated successfully");
-            // Ideally update local user context. Assuming useAuth has a way or reload page.
-            // For now, simple toast.
+            toast.success("Profile Updated", {
+                description: "Your personal information has been successfully saved."
+            });
+            queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
         },
-        onError: () => toast.error("Failed to update profile")
+        onError: (err: any) => {
+            toast.error("Update Failed", {
+                description: err.response?.data?.detail || "There was an error updating your profile."
+            });
+        }
     });
 
     const handleSaveProfile = () => {
@@ -57,10 +62,14 @@ export const SettingsPage: React.FC = () => {
     const deleteAccountMutation = useMutation({
         mutationFn: deleteUser,
         onSuccess: () => {
-            toast.success("Account deleted");
+            toast.success("Account Deleted", {
+                description: "Your account and all associated data have been permanently removed."
+            });
             window.location.href = '/login';
         },
-        onError: () => toast.error("Failed to delete account")
+        onError: () => toast.error("Deletion Failed", {
+            description: "We couldn't delete your account at this time. Please contact support."
+        })
     });
 
     // Alerts Query
@@ -74,11 +83,13 @@ export const SettingsPage: React.FC = () => {
     const toggleAlertMutation = useMutation({
         mutationFn: ({ id, enabled }: { id: number, enabled: boolean }) => 
             updateAlertConfig(id, { enabled }),
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['alerts'] });
-            toast.success("Alert settings updated");
+            toast.success(variables.enabled ? "Alerts Enabled" : "Alerts Disabled", {
+                description: `Notification preferences updated successfully.`
+            });
         },
-        onError: () => toast.error("Failed to update alert")
+        onError: () => toast.error("Failed to update alert preferences")
     });
 
     const tabs = [
@@ -283,34 +294,32 @@ export const SettingsPage: React.FC = () => {
                                     <Button 
                                         variant="destructive" 
                                         size="sm" 
-                                        className="gap-2"
                                         onClick={() => setIsDeleteDialogOpen(true)}
                                     >
-                                        <Trash2 className="h-4 w-4" /> Delete Account
+                                        <Trash2 className="h-4 w-4 mr-2" /> Delete Account
                                     </Button>
                                 </CardContent>
-                            </Card>
 
-                            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This will permanently delete your account, all connections, pipelines, and history. 
-                                            You cannot recover this account.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction
-                                            onClick={() => deleteAccountMutation.mutate()}
-                                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                        >
-                                            {deleteAccountMutation.isPending ? "Deleting..." : "Delete Account"}
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                                <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This will permanently delete your account, all connections, pipelines, and history. 
+                                                You cannot recover this account.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction
+                                                onClick={() => deleteAccountMutation.mutate()}
+                                                className={buttonVariants({ variant: "destructive" })}
+                                            >
+                                                {deleteAccountMutation.isPending ? "Deleting..." : "Delete Account"}
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                         </div>
                     )}
 

@@ -7,13 +7,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
     Plus, XCircle, ShieldCheck, Search,
-    LayoutGrid, List, Link as LinkIcon, AlertCircle, Loader2
+    LayoutGrid, List, Link as LinkIcon, Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import {
     Dialog, DialogContent
 } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { CreateConnectionDialog } from '@/components/features/connections/CreateConnectionDialog';
 import { ConnectionsList } from '@/components/features/connections/ConnectionsList';
 import { PageMeta } from '@/components/common/PageMeta';
@@ -21,6 +31,8 @@ import { PageMeta } from '@/components/common/PageMeta';
 export const ConnectionsPage: React.FC = () => {
     const queryClient = useQueryClient();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+    const [connectionToDelete, setConnectionToDelete] = useState<number | null>(null);
     const [editingConnection, setEditingConnection] = useState<any | null>(null);
     const [testingId, setTestingId] = useState<number | null>(null);
     const [filter, setFilter] = useState('');
@@ -50,15 +62,16 @@ export const ConnectionsPage: React.FC = () => {
     };
 
     const handleDelete = (id: number) => {
-        toast('Delete this connection?', {
-            description: "Pipelines using this connection may break.",
-            icon: <AlertCircle className="h-4 w-4 text-destructive" />,
-            action: {
-                label: 'Delete',
-                onClick: () => deleteMutation.mutate(id)
-            },
-            cancel: { label: 'Cancel', onClick: () => { } },
-        });
+        setConnectionToDelete(id);
+        setIsDeleteAlertOpen(true);
+    };
+
+    const confirmDelete = () => {
+        if (connectionToDelete) {
+            deleteMutation.mutate(connectionToDelete);
+            setConnectionToDelete(null);
+            setIsDeleteAlertOpen(false);
+        }
     };
 
     const handleTest = async (id: number) => {
@@ -195,6 +208,26 @@ export const ConnectionsPage: React.FC = () => {
                     onCreate={handleCreate}
                 />
             </div>
+
+            <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Connection?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete this connection? Pipelines using this connection may fail immediately. This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setConnectionToDelete(null)}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={confirmDelete}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

@@ -201,7 +201,9 @@ export const PipelineCanvas: React.FC = () => {
       };
       setNodes((nds) => nds.concat(newNode));
       setSelectedNodeId(newNodeId);
-      toast.info("Node Added", { description: "Configure logic in the inspector panel." });
+      toast.info("Node Added", { 
+          description: `A new ${type} operator has been placed on the canvas. Configure it in the inspector.` 
+      });
   };
 
   const onLayout = useCallback(() => {
@@ -215,12 +217,16 @@ export const PipelineCanvas: React.FC = () => {
   const runMutation = useMutation({
       mutationFn: () => triggerPipeline(parseInt(id!)),
       onMutate: () => setIsRunning(true),
-      onSuccess: () => {
-          toast.success("Pipeline Started");
+      onSuccess: (data) => {
+          toast.success("Pipeline Started", {
+              description: `Execution is now running in the background. Job ID: ${data.id}`
+          });
           setTimeout(() => setIsRunning(false), 3000); 
       },
-      onError: () => {
-          toast.error("Start Failed");
+      onError: (err: any) => {
+          toast.error("Execution Failed", {
+              description: err.response?.data?.detail?.message || "There was an error starting the pipeline."
+          });
           setIsRunning(false);
       }
   });
@@ -280,7 +286,9 @@ export const PipelineCanvas: React.FC = () => {
       },
       onSuccess: (result, vars) => {
           if (result.type === 'create' && result.pipeline) {
-              toast.success("Pipeline Created");
+              toast.success("Pipeline Created", {
+                  description: `"${pipelineName}" has been successfully initialized.`
+              });
               // Redirect to the new pipeline URL
               window.history.replaceState(null, '', `/pipelines/${result.pipeline.id}`);
               // Force reload to pick up new ID (simpler than refactoring everything to handle ID change dynamically)
@@ -289,12 +297,18 @@ export const PipelineCanvas: React.FC = () => {
               if (pipeline) initializedId.current = pipeline.id;
               queryClient.invalidateQueries({ queryKey: ['pipeline', id] });
               queryClient.invalidateQueries({ queryKey: ['pipelines'] });
-              toast.success(vars.deploy ? "Deployed to Production" : "Draft Saved");
+              toast.success(vars.deploy ? "Successfully Deployed" : "Draft Saved", {
+                  description: vars.deploy 
+                    ? "Your changes are now live and will be used for future runs." 
+                    : "Work-in-progress changes have been saved."
+              });
           }
           setIsSaving(false);
       },
       onError: (err: any) => {
-          toast.error("Save Failed", { description: err.message || "Unknown error" });
+          toast.error("Save Failed", { 
+              description: err.response?.data?.detail?.message || err.message || "An unexpected error occurred while saving." 
+          });
           setIsSaving(false);
       }
   });

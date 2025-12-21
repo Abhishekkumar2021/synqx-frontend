@@ -34,11 +34,17 @@ export const PipelinesListPage: React.FC = () => {
     // Mutations
     const runMutation = useMutation({
         mutationFn: (id: number) => triggerPipeline(id),
-        onSuccess: () => {
-            toast.success("Pipeline triggered successfully");
+        onSuccess: (data) => {
+            toast.success("Pipeline Triggered", {
+                description: `Execution started successfully. Job ID: ${data.id}`
+            });
             queryClient.invalidateQueries({ queryKey: ['jobs'] });
         },
-        onError: () => toast.error("Failed to trigger pipeline")
+        onError: (err: any) => {
+            toast.error("Trigger Failed", {
+                description: err.response?.data?.detail?.message || "There was an error starting the pipeline."
+            });
+        }
     });
 
     // Handlers

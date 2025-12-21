@@ -51,6 +51,13 @@ import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from '@
 import { cn } from '@/lib/utils';
 import { AssetTableRow } from '@/components/features/connections/AssetTableRow';
 import { PageMeta } from '@/components/common/PageMeta';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
+} from "@/components/ui/dialog";
 
 // --- Sub-Components ---
 
@@ -91,14 +98,6 @@ const ConfigField = ({ label, value, sensitive = false, copyable = false }: { la
         </div>
     );
 };
-
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import {
-    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
-} from "@/components/ui/dialog";
 
 const AssetsTabContent = ({
     connectionId,
@@ -181,13 +180,17 @@ const AssetsTabContent = ({
             return createAsset(connectionId, payload);
         },
         onSuccess: () => {
-            toast.success(`Asset ${newAssetName} created`);
+            toast.success("Asset Created", {
+                description: `Successfully added "${newAssetName}" to managed assets.`
+            });
             queryClient.invalidateQueries({ queryKey: ['assets', connectionId] });
             setIsCreateOpen(false);
         },
         onError: (err) => {
             console.error(err);
-            toast.error("Failed to create asset");
+            toast.error("Asset Creation Failed", {
+                description: "There was an error defining this asset. Please try again."
+            });
         }
     });
 
@@ -607,17 +610,19 @@ export const ConnectionDetailsPage: React.FC = () => {
         onSuccess: (data: ConnectionTestResult) => {
             if (data.success) {
                 toast.success("Connection Healthy", {
-                    description: "Latency: 45ms • SSL: Verified",
+                    description: `Verification successful. ${data.message || 'The system can successfully communicate with the data source.'}`,
                     icon: <ShieldCheck className="text-emerald-500 h-4 w-4" />
                 });
             } else {
                 toast.error("Connection Failed", {
-                    description: data.message,
+                    description: data.message || "The data source could not be reached. Please check your credentials and host settings.",
                     icon: <AlertTriangle className="text-destructive h-4 w-4" />
                 });
             }
         },
-        onError: () => toast.error("Test execution failed")
+        onError: () => toast.error("Test execution failed", {
+            description: "An internal error occurred while trying to verify connectivity."
+        })
     });
 
     // Discover Assets Mutation

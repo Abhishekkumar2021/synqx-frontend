@@ -33,8 +33,11 @@ export const RunPipelineDialog: React.FC<RunPipelineDialogProps> = ({ open, onOp
 
     const runMutation = useMutation({
         mutationFn: (id: number) => triggerPipeline(id),
-        onSuccess: () => {
-            toast.success("Pipeline triggered successfully");
+        onSuccess: (data) => {
+            const pipelineName = pipelines?.find(p => p.id.toString() === selectedPipelineId)?.name || 'Pipeline';
+            toast.success("Pipeline Triggered", {
+                description: `Successfully started execution for "${pipelineName}". Job ID: ${data.id}`
+            });
             // Invalidate dashboard stats to reflect new job
             queryClient.invalidateQueries({ queryKey: ['dashboard'] });
             // Also invalidate jobs list if user navigates there
@@ -42,7 +45,11 @@ export const RunPipelineDialog: React.FC<RunPipelineDialogProps> = ({ open, onOp
             onOpenChange(false);
             setSelectedPipelineId('');
         },
-        onError: () => toast.error("Failed to trigger pipeline")
+        onError: (err: any) => {
+            toast.error("Trigger Failed", {
+                description: err.response?.data?.detail?.message || "There was an error starting the pipeline. Please try again."
+            });
+        }
     });
 
     const handleRun = () => {

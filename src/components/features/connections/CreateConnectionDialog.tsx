@@ -72,10 +72,16 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
         mutationFn: (data: ConnectionFormValues) => createConnection(data as ConnectionCreate),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['connections'] });
-            toast.success(`Connection ${isEditMode ? 'updated' : 'created'} successfully`);
+            toast.success(`Connection ${isEditMode ? 'Updated' : 'Created'}`, {
+                description: `Successfully ${isEditMode ? 'updated' : 'configured'} "${form.getValues('name')}".`
+            });
             onClose();
         },
-        onError: (_err: any) => toast.error(`Failed to ${isEditMode ? 'update' : 'create'} connection`)
+        onError: (err: any) => {
+            toast.error(`Configuration Failed`, {
+                description: err.response?.data?.detail?.message || `There was an error ${isEditMode ? 'updating' : 'creating'} the connection. Please check your settings.`
+            });
+        }
     });
 
     const handleSelect = (type: string) => {

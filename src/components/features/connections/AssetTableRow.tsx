@@ -13,6 +13,16 @@ import {
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription
 } from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -22,6 +32,7 @@ import { toast } from 'sonner';
 import {
     getAssetSchemaVersions,
     discoverAssetSchema,
+    deleteAsset,
     type Asset
 } from '@/lib/api';
 
@@ -40,6 +51,7 @@ const getAssetIcon = (type: string) => {
 
 export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionId }) => {
     const [isSchemaDialogOpen, setIsSchemaDialogOpen] = useState(false);
+    const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
     const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
     const [copied, setCopied] = useState(false);
     const queryClient = useQueryClient();
@@ -68,6 +80,16 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
             queryClient.invalidateQueries({ queryKey: ['assets', connectionId] });
         },
         onError: () => toast.error("Inference failed")
+    });
+
+    // Mutation: Delete Asset
+    const deleteMutation = useMutation({
+        mutationFn: () => deleteAsset(connectionId, asset.id),
+        onSuccess: () => {
+            toast.success("Asset deleted");
+            queryClient.invalidateQueries({ queryKey: ['assets', connectionId] });
+        },
+        onError: () => toast.error("Delete failed")
     });
 
     const selectedSchema = schemaVersions?.find(v => v.id === selectedVersionId);
@@ -134,8 +156,36 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                             <DropdownMenuItem onClick={() => setIsSchemaDialogOpen(true)}>
                                 <FileJson className="mr-2 h-3.5 w-3.5" /> View History
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                                className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
+                                onClick={() => setIsDeleteAlertOpen(true)}
+                                disabled={deleteMutation.isPending}
+                            >
+                                <Terminal className="mr-2 h-3.5 w-3.5" /> Delete Asset
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
+
+                    <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Asset?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    Are you sure you want to delete the asset "{asset.name}"? This will remove its metadata and history.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                    onClick={() => deleteMutation.mutate()}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                    Delete
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
                 </div>
 
                 {/* --- Schema Viewer Dialog --- */}

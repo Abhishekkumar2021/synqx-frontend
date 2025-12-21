@@ -133,10 +133,9 @@ function AlertDialogAction({
 }: React.ComponentProps<typeof AlertDialogPrimitive.Action>) {
   return (
     <AlertDialogPrimitive.Action
-      // Use the primary ceramic button style
       className={cn(
         buttonVariants({ variant: "default" }),
-        "rounded-2xl h-11 px-6 font-bold shadow-lg shadow-primary/20",
+        "rounded-2xl h-11 px-6 font-bold",
         className
       )}
       {...props}
