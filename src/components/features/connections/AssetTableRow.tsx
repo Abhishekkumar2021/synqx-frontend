@@ -33,6 +33,7 @@ import {
     getAssetSchemaVersions,
     discoverAssetSchema,
     deleteAsset,
+    getAssetSampleData,
     type Asset
 } from '@/lib/api';
 
@@ -51,6 +52,7 @@ const getAssetIcon = (type: string) => {
 
 export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionId }) => {
     const [isSchemaDialogOpen, setIsSchemaDialogOpen] = useState(false);
+    const [isSampleDialogOpen, setIsSampleDialogOpen] = useState(false);
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
     const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
     const [copied, setCopied] = useState(false);
@@ -61,6 +63,13 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
         queryKey: ['schema', asset.id],
         queryFn: () => getAssetSchemaVersions(connectionId, asset.id),
         enabled: isSchemaDialogOpen,
+    });
+
+    // Fetch Sample Data
+    const { data: sampleData, isLoading: loadingSample } = useQuery({
+        queryKey: ['sample', asset.id],
+        queryFn: () => getAssetSampleData(connectionId, asset.id, 50),
+        enabled: isSampleDialogOpen,
     });
 
     // Default to latest version when loaded
@@ -134,6 +143,15 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                         variant="ghost"
                         size="sm"
                         className="h-8 w-8 p-0 hover:bg-background hover:text-primary hover:border hover:border-border"
+                        onClick={() => setIsSampleDialogOpen(true)}
+                        title="View Sample Data"
+                    >
+                        <TableIcon className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-background hover:text-primary hover:border hover:border-border"
                         onClick={() => setIsSchemaDialogOpen(true)}
                         title="View Schema"
                     >
@@ -149,6 +167,9 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                         <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/60 shadow-xl backdrop-blur-md">
                             <DropdownMenuLabel>Asset Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => setIsSampleDialogOpen(true)}>
+                                <TableIcon className="mr-2 h-3.5 w-3.5" /> View Sample Data
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => inferMutation.mutate()} disabled={inferMutation.isPending}>
                                 <RefreshCw className={cn("mr-2 h-3.5 w-3.5", inferMutation.isPending && "animate-spin")} />
                                 Refresh Schema
@@ -282,6 +303,76 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                                     )}
                                 </div>
                             </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* --- Sample Data Dialog --- */}
+                <Dialog open={isSampleDialogOpen} onOpenChange={setIsSampleDialogOpen}>
+                    <DialogContent className="max-w-6xl h-[80vh] flex flex-col p-0 gap-0 overflow-hidden sm:rounded-[1.5rem] border-border/60 bg-background/95 backdrop-blur-2xl shadow-2xl">
+                        <DialogHeader className="px-6 py-4 border-b border-border/50 shrink-0 flex flex-row items-center justify-between space-y-0">
+                            <div className="flex items-center gap-4">
+                                <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 ring-1 ring-emerald-500/20">
+                                    <TableIcon className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <DialogTitle className="text-base font-semibold text-foreground">
+                                        Sample Data: {asset.name}
+                                    </DialogTitle>
+                                    <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                                        Previewing latest {sampleData?.count || 0} rows from the source.
+                                    </DialogDescription>
+                                </div>
+                            </div>
+                        </DialogHeader>
+
+                        <div className="flex-1 overflow-auto bg-card/30">
+                            {loadingSample ? (
+                                <div className="p-6 space-y-4">
+                                    <Skeleton className="h-8 w-full" />
+                                    <Skeleton className="h-20 w-full" />
+                                    <Skeleton className="h-20 w-full" />
+                                    <Skeleton className="h-20 w-full" />
+                                </div>
+                            ) : sampleData && sampleData.rows.length > 0 ? (
+                                <div className="relative">
+                                    <table className="w-full text-left border-collapse min-w-max">
+                                        <thead className="sticky top-0 bg-muted/80 backdrop-blur-md z-20">
+                                            <tr>
+                                                {Object.keys(sampleData.rows[0]).map((header) => (
+                                                    <th key={header} className="px-4 py-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/50">
+                                                        {header}
+                                                    </th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-border/40">
+                                            {sampleData.rows.map((row, i) => (
+                                                <tr key={i} className="hover:bg-muted/30 transition-colors">
+                                                    {Object.values(row).map((val: any, j) => (
+                                                        <td key={j} className="px-4 py-2.5 text-xs font-medium text-foreground max-w-[300px] truncate">
+                                                            {val === null ? (
+                                                                <span className="text-muted-foreground/30 italic">null</span>
+                                                            ) : typeof val === 'object' ? (
+                                                                <span className="text-blue-500 font-mono text-[10px]">{JSON.stringify(val)}</span>
+                                                            ) : (
+                                                                String(val)
+                                                            )}
+                                                        </td>
+                                                    ))}
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4">
+                                    <div className="h-16 w-16 rounded-full bg-muted/20 flex items-center justify-center">
+                                        <TableIcon className="h-8 w-8 opacity-20" />
+                                    </div>
+                                    <span>No data available for preview</span>
+                                </div>
+                            )}
                         </div>
                     </DialogContent>
                 </Dialog>

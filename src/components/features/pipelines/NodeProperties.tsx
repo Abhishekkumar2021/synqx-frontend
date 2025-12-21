@@ -71,7 +71,21 @@ const getNodeIcon = (type: string) => {
 }
 
 export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, onUpdate, onDelete }) => {
-    const { register, handleSubmit, setValue, watch, getValues } = useForm<FormData>();
+    const { register, handleSubmit, setValue, watch, getValues, formState: { errors } } = useForm<FormData>({
+        defaultValues: {
+            label: '',
+            type: 'default',
+            operator_class: 'pandas_transform',
+            config: '{}',
+            filter_condition: '',
+            join_on: '',
+            join_type: 'inner',
+            group_by: '',
+            drop_columns: '',
+            connection_id: '',
+            asset_id: ''
+        }
+    });
     const [activeTab, setActiveTab] = useState('settings');
 
     // Watchers
@@ -222,12 +236,18 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                             {/* Common Fields */}
                             <div className="space-y-5">
                                 <div className="space-y-2.5">
-                                    <Label className="text-sm font-semibold ml-1 text-foreground">Node Label</Label>
+                                    <Label className="text-sm font-semibold ml-1 text-foreground">
+                                        Node Label <span className="text-destructive">*</span>
+                                    </Label>
                                     <Input
-                                        {...register('label')}
-                                        className="h-11 rounded-xl bg-background/50 border-border/50 focus-visible:bg-background focus-visible:ring-primary/20 transition-all"
+                                        {...register('label', { required: 'Label is required' })}
+                                        className={cn(
+                                            "h-11 rounded-xl bg-background/50 border-border/50 focus-visible:bg-background focus-visible:ring-primary/20 transition-all",
+                                            errors.label && "border-destructive focus-visible:ring-destructive/20"
+                                        )}
                                         placeholder="Enter a descriptive name"
                                     />
+                                    {errors.label && <p className="text-[10px] text-destructive ml-1">{errors.label.message}</p>}
                                 </div>
                                 <div className="space-y-2.5">
                                     <Label className="text-sm font-semibold ml-1 text-foreground">Operator Type</Label>
@@ -287,13 +307,20 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                                         <div className="p-1.5 rounded-md bg-chart-3/10">
                                                             <Filter className="h-4 w-4 text-chart-3" />
                                                         </div>
-                                                        <span className="text-sm font-semibold text-foreground">Filter Condition</span>
+                                                        <span className="text-sm font-semibold text-foreground">Filter Condition <span className="text-destructive">*</span></span>
                                                     </div>
                                                     <Input
-                                                        {...register('filter_condition', { onChange: (e) => syncVisualToConfig({ condition: e.target.value }) })}
+                                                        {...register('filter_condition', { 
+                                                            required: 'Filter condition is required',
+                                                            onChange: (e) => syncVisualToConfig({ condition: e.target.value }) 
+                                                        })}
                                                         placeholder="e.g. age > 18"
-                                                        className="font-mono text-xs h-10 rounded-lg bg-background/80 border-border/50"
+                                                        className={cn(
+                                                            "font-mono text-xs h-10 rounded-lg bg-background/80 border-border/50",
+                                                            errors.filter_condition && "border-destructive"
+                                                        )}
                                                     />
+                                                    {errors.filter_condition && <p className="text-[10px] text-destructive">{errors.filter_condition.message}</p>}
                                                     <p className="text-[10px] text-muted-foreground pl-1">Pandas query string format.</p>
                                                 </div>
                                             )}
@@ -308,12 +335,19 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="space-y-2">
-                                                            <Label className="text-xs font-medium ml-1 text-muted-foreground">Join Column</Label>
+                                                            <Label className="text-xs font-medium ml-1 text-muted-foreground">Join Column <span className="text-destructive">*</span></Label>
                                                             <Input
-                                                                {...register('join_on', { onChange: (e) => syncVisualToConfig({ on: e.target.value }) })}
+                                                                {...register('join_on', { 
+                                                                    required: 'Join column is required',
+                                                                    onChange: (e) => syncVisualToConfig({ on: e.target.value }) 
+                                                                })}
                                                                 placeholder="id"
-                                                                className="h-10 rounded-lg bg-background/80 border-border/50"
+                                                                className={cn(
+                                                                    "h-10 rounded-lg bg-background/80 border-border/50",
+                                                                    errors.join_on && "border-destructive"
+                                                                )}
                                                             />
+                                                            {errors.join_on && <p className="text-[10px] text-destructive">{errors.join_on.message}</p>}
                                                         </div>
                                                         <div className="space-y-2">
                                                             <Label className="text-xs font-medium ml-1 text-muted-foreground">Join Type</Label>
@@ -381,7 +415,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
 
                                             <div className="space-y-4">
                                                 <div className="space-y-2">
-                                                    <Label className="text-xs font-medium ml-1 text-muted-foreground">Connection</Label>
+                                                    <Label className="text-xs font-medium ml-1 text-muted-foreground">Connection <span className="text-destructive">*</span></Label>
                                                     <Select
                                                         value={watch('connection_id')}
                                                         onValueChange={(v) => {
@@ -389,7 +423,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                                             setValue('asset_id', ''); // Reset asset on connection change
                                                         }}
                                                     >
-                                                        <SelectTrigger className="h-10 rounded-lg bg-background/80">
+                                                        <SelectTrigger className={cn("h-10 rounded-lg bg-background/80", !watch('connection_id') && errors.connection_id && "border-destructive")}>
                                                             <SelectValue placeholder="Select connection" />
                                                         </SelectTrigger>
                                                         <SelectContent>
@@ -398,16 +432,18 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                                             ))}
                                                         </SelectContent>
                                                     </Select>
+                                                    {!watch('connection_id') && <Input type="hidden" {...register('connection_id', { required: 'Connection is required' })} />}
+                                                    {errors.connection_id && <p className="text-[10px] text-destructive">{errors.connection_id.message}</p>}
                                                 </div>
 
                                                 <div className="space-y-2">
-                                                    <Label className="text-xs font-medium ml-1 text-muted-foreground">Asset</Label>
+                                                    <Label className="text-xs font-medium ml-1 text-muted-foreground">Asset <span className="text-destructive">*</span></Label>
                                                     <Select
                                                         value={watch('asset_id')}
                                                         onValueChange={(v) => setValue('asset_id', v)}
                                                         disabled={!watch('connection_id')}
                                                     >
-                                                        <SelectTrigger className="h-10 rounded-lg bg-background/80">
+                                                        <SelectTrigger className={cn("h-10 rounded-lg bg-background/80", !watch('asset_id') && errors.asset_id && "border-destructive")}>
                                                             <SelectValue placeholder={watch('connection_id') ? "Select asset" : "Select connection first"} />
                                                         </SelectTrigger>
                                                         <SelectContent>
@@ -416,6 +452,8 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                                             ))}
                                                         </SelectContent>
                                                     </Select>
+                                                    {!watch('asset_id') && <Input type="hidden" {...register('asset_id', { required: 'Asset is required' })} />}
+                                                    {errors.asset_id && <p className="text-[10px] text-destructive">{errors.asset_id.message}</p>}
                                                 </div>
                                             </div>
                                          </div>
@@ -433,10 +471,24 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                         <Badge variant="outline" className="text-[10px] h-5 border-border/50 bg-muted/20 text-muted-foreground">JSON</Badge>
                                     </div>
                                     <Textarea
-                                        {...register('config')}
-                                        className="font-mono text-xs leading-relaxed min-h-[350px] resize-none bg-muted/30 border-border/40 text-foreground/90 rounded-xl p-4 shadow-inner focus-visible:ring-primary/20"
+                                        {...register('config', { 
+                                            required: 'Config is required',
+                                            validate: (v) => {
+                                                try {
+                                                    JSON.parse(v);
+                                                    return true;
+                                                } catch (e) {
+                                                    return 'Invalid JSON format';
+                                                }
+                                            }
+                                        })}
+                                        className={cn(
+                                            "font-mono text-xs leading-relaxed min-h-[350px] resize-none bg-muted/30 border-border/40 text-foreground/90 rounded-xl p-4 shadow-inner focus-visible:ring-primary/20",
+                                            errors.config && "border-destructive focus-visible:ring-destructive/20"
+                                        )}
                                         spellCheck={false}
                                     />
+                                    {errors.config && <p className="text-[10px] text-destructive ml-1">{errors.config.message}</p>}
                                 </div>
                             </TabsContent>
                         </div>

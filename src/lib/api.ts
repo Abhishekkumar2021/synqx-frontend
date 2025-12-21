@@ -365,6 +365,17 @@ export const getAssetSchemaVersions = async (connectionId: number, assetId: numb
     return data;
 };
 
+export interface AssetSampleData {
+    asset_id: number;
+    rows: any[];
+    count: number;
+}
+
+export const getAssetSampleData = async (connectionId: number, assetId: number, limit: number = 100) => {
+    const { data } = await api.get<AssetSampleData>(`/connections/${connectionId}/assets/${assetId}/sample`, { params: { limit } });
+    return data;
+};
+
 // Pipelines
 export interface PipelineNode {
     id?: number;

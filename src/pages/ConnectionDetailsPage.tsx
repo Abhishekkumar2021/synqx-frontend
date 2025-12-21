@@ -477,6 +477,16 @@ const AssetsTabContent = ({
 };
 
 const ConfigurationTabContent = ({ connection }: { connection: any }) => {
+    const config = connection.config || {};
+    
+    // Define fields we want to show prominently or specifically format
+    const mainFields = ['host', 'port', 'database', 'username', 'database_path', 'url', 'account', 'warehouse', 'schema', 'role', 'bucket', 'region'];
+    
+    // Filter sensitive keys
+    const sensitiveKeys = ['password', 'secret', 'token', 'key', 'api_key', 'access_key'];
+    
+    const configEntries = Object.entries(config).filter(([key]) => !mainFields.includes(key.toLowerCase()) && !sensitiveKeys.some(sk => key.toLowerCase().includes(sk)));
+
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-y-auto p-4 custom-scrollbar z-10">
             {/* Config Details */}
@@ -486,18 +496,42 @@ const ConfigurationTabContent = ({ connection }: { connection: any }) => {
                         <Settings2 className="h-4 w-4 text-primary" />
                         Connection Settings
                     </CardTitle>
-                    <CardDescription>Read-only technical configuration.</CardDescription>
+                    <CardDescription>Technical configuration for this {connection.connector_type} source.</CardDescription>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
                     <div className="grid gap-6 md:grid-cols-2">
                         <ConfigField label="Connection Name" value={connection.name} copyable />
                         <ConfigField label="Connector Type" value={<span className="capitalize font-semibold text-foreground">{connection.connector_type}</span>} />
                     </div>
-                    <ConfigField label="Description" value={connection.description || '—'} />
+                    
                     <div className="grid gap-6 md:grid-cols-2">
-                        <ConfigField label="Host" value={connection.host || '127.0.0.1'} copyable />
-                        <ConfigField label="Port" value={connection.port || '5432'} />
+                        {config.host && <ConfigField label="Host" value={config.host} copyable />}
+                        {config.port && <ConfigField label="Port" value={String(config.port)} />}
+                        {config.database && <ConfigField label="Database" value={config.database} copyable />}
+                        {config.username && <ConfigField label="Username" value={config.username} copyable />}
+                        {config.database_path && <ConfigField label="Database Path" value={config.database_path} copyable />}
+                        {config.account && <ConfigField label="Account" value={config.account} copyable />}
+                        {config.warehouse && <ConfigField label="Warehouse" value={config.warehouse} />}
+                        {config.schema && <ConfigField label="Schema" value={config.schema} />}
+                        {config.bucket && <ConfigField label="Bucket" value={config.bucket} copyable />}
+                        {config.region && <ConfigField label="Region" value={config.region} />}
                     </div>
+
+                    {configEntries.length > 0 && (
+                        <div className="grid gap-6 md:grid-cols-2">
+                            {configEntries.map(([key, value]) => (
+                                <ConfigField 
+                                    key={key} 
+                                    label={key.replace(/_/g, ' ')} 
+                                    value={typeof value === 'object' ? JSON.stringify(value) : String(value)} 
+                                    copyable 
+                                />
+                            ))}
+                        </div>
+                    )}
+
+                    <ConfigField label="Description" value={connection.description || '—'} />
+                    
                     <div className="grid gap-6 md:grid-cols-2">
                         <ConfigField label="Created On" value={format(new Date(connection.created_at || ''), 'PPP')} />
                         <ConfigField label="Last Updated" value={format(new Date(connection.updated_at || ''), 'PPP')} />
@@ -511,12 +545,12 @@ const ConfigurationTabContent = ({ connection }: { connection: any }) => {
                         </h4>
                         <div className="bg-muted/30 border border-border/60 rounded-lg p-4 flex items-center justify-between">
                             <div className="space-y-1">
-                                <p className="text-xs font-medium text-muted-foreground">Encrypted Password / API Key</p>
+                                <p className="text-xs font-medium text-muted-foreground">Security Credentials</p>
                                 <div className="font-mono text-sm tracking-widest text-foreground">••••••••••••••••</div>
                             </div>
-                            <Button variant="ghost" size="sm" className="text-xs h-7 hover:bg-muted/50 border border-border/50">
-                                Rotate Credentials
-                            </Button>
+                            <Badge variant="outline" className="text-[10px] bg-emerald-500/5 text-emerald-600 border-emerald-500/20">
+                                Encrypted at Rest
+                            </Badge>
                         </div>
                     </div>
                 </CardContent>
@@ -524,15 +558,16 @@ const ConfigurationTabContent = ({ connection }: { connection: any }) => {
 
             {/* Side Panel Info */}
             <div className="space-y-6">
-                <Card className="border-amber-500/20 bg-amber-500/5 shadow-sm backdrop-blur-sm">
+                <Card className="border-border/60 bg-card/40 backdrop-blur-xl shadow-sm">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-bold text-amber-600 dark:text-amber-500 flex items-center gap-2">
+                        <CardTitle className="text-sm font-bold text-muted-foreground flex items-center gap-2">
                             <AlertTriangle className="h-4 w-4" /> Impact Analysis
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="text-xs text-muted-foreground leading-relaxed">
-                        This connection is actively used by <strong>3 pipelines</strong>.
-                        Changing credentials or host details may cause immediate failures in scheduled jobs.
+                        Usage statistics for this connection are not yet available.
+                        <br/>
+                        This feature will provide insights into how this connection is utilized by pipelines.
                     </CardContent>
                 </Card>
 
@@ -543,17 +578,8 @@ const ConfigurationTabContent = ({ connection }: { connection: any }) => {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Sync Success Rate</span>
-                            <span className="font-mono font-bold text-emerald-500">99.8%</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Avg. Latency</span>
-                            <span className="font-mono text-foreground">45ms</span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">Data Extracted (24h)</span>
-                            <span className="font-mono text-foreground">1.2 GB</span>
+                        <div className="flex items-center justify-center h-24 text-muted-foreground text-sm italic">
+                            No usage statistics available yet.
                         </div>
                     </CardContent>
                 </Card>
