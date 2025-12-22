@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { useTheme } from '@/hooks/useTheme';
 import { format } from 'date-fns';
 import {
     DropdownMenu,
@@ -41,9 +40,6 @@ const ActionIcon = ({ onClick, title, children, active, className }: { onClick: 
 );
 
 export const JobLogViewer: React.FC<JobLogViewerProps> = ({ jobId }) => {
-    const { theme } = useTheme();
-    const isDark = theme === 'dark';
-
     const [isAutoScroll, setIsAutoScroll] = useState(true);
     const [wordWrap, setWordWrap] = useState(false);
     const [showTimestamps, setShowTimestamps] = useState(true);

@@ -58,10 +58,6 @@ export const CONNECTOR_META: Record<string, ConnectorMetadata> = {
         id: 'bigquery', name: 'Google BigQuery', description: 'Serverless enterprise data warehouse.', 
         icon: <Cloud />, category: 'Warehouse', color: "text-blue-600 bg-blue-600/10 border-blue-600/20"
     },
-    databricks: { 
-        id: 'databricks', name: 'Databricks', description: 'Unified data analytics platform.', 
-        icon: <Cloud />, category: 'Warehouse', color: "text-orange-600 bg-orange-600/10 border-orange-600/20"
-    },
     mongodb: { 
         id: 'mongodb', name: 'MongoDB', description: 'Source-available document database.', 
         icon: <FileJson />, category: 'Database', color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20"
@@ -78,14 +74,6 @@ export const CONNECTOR_META: Record<string, ConnectorMetadata> = {
         id: 's3', name: 'Amazon S3', description: 'Scalable object storage in AWS.', 
         icon: <Cloud />, category: 'File', color: "text-orange-500 bg-orange-500/10 border-orange-500/20", popular: true 
     },
-    gcs: { 
-        id: 'gcs', name: 'Google Cloud Storage', description: 'Unified object storage for developers.', 
-        icon: <Cloud />, category: 'File', color: "text-blue-500 bg-blue-500/10 border-blue-500/20"
-    },
-    azure_blob: { 
-        id: 'azure_blob', name: 'Azure Blob', description: 'Massively scalable object storage.', 
-        icon: <Cloud />, category: 'File', color: "text-blue-600 bg-blue-600/10 border-blue-600/20"
-    },
     rest_api: { 
         id: 'rest_api', name: 'REST API', description: 'Connect to generic HTTP endpoints.', 
         icon: <Globe />, category: 'API', color: "text-purple-500 bg-purple-500/10 border-purple-500/20"
@@ -98,9 +86,9 @@ export const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
             { name: "host", label: "Host Address", type: "text", required: true, placeholder: "e.g. db.example.com" },
             { name: "port", label: "Port", type: "number", required: true, defaultValue: 5432 },
             { name: "database", label: "Database Name", type: "text", required: true },
+            { name: "db_schema", label: "Schema", type: "text", defaultValue: "public" },
             { name: "username", label: "Username", type: "text", required: true },
             { name: "password", label: "Password", type: "password", required: true },
-            { name: "ssl", label: "SSL Mode", type: "select", options: [{ label: "Disable", value: "disable" }, { label: "Require", value: "require" }], defaultValue: "require" }
         ]
     },
     mysql: {
@@ -108,6 +96,47 @@ export const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
             { name: "host", label: "Host", type: "text", required: true, placeholder: "localhost" },
             { name: "port", label: "Port", type: "number", required: true, defaultValue: 3306 },
             { name: "database", label: "Database Name", type: "text", required: true },
+            { name: "db_schema", label: "Schema", type: "text", defaultValue: "public" },
+            { name: "username", label: "Username", type: "text", required: true },
+            { name: "password", label: "Password", type: "password", required: true },
+        ]
+    },
+    mariadb: {
+        fields: [
+            { name: "host", label: "Host", type: "text", required: true, placeholder: "localhost" },
+            { name: "port", label: "Port", type: "number", required: true, defaultValue: 3306 },
+            { name: "database", label: "Database Name", type: "text", required: true },
+            { name: "db_schema", label: "Schema", type: "text", defaultValue: "public" },
+            { name: "username", label: "Username", type: "text", required: true },
+            { name: "password", label: "Password", type: "password", required: true },
+        ]
+    },
+    mssql: {
+        fields: [
+            { name: "host", label: "Host", type: "text", required: true, placeholder: "sqlserver.example.com" },
+            { name: "port", label: "Port", type: "number", required: true, defaultValue: 1433 },
+            { name: "database", label: "Database Name", type: "text", required: true },
+            { name: "db_schema", label: "Schema", type: "text", defaultValue: "dbo" },
+            { name: "username", label: "Username", type: "text", required: true },
+            { name: "password", label: "Password", type: "password", required: true },
+        ]
+    },
+    oracle: {
+        fields: [
+            { name: "host", label: "Host", type: "text", required: true, placeholder: "oracle.example.com" },
+            { name: "port", label: "Port", type: "number", required: true, defaultValue: 1521 },
+            { name: "database", label: "Service Name / SID", type: "text", required: true },
+            { name: "db_schema", label: "Schema", type: "text" },
+            { name: "username", label: "Username", type: "text", required: true },
+            { name: "password", label: "Password", type: "password", required: true },
+        ]
+    },
+    redshift: {
+        fields: [
+            { name: "host", label: "Host Address", type: "text", required: true, placeholder: "cluster.abc.region.redshift.amazonaws.com" },
+            { name: "port", label: "Port", type: "number", required: true, defaultValue: 5439 },
+            { name: "database", label: "Database Name", type: "text", required: true },
+            { name: "db_schema", label: "Schema", type: "text", defaultValue: "public" },
             { name: "username", label: "Username", type: "text", required: true },
             { name: "password", label: "Password", type: "password", required: true },
         ]
@@ -143,6 +172,7 @@ export const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
             { name: "port", label: "Port", type: "number", required: true, defaultValue: 6379 },
             { name: "password", label: "Password", type: "password" },
             { name: "db", label: "DB Index", type: "number", defaultValue: 0 },
+            { name: "decode_responses", label: "Decode Responses", type: "select", options: [{label: "True", value: true}, {label: "False", value: false}], defaultValue: true }
         ]
     },
     snowflake: {
@@ -176,10 +206,22 @@ export const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
                     { label: "API Key", value: "api_key" },
                 ]
             },
-            { name: "token", label: "Bearer Token", type: "password", required: true, dependency: { field: "auth_type", value: "bearer" } },
-            { name: "username", label: "Username", type: "text", required: true, dependency: { field: "auth_type", value: "basic" } },
-            { name: "password", label: "Password", type: "password", required: true, dependency: { field: "auth_type", value: "basic" } },
+            { name: "auth_token", label: "Bearer Token", type: "password", required: true, dependency: { field: "auth_type", value: "bearer" } },
+            { name: "auth_username", label: "Username", type: "text", required: true, dependency: { field: "auth_type", value: "basic" } },
+            { name: "auth_password", label: "Password", type: "password", required: true, dependency: { field: "auth_type", value: "basic" } },
+            { name: "api_key_name", label: "API Key Name", type: "text", defaultValue: "X-API-Key", dependency: { field: "auth_type", value: "api_key" } },
+            { name: "api_key_value", label: "API Key Value", type: "password", dependency: { field: "auth_type", value: "api_key" } },
+            { 
+                name: "api_key_in", label: "API Key Location", type: "select", defaultValue: "header",
+                options: [{label: "Header", value: "header"}, {label: "Query Param", value: "query"}],
+                dependency: { field: "auth_type", value: "api_key" } 
+            },
+            { name: "timeout", label: "Timeout (seconds)", type: "number", defaultValue: 30.0 },
         ]
     },
-    local_file: { fields: [] }
+    local_file: { 
+        fields: [
+            { name: "base_path", label: "Base Path", type: "text", required: true, placeholder: "/data/files" }
+        ] 
+    }
 };

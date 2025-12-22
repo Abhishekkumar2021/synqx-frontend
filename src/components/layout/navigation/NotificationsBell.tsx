@@ -139,7 +139,14 @@ export const NotificationsBell: React.FC = () => {
                 </div>
                 
                 <div className="p-2 bg-muted/10 border-t border-border/40">
-                    <Button variant="ghost" className="w-full h-9 rounded-xl text-xs font-semibold text-muted-foreground hover:text-primary">
+                    <Button 
+                        variant="ghost" 
+                        className="w-full h-9 rounded-xl text-xs font-semibold text-muted-foreground hover:text-primary"
+                        onClick={() => {
+                            navigate('/alerts');
+                            setIsOpen(false);
+                        }}
+                    >
                         View all alerts
                     </Button>
                 </div>

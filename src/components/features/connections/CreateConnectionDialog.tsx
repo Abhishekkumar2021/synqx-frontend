@@ -89,6 +89,12 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
         }
     });
 
+    const handleSelect = (type: string) => {
+        setSelectedType(type);
+        form.setValue('connector_type', type);
+        setStep('configure');
+    };
+
     // Reset form when initialData changes
     useEffect(() => {
         if (initialData) {

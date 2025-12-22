@@ -26,9 +26,10 @@ import { Badge } from '@/components/ui/badge';
 import { 
     Save, Play, ArrowLeft, Loader2, Layout, 
     Database, ArrowRightLeft, HardDriveUpload,
-    Rocket, Square, Pencil, MousePointer2
+    Rocket, Square, Pencil, MousePointer2, History as HistoryIcon,
+    ExternalLink, Trash2
 } from 'lucide-react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import dagre from 'dagre';
@@ -43,6 +44,8 @@ import {
     triggerPipeline, 
     createPipelineVersion, 
     publishPipelineVersion,
+    getPipelineVersion,
+    deletePipeline,
     type PipelineNode as ApiNode, 
     type PipelineEdge as ApiEdge,
     type PipelineCreate
@@ -51,7 +54,18 @@ import {
 // Custom Components
 import PipelineNode from '@/components/features/pipelines/PipelineNode'; 
 import { NodeProperties } from '@/components/features/pipelines/NodeProperties';
+import { PipelineVersionDialog } from '@/components/features/pipelines/PipelineVersionDialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 /* --- Layout Engine --- */
 const dagreGraph = new dagre.graphlib.Graph();
@@ -81,22 +95,37 @@ const mapOperatorToNodeType = (opType: string) => {
         case 'extract': return 'source';
         case 'load': return 'sink';
         case 'transform': return 'transform';
+        case 'merge': return 'transform';
+        case 'union': return 'transform';
+        case 'join': return 'transform';
         default: return 'default';
     }
 };
 
 // Helper: Map Frontend Node Type to Backend OperatorType
-const mapNodeTypeToOperator = (nodeType: string) => {
+const mapNodeTypeToOperator = (nodeType: string, operatorClass?: string) => {
+    // Explicit overrides based on operator class
+    if (operatorClass === 'merge') return 'merge';
+    if (operatorClass === 'union') return 'union';
+    if (operatorClass === 'join') return 'join';
+    if (operatorClass === 'filter') return 'transform';
+    if (operatorClass === 'aggregate') return 'transform';
+    
+    // Fallback to node type mapping
     switch (nodeType) {
         case 'source': return 'extract';
         case 'sink': return 'load';
         case 'transform': return 'transform';
-        default: return 'transform'; // Default to transform if unknown
+        default: return 'transform';
     }
 };
 
 export const PipelineCanvas: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const versionIdParam = searchParams.get('version');
+  
   const isNew = id === 'new';
   const queryClient = useQueryClient();
   const { fitView } = useReactFlow();
@@ -109,16 +138,26 @@ export const PipelineCanvas: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [pipelineName, setPipelineName] = useState("Untitled Pipeline");
-  const initializedId = useRef<number | string | null>(null);
+  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const initializedVersionId = useRef<number | null>(null);
 
   const flowTheme = useMemo(() => (theme === 'dark' ? 'dark' : 'light'), [theme]);
 
   // --- Queries ---
-  const { data: pipeline, isLoading } = useQuery({  
+  const { data: pipeline, isLoading: isLoadingPipeline } = useQuery({  
       queryKey: ['pipeline', id], 
       queryFn: () => getPipeline(parseInt(id!)), 
       enabled: !isNew 
   });
+
+  const { data: specificVersion, isLoading: isLoadingVersion } = useQuery({
+      queryKey: ['pipeline-version', id, versionIdParam],
+      queryFn: () => getPipelineVersion(parseInt(id!), parseInt(versionIdParam!)),
+      enabled: !isNew && !!versionIdParam
+  });
+
+  const isLoading = isLoadingPipeline || (!!versionIdParam && isLoadingVersion);
 
   const nodeTypes = useMemo<NodeTypes>(() => ({
     source: PipelineNode,
@@ -127,57 +166,82 @@ export const PipelineCanvas: React.FC = () => {
     default: PipelineNode
   }), []);
 
+  // --- Mutations ---
+  const deleteMutation = useMutation({
+      mutationFn: () => deletePipeline(parseInt(id!)),
+      onSuccess: () => {
+          toast.success("Pipeline Deleted", {
+              description: `"${pipelineName}" has been permanently removed.`
+          });
+          queryClient.invalidateQueries({ queryKey: ['pipelines'] });
+          navigate('/pipelines');
+      },
+      onError: (err: any) => {
+          toast.error("Deletion Failed", {
+              description: err.response?.data?.detail?.message || "There was an error deleting the pipeline."
+          });
+      }
+  });
+
   // --- Initialization ---
   useEffect(() => {
     if (!pipeline) return;
-    if (initializedId.current === pipeline.id) return;
     
-    initializedId.current = pipeline.id;
+    // Determine which version to load:
+    // 1. Specifically requested one (?version=X)
+    // 2. The latest version (most recent work/draft)
+    // 3. The published version (active)
+    const versionToLoad = specificVersion || pipeline.latest_version || pipeline.published_version;
+    
+    if (!versionToLoad) {
+        setPipelineName(pipeline.name);
+        return;
+    }
+
+    if (initializedVersionId.current === versionToLoad.id) return;
+    
+    initializedVersionId.current = versionToLoad.id;
     setPipelineName(pipeline.name);
     
-    if (pipeline.published_version) {
-        const version = pipeline.published_version;
-        const flowNodes: Node[] = version.nodes.map((n: ApiNode) => ({
-            id: n.node_id, 
-            type: mapOperatorToNodeType(n.operator_type), 
-            data: { 
-                label: n.name, 
-                config: n.config,
-                type: mapOperatorToNodeType(n.operator_type),
-                operator_class: n.operator_class,
-                status: 'idle',
-                // Populate Asset IDs
-                source_asset_id: n.source_asset_id,
-                destination_asset_id: n.destination_asset_id,
-                // Also map to connection_id if stored in config or inferable (not always easy, 
-                // but usually stored in data by NodeProperties if we saved it there)
-                connection_id: n.config?.connection_id
-            },
-            position: n.config?.ui?.position || { x: 0, y: 0 },
-        }));
+    const flowNodes: Node[] = versionToLoad.nodes.map((n: ApiNode) => ({
+        id: n.node_id, 
+        type: mapOperatorToNodeType(n.operator_type), 
+        data: { 
+            label: n.name, 
+            config: n.config,
+            type: mapOperatorToNodeType(n.operator_type),
+            operator_class: n.operator_class,
+            status: 'idle',
+            // Populate Asset IDs
+            source_asset_id: n.source_asset_id,
+            destination_asset_id: n.destination_asset_id,
+            // Also map to connection_id if stored in config or inferable
+            connection_id: n.config?.connection_id
+        },
+        position: n.config?.ui?.position || { x: 0, y: 0 },
+    }));
 
-        const flowEdges: Edge[] = version.edges.map((e: ApiEdge) => ({
-            id: `e-${e.from_node_id}-${e.to_node_id}`,
-            source: e.from_node_id,
-            target: e.to_node_id,
-            type: 'smoothstep', 
-            animated: false,
-            style: { stroke: 'var(--color-border)', strokeWidth: 2 },
-        }));
+    const flowEdges: Edge[] = versionToLoad.edges.map((e: ApiEdge) => ({
+        id: `e-${e.from_node_id}-${e.to_node_id}`,
+        source: e.from_node_id,
+        target: e.to_node_id,
+        type: 'smoothstep', 
+        animated: false,
+        style: { stroke: 'var(--color-border)', strokeWidth: 2 },
+    }));
 
-        const needsLayout = flowNodes.length > 0 && flowNodes.every(n => n.position.x === 0 && n.position.y === 0);
-        
-        if (needsLayout) {
-            const layouted = getLayoutedElements(flowNodes, flowEdges);
-            setNodes(layouted.nodes);
-            setEdges(layouted.edges);
-        } else {
-            setNodes(flowNodes);
-            setEdges(flowEdges);
-        }
-        setTimeout(() => window.requestAnimationFrame(() => fitView({ padding: 0.2 })), 100);
+    const needsLayout = flowNodes.length > 0 && flowNodes.every(n => n.position.x === 0 && n.position.y === 0);
+    
+    if (needsLayout) {
+        const layouted = getLayoutedElements(flowNodes, flowEdges);
+        setNodes(layouted.nodes);
+        setEdges(layouted.edges);
+    } else {
+        setNodes(flowNodes);
+        setEdges(flowEdges);
     }
-  }, [pipeline, setNodes, setEdges, fitView]);
+    setTimeout(() => window.requestAnimationFrame(() => fitView({ padding: 0.2 })), 100);
+  }, [pipeline, specificVersion, setNodes, setEdges, fitView]);
 
   // --- Handlers ---
   const onConnect = useCallback(
@@ -219,7 +283,7 @@ export const PipelineCanvas: React.FC = () => {
       onMutate: () => setIsRunning(true),
       onSuccess: (data) => {
           toast.success("Pipeline Started", {
-              description: `Execution is now running in the background. Job ID: ${data.id}`
+              description: `Execution is now running in the background. Job ID: ${data.job_id}`
           });
           setTimeout(() => setIsRunning(false), 3000); 
       },
@@ -233,55 +297,63 @@ export const PipelineCanvas: React.FC = () => {
 
   const saveMutation = useMutation({
       mutationFn: async ({ deploy = false }: { deploy?: boolean }) => {
-          setIsSaving(true);
-          
-          const apiNodes = nodes.map(n => {
-              const nodeData = n.data as any;
-              return {
-                  node_id: n.id,
-                  name: nodeData.label as string,
-                  operator_type: mapNodeTypeToOperator(n.type || 'default'),
-                  config: { 
-                      ...(nodeData.config as object), 
-                      ui: { position: n.position },
-                      // Persist connection_id in config if available for UI restoration
-                      connection_id: nodeData.connection_id 
-                  },
-                  order_index: 0, 
-                  operator_class: (nodeData.operator_class as string) || 'python_operator',
-                  // Map Asset IDs
-                  source_asset_id: nodeData.source_asset_id,
-                  destination_asset_id: nodeData.destination_asset_id
-              };
-          });
+          try {
+              setIsSaving(true);
+              
+              const apiNodes = nodes.map(n => {
+                  const nodeData = n.data as any;
+                  return {
+                      node_id: n.id,
+                      name: nodeData.label as string,
+                      operator_type: mapNodeTypeToOperator(n.type || 'default', nodeData.operator_class),
+                      config: { 
+                          ...(nodeData.config as object), 
+                          ui: { position: n.position },
+                          connection_id: nodeData.connection_id 
+                      },
+                      order_index: 0, 
+                      operator_class: (nodeData.operator_class as string) || 'pandas_transform',
+                      source_asset_id: nodeData.source_asset_id,
+                      destination_asset_id: nodeData.destination_asset_id
+                  };
+              });
 
-          const apiEdges = edges.map(e => ({ from_node_id: e.source, to_node_id: e.target }));
+              const apiEdges = edges.map(e => ({ from_node_id: e.source, to_node_id: e.target }));
 
-          if (isNew) {
-              // Create New Pipeline
-              const payload: PipelineCreate = {
-                  name: pipelineName || "New Pipeline",
-                  initial_version: {
+              if (isNew) {
+                  const payload: PipelineCreate = {
+                      name: pipelineName || "New Pipeline",
+                      initial_version: {
+                          nodes: apiNodes,
+                          edges: apiEdges,
+                          version_notes: "Initial draft"
+                      }
+                  };
+                  const createdPipeline = await createPipeline(payload);
+                  
+                  if (deploy && createdPipeline.current_version) {
+                      // Initial version number is 1, but we need the ID
+                      const versions = await getPipelineVersions(createdPipeline.id);
+                      if (versions.length > 0) {
+                          await publishPipelineVersion(createdPipeline.id, versions[0].id);
+                      }
+                  }
+                  
+                  return { type: 'create', pipeline: createdPipeline };
+              } else {
+                  const newVersion = await createPipelineVersion(parseInt(id!), {
                       nodes: apiNodes,
                       edges: apiEdges,
-                      version_notes: "Initial draft"
-                  }
-              };
-              const createdPipeline = await createPipeline(payload);
-              // Navigate to the new pipeline ID (replacing 'new' in URL)
-              // We can't easily use router navigation inside mutationFn, so we'll do it in onSuccess or return the ID
-              return { type: 'create', pipeline: createdPipeline };
-          } else {
-              // Update Existing Version
-              const newVersion = await createPipelineVersion(parseInt(id!), {
-                  nodes: apiNodes,
-                  edges: apiEdges,
-                  version_notes: deploy ? `Deployed at ${new Date().toLocaleTimeString()}` : 'Auto-save'
-              });
-              
-              if (deploy) await publishPipelineVersion(parseInt(id!), newVersion.id);
-              if (pipelineName !== pipeline?.name) await updatePipeline(parseInt(id!), { name: pipelineName });
-              return { type: 'update' };
+                      version_notes: deploy ? `Deployed at ${new Date().toLocaleTimeString()}` : 'Auto-save'
+                  });
+                  
+                  if (deploy) await publishPipelineVersion(parseInt(id!), newVersion.id);
+                  if (pipelineName !== pipeline?.name) await updatePipeline(parseInt(id!), { name: pipelineName });
+                  return { type: 'update' };
+              }
+          } catch (error) {
+              console.error("Mutation function error:", error);
+              throw error;
           }
       },
       onSuccess: (result, vars) => {
@@ -289,12 +361,10 @@ export const PipelineCanvas: React.FC = () => {
               toast.success("Pipeline Created", {
                   description: `"${pipelineName}" has been successfully initialized.`
               });
-              // Redirect to the new pipeline URL
               window.history.replaceState(null, '', `/pipelines/${result.pipeline.id}`);
-              // Force reload to pick up new ID (simpler than refactoring everything to handle ID change dynamically)
               window.location.reload(); 
           } else {
-              if (pipeline) initializedId.current = pipeline.id;
+              if (pipeline) initializedVersionId.current = pipeline.published_version_id || null;
               queryClient.invalidateQueries({ queryKey: ['pipeline', id] });
               queryClient.invalidateQueries({ queryKey: ['pipelines'] });
               toast.success(vars.deploy ? "Successfully Deployed" : "Draft Saved", {
@@ -303,13 +373,14 @@ export const PipelineCanvas: React.FC = () => {
                     : "Work-in-progress changes have been saved."
               });
           }
+      },
+      onSettled: () => {
           setIsSaving(false);
       },
       onError: (err: any) => {
           toast.error("Save Failed", { 
               description: err.response?.data?.detail?.message || err.message || "An unexpected error occurred while saving." 
           });
-          setIsSaving(false);
       }
   });
 
@@ -374,8 +445,19 @@ export const PipelineCanvas: React.FC = () => {
                           {isNew ? 'DRAFT' : pipeline?.status?.toUpperCase()}
                       </Badge>
                       <span className="hidden sm:inline">
-                          {isNew ? 'v1' : `v${pipeline?.published_version?.version || pipeline?.current_version || '?'}`}
+                          {isNew ? 'v1' : `v${versionIdParam || pipeline?.latest_version?.version || pipeline?.published_version?.version || '?'}`}
                       </span>
+                      {!isNew && (
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 px-2 rounded-md hover:bg-primary/10 hover:text-primary transition-colors flex items-center gap-1.5"
+                            onClick={() => setVersionsOpen(true)}
+                        >
+                            <HistoryIcon className="h-3 w-3" />
+                            <span>History</span>
+                        </Button>
+                      )}
                   </div>
               </div>
           </div>
@@ -384,6 +466,16 @@ export const PipelineCanvas: React.FC = () => {
           <div className="flex items-center gap-3">
             {!isNew && (
                 <div className="flex items-center gap-2">
+                     <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-9 w-9 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        onClick={() => setIsDeleteDialogOpen(true)}
+                        disabled={deleteMutation.isPending}
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                    <div className="w-px h-4 bg-border/40 mx-1" />
                      {isRunning ? (
                         <Button 
                             variant="destructive" 
@@ -414,7 +506,7 @@ export const PipelineCanvas: React.FC = () => {
                     variant="secondary"
                     size="sm" 
                     onClick={() => saveMutation.mutate({ deploy: false })} 
-                    disabled={isSaving}
+                    disabled={isSaving || !!versionIdParam}
                     className="h-9 rounded-full px-4 font-medium"
                 >
                     <Save className="mr-2 h-3.5 w-3.5" />
@@ -423,7 +515,7 @@ export const PipelineCanvas: React.FC = () => {
                  <Button 
                     size="sm" 
                     onClick={() => saveMutation.mutate({ deploy: true })} 
-                    disabled={isSaving}
+                    disabled={isSaving || !!versionIdParam}
                     className="h-9 rounded-full px-5 shadow-lg shadow-primary/20 bg-primary text-primary-foreground font-semibold hover:shadow-primary/30 transition-all gap-2"
                 >
                     {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin"/> : <Rocket className="h-3.5 w-3.5" />}
@@ -436,6 +528,32 @@ export const PipelineCanvas: React.FC = () => {
       {/* --- CANVAS --- */}
       <div className="flex-1 w-full relative glass-panel rounded-xl overflow-hidden shadow-2xl border border-border/50 bg-background/50">
           <div className="absolute inset-0 bg-grid-subtle opacity-20 pointer-events-none" />
+
+          {/* Historical Version Banner - Relocated to Bottom for better UX */}
+          {versionIdParam && (
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[100] w-fit min-w-[400px] max-w-[90%] bg-background/60 backdrop-blur-2xl border border-primary/30 rounded-2xl px-6 py-4 flex items-center justify-between gap-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom duration-500 ring-1 ring-white/5">
+                  <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
+                          <HistoryIcon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Read-Only Snapshot</span>
+                            <Badge className="h-4 px-1.5 bg-primary/20 text-primary border-none text-[9px] font-black">v{versionIdParam}</Badge>
+                          </div>
+                          <span className="text-xs font-medium text-muted-foreground">You are inspecting a historical state. Edits are disabled.</span>
+                      </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => navigate(`/pipelines/${id}`)}
+                    className="h-10 rounded-xl border border-primary/20 bg-primary/5 text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 gap-2 text-[10px] font-black uppercase tracking-widest px-4 group"
+                  >
+                      Exit View <ExternalLink className="h-3.5 w-3.5 group-hover:rotate-45 transition-transform" />
+                  </Button>
+              </div>
+          )}
 
           <ReactFlow
             nodes={nodes}
@@ -541,7 +659,10 @@ export const PipelineCanvas: React.FC = () => {
               {selectedNode && (
                 <NodeProperties 
                     node={selectedNode} 
-                    onUpdate={(id, newData) => setNodes(nds => nds.map(n => n.id === id ? { ...n, data: { ...n.data, ...newData } } : n))}
+                    onUpdate={(id, newData) => {
+                        setNodes(nds => nds.map(n => n.id === id ? { ...n, data: { ...n.data, ...newData } } : n));
+                        setSelectedNodeId(null);
+                    }}
                     onDelete={(id) => {
                         setNodes(nds => nds.filter(n => n.id !== id));
                         setEdges(eds => eds.filter(e => e.source !== id && e.target !== id));
@@ -552,6 +673,40 @@ export const PipelineCanvas: React.FC = () => {
               )}
           </div>
       </div>
+
+      {!isNew && (
+        <>
+            <PipelineVersionDialog 
+                pipelineId={parseInt(id!)} 
+                pipelineName={pipelineName}
+                open={versionsOpen} 
+                onOpenChange={setVersionsOpen} 
+            />
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent className="rounded-[2rem] border-border/40 bg-background/95 backdrop-blur-2xl">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="text-2xl font-black">Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-base font-medium">
+                            This action cannot be undone. This will permanently delete the pipeline 
+                            <span className="font-bold text-foreground"> "{pipelineName}" </span>
+                            and all its historical versions and run logs.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-6">
+                        <AlertDialogCancel className="rounded-xl font-bold uppercase tracking-widest text-[10px]">Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => deleteMutation.mutate()}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold uppercase tracking-widest text-[10px]"
+                        >
+                            {deleteMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                            Delete Forever
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </>
+      )}
     </div>
   );
 };

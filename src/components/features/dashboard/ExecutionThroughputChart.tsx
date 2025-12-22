@@ -1,72 +1,62 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
-    ResponsiveContainer
+    ResponsiveContainer, BarChart, Bar
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { useTheme } from '@/hooks/useTheme'; // Used for dynamic key and color resolution
+import { Button } from '@/components/ui/button';
+import { useTheme } from '@/hooks/useTheme';
+import { cn } from '@/lib/utils';
 
 interface ExecutionThroughputChartProps {
     data: any[];
 }
 
-// --- Dynamic Color Resolver ---
-// This function maps the semantic role (SUCCESS, BORDER, etc.) to the correct HSL string 
-// based on the active theme, preventing visibility issues in Light Mode.
-const resolveChartColors = (theme: string | undefined) => {
+type ViewType = 'jobs' | 'rows' | 'bytes';
+
+// --- Premium Color Palette ---
+const getThemeColors = (theme: string | undefined) => {
     const isDark = theme === 'dark';
-
     return {
-        // --- Chart Data Colors (SUCCESS / CHART-2) ---
-        // Dark: hsl(145 42% 68%) | Light: hsl(145 35% 62%)
-        SUCCESS_STROKE: isDark ? 'hsl(145 42% 68%)' : 'hsl(145 35% 45%)',
-        SUCCESS_FILL_STOP: isDark ? 'hsl(145 42% 68%)' : 'hsl(145 35% 45%)',
-
-        // --- Chart Data Colors (FAILED / DESTRUCTIVE) ---
-        // Dark: hsl(25 47% 62%) | Light: hsl(25 47% 58%)
-        FAILED_STROKE: isDark ? 'hsl(25 47% 62%)' : 'hsl(25 47% 35%)',
-        FAILED_FILL_STOP: isDark ? 'hsl(25 47% 62%)' : 'hsl(25 47% 35%)',
-
-        // --- Axis / Grid / Cursor Colors ---
-        // MUTED_FOREGROUND (Axis Text)
-        MUTED_FOREGROUND: isDark ? 'hsl(240 4% 65%)' : 'hsl(240 4% 55%)',
-        // BORDER (Grid Lines)
-        BORDER: isDark ? 'hsl(240 4% 26%)' : 'hsl(240 4% 92%)',
-        // PRIMARY (Cursor)
-        PRIMARY: isDark ? 'hsl(257 23% 65%)' : 'hsl(257 24% 52%)',
+        SUCCESS: isDark ? '#10b981' : '#059669', // Emerald 500/600
+        FAILED: isDark ? '#f43f5e' : '#dc2626',  // Rose 500 / Red 600
+        ROWS: isDark ? '#3b82f6' : '#2563eb',    // Blue 500/600
+        VOLUME: isDark ? '#f59e0b' : '#d97706',  // Amber 500/600
+        GRID: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+        TEXT: isDark ? '#94a3b8' : '#64748b',
     };
 };
 
+const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+};
 
-// --- Custom Tooltip Component ---
-const CustomTooltip = ({ active, payload, label }: any) => {
-    const { theme } = useTheme();
-
-    const resolvedColors = resolveChartColors(theme);
-
-    const colorMap: { [key: string]: string } = {
-        success: resolvedColors.SUCCESS_STROKE,
-        failed: resolvedColors.FAILED_STROKE,
-    };
-
+const CustomTooltip = ({ active, payload, label, viewType }: any) => {
     if (active && payload && payload.length) {
         return (
-            <div className="rounded-xl border border-border/50 bg-background/95 backdrop-blur-xl p-3 shadow-xl ring-1 ring-black/5 dark:ring-white/10">
-                <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            <div className="rounded-[1.5rem] border border-border/40 bg-background/95 backdrop-blur-2xl p-4 shadow-2xl ring-1 ring-white/10 min-w-[200px] z-[100]">
+                <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 border-b border-white/5 pb-2">
                     {label}
                 </p>
-                <div className="space-y-1">
+                <div className="space-y-2.5">
                     {payload.map((entry: any, index: number) => (
-                        <div key={index} className="flex items-center gap-2 text-xs font-semibold">
-                            <div
-                                className="h-2 w-2 rounded-full ring-1 ring-inset ring-black/10 dark:ring-white/20"
-                                style={{ backgroundColor: colorMap[entry.dataKey] }}
-                            />
-                            <span className="text-foreground min-w-[60px]">{entry.name}:</span>
-                            <span className="font-mono text-foreground/80">{entry.value}</span>
+                        <div key={index} className="flex items-center justify-between gap-6 text-xs font-bold">
+                            <div className="flex items-center gap-2.5">
+                                <div
+                                    className="h-2 w-2 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.2)]"
+                                    style={{ backgroundColor: entry.color || entry.fill }}
+                                />
+                                <span className="text-muted-foreground/80">{entry.name}:</span>
+                            </div>
+                            <span className="font-mono text-foreground font-black">
+                                {viewType === 'bytes' ? formatBytes(entry.value) : entry.value.toLocaleString()}
+                            </span>
                         </div>
                     ))}
                 </div>
@@ -76,116 +66,92 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return null;
 };
 
-
 export const ExecutionThroughputChart: React.FC<ExecutionThroughputChartProps> = ({ data }) => {
     const { theme } = useTheme();
-
-    // Resolve colors based on the current theme state
-    const COLORS = useMemo(() => resolveChartColors(theme), [theme]);
-
-    const chartData = useMemo(() => {
-        if (data && data.length > 0) {
-            return data.map(item => {
-                const timeValue = item.time;
-
-                const formattedName = timeValue
-                    ? format(new Date(timeValue), 'HH:mm')
-                    : item.name;
-
-                return {
-                    ...item,
-                    name: formattedName,
-                };
-            });
-        }
-    }, [data]);
-
+    const isDark = theme === 'dark';
+    const [view, setView] = useState<ViewType>('jobs');
+    const colors = useMemo(() => getThemeColors(theme), [theme]);
 
     return (
-        <Card className="lg:col-span-4 flex flex-col min-w-0 h-full border border-border/60 bg-card/40 backdrop-blur-xl shadow-sm">
-            <CardHeader className="pb-2 px-6 pt-6 border-b border-border/40 bg-muted/20">
-                <div className="flex items-center justify-between">
+        <Card className="flex flex-col h-full border border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden rounded-[2.5rem]">
+            <CardHeader className="px-8 pt-8 pb-4 relative z-10">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="space-y-1">
-                        <CardTitle className="text-base font-semibold text-foreground">Execution Throughput</CardTitle>
-                        <CardDescription className="text-xs text-muted-foreground">
-                            24-hour job success vs failure volume
+                        <div className="flex items-center gap-2">
+                            <CardTitle className="text-xl font-black tracking-tight text-foreground">Performance Metrics</CardTitle>
+                            <Badge variant="outline" className="font-mono text-[9px] uppercase tracking-widest text-primary border-primary/20 bg-primary/5 animate-pulse">
+                                Live
+                            </Badge>
+                        </div>
+                        <CardDescription className="text-sm font-medium text-muted-foreground/60">
+                            Real-time pipeline efficiency analysis
                         </CardDescription>
                     </div>
-                    <Badge variant="outline" className="font-mono text-[10px] uppercase text-emerald-600 border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 animate-pulse">
-                        ● Live
-                    </Badge>
+                    
+                    <div className="flex items-center p-1.5 bg-black/20 dark:bg-muted/40 rounded-2xl border border-border/50 backdrop-blur-md shadow-inner">
+                        {(['jobs', 'rows', 'bytes'] as ViewType[]).map((v) => (
+                            <Button
+                                key={v}
+                                variant="ghost"
+                                size="sm"
+                                className={cn(
+                                    "rounded-xl h-8 px-5 text-[10px] font-black uppercase tracking-widest transition-all duration-300",
+                                    view === v ? "bg-background text-primary shadow-lg ring-1 ring-white/10 scale-105" : "text-muted-foreground hover:text-foreground"
+                                )}
+                                onClick={() => setView(v)}
+                            >
+                                {v}
+                            </Button>
+                        ))}
+                    </div>
                 </div>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col pl-0 pr-4 pt-6 pb-2 min-h-[300px]">
-                <div className="h-[300px] flex-1">
-                    {/* CRITICAL: Force re-render on theme change using key={theme} */}
-                    <ResponsiveContainer width="100%" height="100%" key={theme}>
-                        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+
+            <CardContent className="flex-1 px-6 pt-4 pb-8 min-h-[350px]">
+                <ResponsiveContainer width="100%" height="100%" key={`${theme}-${view}`}>
+                    {view === 'jobs' ? (
+                        <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <defs>
-                                {/* Gradients using resolved HSL values */}
-                                <linearGradient id="colorSuccess" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={COLORS.SUCCESS_FILL_STOP} stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor={COLORS.SUCCESS_FILL_STOP} stopOpacity={0} />
+                                <linearGradient id="gradSuccess" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={colors.SUCCESS} stopOpacity={0.4} />
+                                    <stop offset="95%" stopColor={colors.SUCCESS} stopOpacity={0} />
                                 </linearGradient>
-                                <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={COLORS.FAILED_FILL_STOP} stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor={COLORS.FAILED_FILL_STOP} stopOpacity={0} />
+                                <linearGradient id="gradFailed" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={colors.FAILED} stopOpacity={0.4} />
+                                    <stop offset="95%" stopColor={colors.FAILED} stopOpacity={0} />
                                 </linearGradient>
                             </defs>
-
-                            <CartesianGrid
-                                strokeDasharray="3 3"
-                                stroke={COLORS.BORDER} // Theme-aware border color
-                                vertical={false}
-                                opacity={0.6}
-                            />
-
-                            <XAxis
-                                dataKey="name"
-                                stroke={COLORS.MUTED_FOREGROUND} // Theme-aware muted color
-                                fontSize={11}
-                                tickLine={false}
-                                axisLine={false}
-                                minTickGap={30}
-                                dy={10}
-                            />
-
-                            <YAxis
-                                stroke={COLORS.MUTED_FOREGROUND} // Theme-aware muted color
-                                fontSize={11}
-                                tickLine={false}
-                                axisLine={false}
-                                width={40}
-                                tickFormatter={(value) => value === 0 ? '' : value}
-                            />
-
-                            <Tooltip
-                                content={<CustomTooltip />}
-                                // Cursor uses theme-aware primary color
-                                cursor={{ stroke: COLORS.PRIMARY, strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.5 }}
-                            />
-
-                            <Area
-                                type="monotone"
-                                dataKey="success"
-                                name="Completed"
-                                stroke={COLORS.SUCCESS_STROKE} // Theme-aware success color
-                                strokeWidth={2}
-                                fill="url(#colorSuccess)"
-                                animationDuration={1500}
-                            />
-                            <Area
-                                type="monotone"
-                                dataKey="failed"
-                                name="Failed"
-                                stroke={COLORS.FAILED_STROKE} // Theme-aware destructive color
-                                strokeWidth={2}
-                                fill="url(#colorFailed)"
-                                animationDuration={1500}
-                            />
+                            <CartesianGrid strokeDasharray="3 3" stroke={colors.GRID} vertical={false} />
+                            <XAxis dataKey="name" stroke={colors.TEXT} fontSize={10} fontWeight={800} tickLine={false} axisLine={false} dy={10} />
+                            <YAxis stroke={colors.TEXT} fontSize={10} fontWeight={800} tickLine={false} axisLine={false} />
+                            <Tooltip content={<CustomTooltip viewType="jobs" colors={colors} />} cursor={{ stroke: colors.SUCCESS, strokeWidth: 2, strokeDasharray: '6 6', opacity: 0.4 }} />
+                            <Area type="monotone" dataKey="success" name="Completed" stroke={colors.SUCCESS} strokeWidth={4} fill="url(#gradSuccess)" animationDuration={1500} />
+                            <Area type="monotone" dataKey="failed" name="Failed" stroke={colors.FAILED} strokeWidth={4} fill="url(#gradFailed)" animationDuration={1500} />
                         </AreaChart>
-                    </ResponsiveContainer>
-                </div>
+                    ) : (
+                        <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke={colors.GRID} vertical={false} />
+                            <XAxis dataKey="name" stroke={colors.TEXT} fontSize={10} fontWeight={800} tickLine={false} axisLine={false} dy={10} />
+                            <YAxis 
+                                stroke={colors.TEXT} 
+                                fontSize={10} 
+                                fontWeight={800} 
+                                tickLine={false} 
+                                axisLine={false}
+                                tickFormatter={(val) => view === 'bytes' ? formatBytes(val) : val.toLocaleString()}
+                            />
+                            <Tooltip content={<CustomTooltip viewType={view} colors={colors} />} cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }} />
+                            <Bar 
+                                dataKey={view === 'rows' ? 'rows' : 'bytes'} 
+                                name={view === 'rows' ? 'Records' : 'Volume'} 
+                                fill={view === 'rows' ? colors.ROWS : colors.VOLUME}
+                                radius={[8, 8, 0, 0]}
+                                animationDuration={1500}
+                                barSize={32}
+                            />
+                        </BarChart>
+                    )}
+                </ResponsiveContainer>
             </CardContent>
         </Card>
     );

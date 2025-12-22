@@ -186,9 +186,9 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
             }
 
             onUpdate(node.id, payload);
-
-            // Close after save for better UX
-            // onClose(); 
+            toast.success("Node Configuration Synchronized", {
+                description: `Operator "${data.label}" has been updated.`
+            });
         } catch (e) {
             toast.error("Invalid JSON configuration", {
                 description: "Please check your manual JSON input for syntax errors."
@@ -197,31 +197,44 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
     };
 
     return (
-        <div className="h-full flex flex-col bg-transparent">
+        <div className="h-full flex flex-col bg-background/20 backdrop-blur-3xl">
             {/* --- Header --- */}
-            <div className="flex items-center justify-between p-6 border-b border-border/40 bg-background/40 shrink-0 backdrop-blur-xl z-10">
-                <div className="flex items-center gap-4">
+            <div className="flex items-center justify-between p-8 border-b border-white/5 bg-black/20 shrink-0 relative overflow-hidden">
+                {/* Header Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
+                
+                <div className="flex items-center gap-5 relative z-10">
                     <div className={cn(
-                        "h-12 w-12 rounded-2xl flex items-center justify-center border shadow-sm",
-                        node.type === 'source' ? "bg-chart-1/10 text-chart-1 border-chart-1/20" :
-                            node.type === 'transform' ? "bg-chart-3/10 text-chart-3 border-chart-3/20" :
-                                node.type === 'sink' ? "bg-chart-2/10 text-chart-2 border-chart-2/20" :
-                                    "bg-muted text-muted-foreground border-border"
+                        "h-14 w-14 rounded-2xl flex items-center justify-center border-2 shadow-2xl transition-all duration-500",
+                        node.type === 'source' ? "bg-chart-1/10 text-chart-1 border-chart-1/20 shadow-chart-1/5" :
+                            node.type === 'transform' ? "bg-chart-3/10 text-chart-3 border-chart-3/20 shadow-chart-3/5" :
+                                node.type === 'sink' ? "bg-chart-2/10 text-chart-2 border-chart-2/20 shadow-chart-2/5" :
+                                    "bg-muted text-muted-foreground border-white/10"
                     )}>
-                        <Icon className="h-6 w-6" />
+                        <Icon className="h-7 w-7" />
                     </div>
-                    <div>
-                        <h3 className="font-semibold text-lg leading-tight text-foreground">Properties</h3>
-                        <p className="text-xs text-muted-foreground font-mono mt-0.5 opacity-80">{node.id}</p>
+                    <div className="space-y-1">
+                        <h3 className="font-black text-xl tracking-tight text-foreground">Inspector</h3>
+                        <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-1.5 h-4 border-primary/20 bg-primary/5 text-primary">
+                                {node.type?.toUpperCase()}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground font-bold font-mono opacity-40">{node.id}</span>
+                        </div>
                     </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={onClose} className="rounded-full hover:bg-muted text-muted-foreground hover:text-foreground">
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={onClose} 
+                    className="rounded-xl h-10 w-10 hover:bg-white/5 text-muted-foreground hover:text-foreground relative z-10 transition-all active:scale-90"
+                >
                     <X className="h-5 w-5" />
                 </Button>
             </div>
 
             {/* --- Tabs & Content --- */}
-            <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0 bg-background/20">
+            <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
                     <div className="px-6 pt-6 shrink-0">
                         <TabsList className="w-full grid grid-cols-2 h-11 bg-muted/50 p-1 rounded-xl">
@@ -495,45 +508,51 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                     </ScrollArea>
 
                     {/* --- Footer Actions --- */}
-                    <div className="p-6 border-t border-border/40 bg-background/60 backdrop-blur-xl shrink-0 flex gap-4 z-10">
-                        <Button type="submit" className="flex-1 rounded-xl h-12 font-semibold text-base">
-                            <Save className="mr-2 h-4 w-4" /> Apply Changes
+                    <div className="p-8 border-t border-white/5 bg-black/40 backdrop-blur-2xl shrink-0 flex gap-4 relative z-10">
+                        {/* Footer Glow */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none" />
+                        
+                        <Button 
+                            type="submit" 
+                            className="flex-1 rounded-[1.25rem] h-14 font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95 bg-primary text-primary-foreground"
+                        >
+                            <Save className="mr-2.5 h-4 w-4" /> Update Operator
                         </Button>
+                        
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button
                                     type="button"
-                                    variant="destructive"
+                                    variant="ghost"
                                     size="icon"
-                                    className="h-12 w-12 rounded-xl"
+                                    className="h-14 w-14 rounded-[1.25rem] border border-white/5 bg-white/[0.03] hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-all group"
                                 >
-                                    <Trash2 className="h-5 w-5" />
+                                    <Trash2 className="h-5 w-5 opacity-40 group-hover:opacity-100 transition-opacity" />
                                 </Button>
                             </AlertDialogTrigger>
 
-                            <AlertDialogContent>
+                            <AlertDialogContent className="rounded-[2.5rem] bg-background/95 backdrop-blur-2xl border-border/20 shadow-2xl">
                                 <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete node?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently remove the node.
+                                    <AlertDialogTitle className="text-2xl font-black tracking-tight">Purge Operator?</AlertDialogTitle>
+                                    <AlertDialogDescription className="text-base font-medium">
+                                        This will permanently remove this node from the current execution sequence.
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
 
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogFooter className="mt-8">
+                                    <AlertDialogCancel className="rounded-xl font-bold uppercase tracking-widest text-[10px] h-11 px-6">Abort</AlertDialogCancel>
                                     <AlertDialogAction
-                                        className="bg-destructive text-destructive-foreground"
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold uppercase tracking-widest text-[10px] h-11 px-6"
                                         onClick={() => {
                                             onDelete(node.id);
                                             onClose();
                                         }}
                                     >
-                                        Delete
+                                        Delete Forever
                                     </AlertDialogAction>
                                 </AlertDialogFooter>
                             </AlertDialogContent>
                         </AlertDialog>
-
                     </div>
                 </Tabs>
             </form>

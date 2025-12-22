@@ -437,6 +437,7 @@ export interface PipelineVersionRead {
 
 export interface PipelineDetailRead extends Pipeline {
     published_version?: PipelineVersionRead;
+    latest_version?: PipelineVersionRead;
 }
 
 export interface PipelineListResponse {
@@ -476,6 +477,8 @@ export interface ThroughputDataPoint {
     timestamp: string;
     success_count: number;
     failure_count: number;
+    rows_processed: number;
+    bytes_processed: number;
 }
 
 export interface PipelineDistribution {
@@ -501,6 +504,8 @@ export interface DashboardStats {
     success_rate_24h: number;
     avg_duration_24h: number;
     total_connections: number;
+    total_rows_24h: number;
+    total_bytes_24h: number;
     throughput: ThroughputDataPoint[];
     pipeline_distribution: PipelineDistribution[];
     recent_activity: RecentActivity[];
@@ -538,13 +543,44 @@ export const createPipelineVersion = async (id: number, payload: PipelineVersion
     return data;
 };
 
+export interface PipelineVersionSummary {
+    id: number;
+    version: number;
+    is_published: boolean;
+    published_at?: string;
+    node_count: number;
+    edge_count: number;
+    created_at: string;
+}
+
+export const getPipelineVersions = async (id: number) => {
+    const { data } = await api.get<PipelineVersionSummary[]>(`/pipelines/${id}/versions`);
+    return data;
+};
+
+export const getPipelineVersion = async (pipelineId: number, versionId: number) => {
+    const { data } = await api.get<PipelineVersionRead>(`/pipelines/${pipelineId}/versions/${versionId}`);
+    return data;
+};
+
 export const publishPipelineVersion = async (pipelineId: number, versionId: number) => {
     const { data } = await api.post<any>(`/pipelines/${pipelineId}/versions/${versionId}/publish`, {});
     return data;
 };
 
-export const triggerPipeline = async (id: number) => {
-    const { data } = await api.post<Job>(`/pipelines/${id}/trigger`, {});
+export interface PipelineTriggerResponse {
+    status: string;
+    message: string;
+    job_id: number;
+    task_id?: string;
+    pipeline_id: number;
+    version_id: number;
+}
+
+export const triggerPipeline = async (id: number, versionId?: number) => {
+    const { data } = await api.post<PipelineTriggerResponse>(`/pipelines/${id}/trigger`, {
+        version_id: versionId
+    });
     return data;
 };
 

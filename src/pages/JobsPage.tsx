@@ -3,9 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getJobs, getPipelines, type Job } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import {
-    History, RefreshCw, Terminal, Activity, Filter, ChevronDown
+import { 
+    Play, Pause, StopCircle, RefreshCw, 
+    Search, Filter, Download, Trash2, 
+    MoreVertical, ExternalLink, Clock, Activity, ChevronRight,
+    History as HistoryIcon, ChevronDown, Terminal
 } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 import { JobsList } from '@/components/features/jobs/JobsList';
 import { JobDetails } from '@/components/features/jobs/JobDetails';
@@ -85,7 +89,7 @@ export const JobsPage: React.FC = () => {
             <div className="flex items-center justify-between shrink-0 px-2 pb-2">
                 <div className="flex items-center gap-5">
                     <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-primary/10 border border-primary/20 backdrop-blur-md shadow-xl shadow-primary/5">
-                        <History className="h-7 w-7 text-primary" />
+                        <HistoryIcon className="h-7 w-7 text-primary" />
                     </div>
                     <div className="space-y-1">
                         <h2 className="text-3xl font-black tracking-tight text-foreground">

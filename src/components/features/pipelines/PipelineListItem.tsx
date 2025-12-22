@@ -4,7 +4,7 @@ import { type Pipeline, type Job, type PipelineStatsResponse, deletePipeline } f
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { 
-    GitBranch, Play, MoreVertical, Settings, History, 
+    GitBranch, Play, MoreVertical, Settings, History as HistoryIcon, 
     Trash2, CheckCircle2, AlertCircle, Loader2 
 } from 'lucide-react';
 import {
@@ -32,6 +32,7 @@ import { PipelineStatusBadge } from './PipelineStatusBadge';
 interface PipelineListItemProps {
     pipeline: Pipeline & { lastJob?: Job; stats?: PipelineStatsResponse };
     onRun: (id: number) => void;
+    onViewVersions: (pipeline: Pipeline) => void;
     isRunningMutation: boolean;
 }
 
@@ -44,7 +45,7 @@ const formatDuration = (seconds?: number) => {
     return `${minutes}m ${remainingSeconds}s`;
 }
 
-export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, onRun, isRunningMutation }) => {
+export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, onRun, onViewVersions, isRunningMutation }) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -57,13 +58,19 @@ export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, on
     const isRunning = lastJob?.status === 'running' || lastJob?.status === 'pending';
 
     const deleteMutation = useMutation({
-        mutationFn: deletePipeline,
+        mutationFn: () => deletePipeline(pipeline.id),
         onSuccess: () => {
-            toast.success("Pipeline deleted");
+            toast.success("Pipeline deleted", {
+                description: `"${pipeline.name}" has been permanently removed.`
+            });
             queryClient.invalidateQueries({ queryKey: ['pipelines'] });
             setIsDeleteDialogOpen(false);
         },
-        onError: () => toast.error("Failed to delete pipeline")
+        onError: (err: any) => {
+            toast.error("Deletion Failed", {
+                description: err.response?.data?.detail?.message || "There was an error deleting the pipeline."
+            });
+        }
     });
 
     return (
@@ -157,8 +164,11 @@ export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, on
                             <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate(`/pipelines/${pipeline.id}`)}>
                                 <Settings className="h-3.5 w-3.5 opacity-70" /> Configure
                             </DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => onViewVersions(pipeline)}>
+                                <HistoryIcon className="h-3.5 w-3.5 opacity-70" /> Versions
+                            </DropdownMenuItem>
                             <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate(`/pipelines/${pipeline.id}?tab=runs`)}>
-                                <History className="h-3.5 w-3.5 opacity-70" /> Run History
+                                <HistoryIcon className="h-3.5 w-3.5 opacity-70" /> Run History
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-border/40" />
                             <DropdownMenuItem 
@@ -173,23 +183,23 @@ export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, on
             </div>
 
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent>
+                <AlertDialogContent className="rounded-[2rem] border-border/40 bg-background/95 backdrop-blur-xl">
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
+                        <AlertDialogTitle className="text-2xl font-black">Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription className="text-base font-medium">
                             This action cannot be undone. This will permanently delete the pipeline 
-                            <span className="font-semibold text-foreground"> "{pipeline.name}" </span>
+                            <span className="font-bold text-foreground"> "{pipeline.name}" </span>
                             and all its run history.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogFooter className="mt-6">
+                        <AlertDialogCancel className="rounded-xl font-bold uppercase tracking-widest text-[10px]">Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={() => deleteMutation.mutate(pipeline.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={() => deleteMutation.mutate()}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold uppercase tracking-widest text-[10px]"
                         >
-                            {deleteMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                            Delete
+                            {deleteMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                            Delete Forever
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

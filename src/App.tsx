@@ -24,6 +24,7 @@ const PipelineEditorPage = lazy(() => import('./pages/PipelineEditorPage').then(
 const JobsPage = lazy(() => import('./pages/JobsPage').then(module => ({ default: module.JobsPage })));
 const DocsPage = lazy(() => import('./pages/DocsPage').then(module => ({ default: module.DocsPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(module => ({ default: module.SettingsPage })));
+const AlertsPage = lazy(() => import('./pages/AlertsPage').then(module => ({ default: module.AlertsPage })));
 
 // React Query Configuration
 const queryClient = new QueryClient({
@@ -129,6 +130,7 @@ const AppRoutes = () => (
       <Route path="/pipelines/:id" element={<PipelineEditorPage />} />
 
       <Route path="/jobs/:id?" element={<JobsPage />} />
+      <Route path="/alerts" element={<AlertsPage />} />
       <Route path="/docs/*" element={<DocsPage />} />
       <Route path="/settings" element={<SettingsPage />} />
 

@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
     Activity, CheckCircle2,
     PlayCircle, Zap,
-    Workflow, Server
+    Workflow, Database
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ExecutionThroughputChart } from '@/components/features/dashboard/ExecutionThroughputChart';
@@ -15,6 +15,15 @@ import { RecentActivityTable } from '@/components/features/dashboard/RecentActiv
 import { RunPipelineDialog } from '@/components/features/dashboard/RunPipelineDialog';
 import { PageMeta } from '@/components/common/PageMeta';
 import { StatsCard } from '@/components/ui/StatsCard';
+
+const formatBytes = (bytes: number, decimals = 2) => {
+    if (!+bytes) return '0 Bytes'
+    const k = 1024
+    const dm = decimals < 0 ? 0 : decimals
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
+}
 
 export const DashboardPage: React.FC = () => {
     const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
@@ -32,7 +41,9 @@ export const DashboardPage: React.FC = () => {
         return stats.throughput.map(p => ({
             name: format(parseISO(p.timestamp), 'HH:mm'),
             success: p.success_count,
-            failed: p.failure_count
+            failed: p.failure_count,
+            rows: p.rows_processed,
+            bytes: p.bytes_processed
         }));
     }, [stats]);
 
@@ -73,20 +84,20 @@ export const DashboardPage: React.FC = () => {
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 backdrop-blur-md shadow-sm">
                             <Activity className="h-5 w-5 text-primary" />
                         </div>
-                        System Overview
+                        Control Center
                     </h2>
                     <p className="text-base text-muted-foreground font-medium pl-1">
-                        Status for <span className="text-foreground font-semibold">{format(new Date(), 'MMMM dd, yyyy')}</span>. All systems operational.
+                        Real-time intelligence for your data mesh.
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
                     <Button 
                         size="lg" 
-                        className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all hover:-translate-y-0.5"
+                        className="rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all hover:scale-105 active:scale-95"
                         onClick={() => setIsRunDialogOpen(true)}
                     >
                         <PlayCircle className="mr-2 h-5 w-5" />
-                        Run Pipeline
+                        Trigger Pipeline
                     </Button>
                 </div>
             </div>
@@ -94,49 +105,49 @@ export const DashboardPage: React.FC = () => {
             {/* --- Stats Cards Grid --- */}
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                 {isLoading ? (
-                    Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[140px] w-full rounded-[2rem]" />)
+                    Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[140px] w-full rounded-[2.5rem]" />)
                 ) : (
                     <>
                         <StatsCard
-                            title="Total Pipelines"
-                            value={stats?.total_pipelines || 0}
-                            trend="System wide"
-                            trendUp={true}
-                            icon={Workflow}
-                        />
-                        <StatsCard
-                            title="Active Pipelines"
-                            value={stats?.active_pipelines || 0}
-                            subtext="Running / Scheduled"
-                            icon={Zap}
+                            title="Operational Success"
+                            value={`${stats?.success_rate_24h}%`}
+                            trend="High Performance"
+                            trendUp={!!(stats?.success_rate_24h && stats.success_rate_24h > 95)}
+                            icon={CheckCircle2}
                             active={true}
                         />
                         <StatsCard
-                            title="Success Rate (24h)"
-                            value={`${stats?.success_rate_24h}%`}
-                            trend="Last 24 hours"
-                            trendUp={true}
-                            icon={CheckCircle2}
+                            title="Rows Synced (24h)"
+                            value={stats?.total_rows_24h.toLocaleString() || 0}
+                            subtext="Records processed"
+                            icon={Database}
                         />
                         <StatsCard
-                            title="Total Connections"
-                            value={stats?.total_connections || 0}
-                            subtext="Data Sources"
-                            icon={Server}
+                            title="Data Volume"
+                            value={formatBytes(stats?.total_bytes_24h || 0)}
+                            trend="Total Throughput"
+                            trendUp={true}
+                            icon={Zap}
+                        />
+                        <StatsCard
+                            title="Active Entities"
+                            value={stats?.active_pipelines || 0}
+                            subtext={`From ${stats?.total_pipelines} total pipelines`}
+                            icon={Workflow}
                         />
                     </>
                 )}
             </div>
 
             {/* --- Charts Section --- */}
-            <div className="grid grid-cols-1 lg:grid-cols-7 gap-6 lg:h-[500px]">
+            <div className="grid grid-cols-1 lg:grid-cols-7 gap-6">
                 {/* --- Main Area Chart: Throughput --- */}
-                <div className="lg:col-span-4 min-h-[400px] lg:min-h-0 lg:h-full">
+                <div className="lg:col-span-4 min-h-[450px]">
                     <ExecutionThroughputChart data={throughputData} />
                 </div>
 
                 {/* --- Pie Chart: Pipeline Health --- */}
-                <div className="lg:col-span-3 min-h-[400px] lg:min-h-0 lg:h-full">
+                <div className="lg:col-span-3 min-h-[450px]">
                     <PipelineHealthChart
                         data={distributionData}
                         totalPipelines={stats?.total_pipelines || 0}

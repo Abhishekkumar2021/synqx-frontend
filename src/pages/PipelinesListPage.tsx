@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { PipelineSettingsDialog } from '@/components/features/pipelines/PipelineSettingsDialog';
+import { PipelineVersionDialog } from '@/components/features/pipelines/PipelineVersionDialog';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { PipelineGridItem } from '@/components/features/pipelines/PipelineGridItem';
@@ -19,6 +20,7 @@ import { PageMeta } from '@/components/common/PageMeta';
 export const PipelinesListPage: React.FC = () => {
     const queryClient = useQueryClient();
     const [settingsOpen, setSettingsOpen] = useState(false);
+    const [versionsOpen, setVersionsOpen] = useState(false);
     const [selectedPipeline, setSelectedPipeline] = useState<Pipeline | null>(null);
     const [filter, setFilter] = useState('');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -62,6 +64,11 @@ export const PipelinesListPage: React.FC = () => {
     const openSettings = (pipeline: Pipeline) => {
         setSelectedPipeline(pipeline);
         setSettingsOpen(true);
+    };
+
+    const openVersions = (pipeline: Pipeline) => {
+        setSelectedPipeline(pipeline);
+        setVersionsOpen(true);
     };
 
     // Derived State
@@ -164,6 +171,7 @@ export const PipelinesListPage: React.FC = () => {
                                         pipeline={pipeline}
                                         onRun={(id) => runMutation.mutate(id)}
                                         onOpenSettings={openSettings}
+                                        onViewVersions={openVersions}
                                     />
                                 ))}
                             </div>
@@ -190,6 +198,7 @@ export const PipelinesListPage: React.FC = () => {
                                         key={pipeline.id}
                                         pipeline={pipeline}
                                         onRun={(id) => runMutation.mutate(id)}
+                                        onViewVersions={openVersions}
                                         isRunningMutation={runMutation.isPending}
                                     />
                                 ))}
@@ -205,6 +214,16 @@ export const PipelinesListPage: React.FC = () => {
                 open={settingsOpen}
                 onOpenChange={setSettingsOpen}
             />
+
+            {/* --- Versions Dialog --- */}
+            {selectedPipeline && (
+                <PipelineVersionDialog
+                    pipelineId={selectedPipeline.id}
+                    pipelineName={selectedPipeline.name}
+                    open={versionsOpen}
+                    onOpenChange={setVersionsOpen}
+                />
+            )}
         </div>
     );
 };

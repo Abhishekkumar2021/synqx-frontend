@@ -36,7 +36,7 @@ export const RunPipelineDialog: React.FC<RunPipelineDialogProps> = ({ open, onOp
         onSuccess: (data) => {
             const pipelineName = pipelines?.find(p => p.id.toString() === selectedPipelineId)?.name || 'Pipeline';
             toast.success("Pipeline Triggered", {
-                description: `Successfully started execution for "${pipelineName}". Job ID: ${data.id}`
+                description: `Successfully started execution for "${pipelineName}". Job ID: ${data.job_id}`
             });
             // Invalidate dashboard stats to reflect new job
             queryClient.invalidateQueries({ queryKey: ['dashboard'] });
