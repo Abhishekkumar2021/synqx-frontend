@@ -85,9 +85,9 @@ export const CodeBlock = ({
           className={cn(
             "font-mono w-full max-w-full overflow-hidden", 
             isExpanded ? "text-sm h-full" : "text-[10px] h-auto",
-            "[&>pre]:!bg-transparent [&>pre]:!p-4 [&>pre]:!m-0 [&>pre]:w-full [&>pre]:overflow-auto [&>pre]:custom-scrollbar",
+            "[&>pre]:bg-transparent! [&>pre]:p-4! [&>pre]:m-0! [&>pre]:w-full [&>pre]:overflow-auto [&>pre]:custom-scrollbar",
             "[&>pre]:whitespace-pre-wrap [&>pre]:break-all",
-            isExpanded ? "[&>pre]:min-h-full [&>pre]:!rounded-none" : "[&>pre]:rounded-[calc(var(--radius)-4px)]"
+            isExpanded ? "[&>pre]:min-h-full [&>pre]:rounded-none!" : "[&>pre]:rounded-[calc(var(--radius)-4px)]"
           )}
           dangerouslySetInnerHTML={{ __html: highlightedCode || `<pre class="p-4 text-muted-foreground whitespace-pre-wrap break-all">${code}</pre>` }}
         />
@@ -136,7 +136,7 @@ export const CodeBlock = ({
               />
               <motion.div
                 layoutId={`maximize-${code?.slice(0, 10)}`}
-                className="relative w-full max-w-5xl h-full max-h-[80vh] rounded-2xl border border-white/10 bg-black/90 backdrop-blur-3xl shadow-2xl overflow-hidden flex flex-col z-[10000]"
+                className="relative w-full max-w-5xl h-full max-h-[80vh] rounded-2xl border border-white/10 bg-black/90 backdrop-blur-3xl shadow-2xl overflow-hidden flex flex-col z-10000"
               >
                 <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/5 shrink-0">
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{title || language}</span>
