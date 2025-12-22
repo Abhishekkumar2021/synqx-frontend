@@ -87,20 +87,37 @@ export const ExecutionThroughputChart: React.FC<ExecutionThroughputChartProps> =
                             Real-time pipeline efficiency analysis
                         </CardDescription>
                     </div>
-                    
-                    <div className="flex items-center p-1.5 bg-black/20 dark:bg-muted/40 rounded-2xl border border-border/50 backdrop-blur-md shadow-inner">
+
+                    <div className={cn(
+                        "flex gap-1.5 items-center p-1.5 rounded-2xl",
+                        "glass border border-border/60 shadow-sm",
+                        "transition-all duration-300"
+                    )}>
                         {(['jobs', 'rows', 'bytes'] as ViewType[]).map((v) => (
                             <Button
                                 key={v}
                                 variant="ghost"
                                 size="sm"
                                 className={cn(
-                                    "rounded-xl h-8 px-5 text-[10px] font-black uppercase tracking-widest transition-all duration-300",
-                                    view === v ? "bg-background text-primary shadow-lg ring-1 ring-white/10 scale-105" : "text-muted-foreground hover:text-foreground"
+                                    "rounded-xl h-9 px-5 text-[10px] font-extrabold uppercase tracking-widest",
+                                    "transition-all duration-300 ease-out",
+                                    "relative overflow-hidden",
+                                    view === v
+                                        ? cn(
+                                            "bg-primary text-primary-foreground shadow-lg scale-[1.02]",
+                                            "dark:bg-primary/90 dark:shadow-primary/20",
+                                            "before:absolute before:inset-0 before:bg-linear-to-b before:from-white/10 before:to-transparent",
+                                            "ring-1 ring-primary/20 dark:ring-primary/30"
+                                        )
+                                        : cn(
+                                            "text-muted-foreground hover:text-foreground",
+                                            "hover:bg-muted/50 dark:hover:bg-muted/30",
+                                            "active:scale-95"
+                                        )
                                 )}
                                 onClick={() => setView(v)}
                             >
-                                {v}
+                                <span className="relative z-10">{v}</span>
                             </Button>
                         ))}
                     </div>
@@ -132,18 +149,18 @@ export const ExecutionThroughputChart: React.FC<ExecutionThroughputChartProps> =
                         <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={colors.GRID} vertical={false} />
                             <XAxis dataKey="name" stroke={colors.TEXT} fontSize={10} fontWeight={800} tickLine={false} axisLine={false} dy={10} />
-                            <YAxis 
-                                stroke={colors.TEXT} 
-                                fontSize={10} 
-                                fontWeight={800} 
-                                tickLine={false} 
+                            <YAxis
+                                stroke={colors.TEXT}
+                                fontSize={10}
+                                fontWeight={800}
+                                tickLine={false}
                                 axisLine={false}
                                 tickFormatter={(val) => view === 'bytes' ? formatBytes(val) : val.toLocaleString()}
                             />
                             <Tooltip content={<CustomTooltip viewType={view} colors={colors} />} cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }} />
-                            <Bar 
-                                dataKey={view === 'rows' ? 'rows' : 'bytes'} 
-                                name={view === 'rows' ? 'Records' : 'Volume'} 
+                            <Bar
+                                dataKey={view === 'rows' ? 'rows' : 'bytes'}
+                                name={view === 'rows' ? 'Records' : 'Volume'}
                                 fill={view === 'rows' ? colors.ROWS : colors.VOLUME}
                                 radius={[8, 8, 0, 0]}
                                 animationDuration={1500}

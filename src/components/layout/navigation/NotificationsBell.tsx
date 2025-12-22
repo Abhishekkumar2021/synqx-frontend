@@ -4,10 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { getAlertHistory, acknowledgeAlert, type Alert } from '@/lib/api';
 import {
     DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Bell, Check, Info, AlertTriangle, AlertCircle, CheckCircle2 } from 'lucide-react';

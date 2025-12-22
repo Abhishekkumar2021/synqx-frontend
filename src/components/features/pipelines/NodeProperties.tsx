@@ -199,7 +199,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
     return (
         <div className="h-full flex flex-col bg-background/20 backdrop-blur-3xl">
             {/* --- Header --- */}
-            <div className="flex items-center justify-between p-8 border-b border-white/5 bg-black/20 shrink-0 relative overflow-hidden">
+            <div className="flex items-center justify-between p-8 border-b border-border/10 bg-muted/20 shrink-0 relative overflow-hidden">
                 {/* Header Gradient */}
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
                 
@@ -209,7 +209,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                         node.type === 'source' ? "bg-chart-1/10 text-chart-1 border-chart-1/20 shadow-chart-1/5" :
                             node.type === 'transform' ? "bg-chart-3/10 text-chart-3 border-chart-3/20 shadow-chart-3/5" :
                                 node.type === 'sink' ? "bg-chart-2/10 text-chart-2 border-chart-2/20 shadow-chart-2/5" :
-                                    "bg-muted text-muted-foreground border-white/10"
+                                    "bg-muted text-muted-foreground border-border/10"
                     )}>
                         <Icon className="h-7 w-7" />
                     </div>
@@ -227,7 +227,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                     variant="ghost" 
                     size="icon" 
                     onClick={onClose} 
-                    className="rounded-xl h-10 w-10 hover:bg-white/5 text-muted-foreground hover:text-foreground relative z-10 transition-all active:scale-90"
+                    className="rounded-xl h-10 w-10 hover:bg-foreground/5 text-muted-foreground hover:text-foreground relative z-10 transition-all active:scale-90"
                 >
                     <X className="h-5 w-5" />
                 </Button>
@@ -300,12 +300,22 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                                         <SelectValue placeholder="Select transformation" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="pandas_transform">Generic (Custom Code)</SelectItem>
+                                                        <SelectItem value="pandas_transform">Generic (Pandas)</SelectItem>
+                                                        <SelectItem value="code">Python Code</SelectItem>
                                                         <SelectItem value="filter">Filter Rows</SelectItem>
-                                                        <SelectItem value="join">Join / Merge</SelectItem>
-                                                        <SelectItem value="aggregate">Aggregate / Group By</SelectItem>
-                                                        <SelectItem value="drop_columns">Drop Columns</SelectItem>
+                                                        <SelectItem value="map">Map Values</SelectItem>
+                                                        <SelectItem value="join">Join</SelectItem>
+                                                        <SelectItem value="union">Union</SelectItem>
+                                                        <SelectItem value="merge">Merge</SelectItem>
+                                                        <SelectItem value="aggregate">Aggregate</SelectItem>
+                                                        <SelectItem value="validate">Validate Schema</SelectItem>
                                                         <SelectItem value="deduplicate">Deduplicate</SelectItem>
+                                                        <SelectItem value="fill_nulls">Fill Nulls</SelectItem>
+                                                        <SelectItem value="type_cast">Type Cast</SelectItem>
+                                                        <SelectItem value="rename_columns">Rename Columns</SelectItem>
+                                                        <SelectItem value="drop_columns">Drop Columns</SelectItem>
+                                                        <SelectItem value="regex_replace">Regex Replace</SelectItem>
+                                                        <SelectItem value="noop">No-Op</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
@@ -508,7 +518,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                     </ScrollArea>
 
                     {/* --- Footer Actions --- */}
-                    <div className="p-8 border-t border-white/5 bg-black/40 backdrop-blur-2xl shrink-0 flex gap-4 relative z-10">
+                    <div className="p-8 border-t border-border/10 bg-muted/40 backdrop-blur-2xl shrink-0 flex gap-4 relative z-10">
                         {/* Footer Glow */}
                         <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none" />
                         
@@ -525,7 +535,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="h-14 w-14 rounded-[1.25rem] border border-white/5 bg-white/[0.03] hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-all group"
+                                    className="h-14 w-14 rounded-[1.25rem] border border-border/10 bg-foreground/5 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-all group"
                                 >
                                     <Trash2 className="h-5 w-5 opacity-40 group-hover:opacity-100 transition-opacity" />
                                 </Button>

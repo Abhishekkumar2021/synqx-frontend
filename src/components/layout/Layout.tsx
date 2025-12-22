@@ -3,7 +3,7 @@ import { useLocation, Link, Outlet } from 'react-router-dom';
 import {
     LayoutDashboard, Cable, Workflow, Activity, Settings,
     Search, Menu, X, ChevronRight, Home, LogOut,
-    User, CreditCard, Users, PanelLeft, Command, Book
+    User, CreditCard, Users, PanelLeft, Command, Book, Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ModeToggle } from './ModeToggle';
@@ -117,6 +117,7 @@ export const Layout: React.FC<LayoutProps> = () => {
                                         <NavItem to="/dashboard" icon={<LayoutDashboard />} label="Dashboard" collapsed={isSidebarCollapsed} />
                                         <NavItem to="/connections" icon={<Cable />} label="Connections" collapsed={isSidebarCollapsed} />
                                         <NavItem to="/pipelines" icon={<Workflow />} label="Pipelines" collapsed={isSidebarCollapsed} />
+                                        <NavItem to="/operators" icon={<Sparkles />} label="Operators" collapsed={isSidebarCollapsed} />
                                         <NavItem to="/jobs" icon={<Activity />} label="Jobs & Runs" collapsed={isSidebarCollapsed} />
                                     </NavGroup>
 
@@ -141,10 +142,10 @@ export const Layout: React.FC<LayoutProps> = () => {
                             <DropdownMenuTrigger asChild>
                                 <button className={cn(
                                     // Theme-aware hover, background, and border
-                                    "flex items-center rounded-2xl transition-all duration-300 w-full outline-none h-14 border border-border/50 hover:border-border hover:bg-muted/10",
+                                    "flex items-center rounded-2xl transition-all duration-300 w-full outline-none h-14 border border-border/50 hover:border-primary/30 hover:bg-primary/5",
                                     isSidebarCollapsed
                                         ? "justify-center px-0 gap-0"
-                                        : "justify-start px-2 gap-3 bg-muted/10 border-border/50"
+                                        : "justify-start px-2 gap-3 bg-muted/20 border-border/50"
                                 )}>
                                     {/* Theme-aware Avatar ring and border */}
                                     <Avatar className="h-9 w-9 border border-border/40 shrink-0 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
@@ -163,20 +164,20 @@ export const Layout: React.FC<LayoutProps> = () => {
                             </DropdownMenuTrigger>
                             {/* Theme-aware Dropdown Content */}
                             <DropdownMenuContent align="start" className="w-56 rounded-2xl glass-card shadow-2xl ml-4 mb-2" side="right" sideOffset={15}>
-                                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                                <DropdownMenuLabel className="font-bold text-xs uppercase tracking-widest text-muted-foreground/70">My Account</DropdownMenuLabel>
                                 {/* Theme-aware separator and hover background */}
                                 <DropdownMenuSeparator className="bg-border/40" />
-                                <DropdownMenuItem className="rounded-xl focus:bg-muted/20 cursor-pointer">
+                                <DropdownMenuItem className="rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer transition-colors font-medium">
                                     <User className="mr-2 h-4 w-4" /> Profile
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="rounded-xl focus:bg-muted/20 cursor-pointer">
+                                <DropdownMenuItem className="rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer transition-colors font-medium">
                                     <CreditCard className="mr-2 h-4 w-4" /> Billing
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="rounded-xl focus:bg-muted/20 cursor-pointer">
+                                <DropdownMenuItem className="rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer transition-colors font-medium">
                                     <Users className="mr-2 h-4 w-4" /> Team
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="bg-border/40" />
-                                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10 rounded-xl cursor-pointer" onClick={() => logout()}>
+                                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10 rounded-xl cursor-pointer transition-colors font-bold" onClick={() => logout()}>
                                     <LogOut className="mr-2 h-4 w-4" /> Log out
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -285,6 +286,7 @@ export const Layout: React.FC<LayoutProps> = () => {
                                 <NavItem to="/dashboard" icon={<LayoutDashboard />} label="Dashboard" onClick={handleMobileNavClick} />
                                 <NavItem to="/connections" icon={<Cable />} label="Connections" onClick={handleMobileNavClick} />
                                 <NavItem to="/pipelines" icon={<Workflow />} label="Pipelines" onClick={handleMobileNavClick} />
+                                <NavItem to="/operators" icon={<Sparkles />} label="Operators" onClick={handleMobileNavClick} />
                                 <NavItem to="/jobs" icon={<Activity />} label="Jobs & Runs" onClick={handleMobileNavClick} />
                                 {/* Theme-aware divider */}
                                 <div className="h-px bg-border/40 my-4"></div>

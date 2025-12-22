@@ -94,6 +94,7 @@ export const CronBuilder: React.FC<CronBuilderProps> = ({ value, onChange }) => 
                         Presets
                     </button>
                     <button
+                        type="button"
                         onClick={() => setModeOverride('custom')}
                         className={cn(
                             "px-3 py-1 text-xs font-medium rounded-md transition-all duration-200",
@@ -113,6 +114,7 @@ export const CronBuilder: React.FC<CronBuilderProps> = ({ value, onChange }) => 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
                         {PRESETS.map((preset) => (
                             <button
+                                type="button"
                                 key={preset.label}
                                 onClick={() => handlePresetClick(preset.value)}
                                 className={cn(
@@ -142,6 +144,7 @@ export const CronBuilder: React.FC<CronBuilderProps> = ({ value, onChange }) => 
                         
                         {/* "Go Custom" hint if they want more control */}
                         <button 
+                            type="button"
                             onClick={() => setModeOverride('custom')}
                             className="flex flex-col items-center justify-center p-3 rounded-lg border border-dashed border-white/10 text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all gap-2"
                         >

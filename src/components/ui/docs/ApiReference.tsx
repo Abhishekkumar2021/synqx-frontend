@@ -4,13 +4,13 @@ import {
   Search, Globe, Terminal,
   ChevronDown, ShieldCheck, Braces,
   Settings2, ArrowRight, Maximize2, Minimize2,
-  Copy, CheckCheck, Database, Cpu, X,
+  CheckCheck, Database, Cpu, X,
   AlertCircle, FileJson, Zap, Download,
   Code2, Send
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -143,49 +143,25 @@ func main() {
 };
 
 // Components
-const CopyButton = ({ content }: { content: string }) => {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Copy failed:', err);
-    }
-  };
-
-  return (
-    <Button
-      onClick={handleCopy}
-      variant="ghost"
-      size="icon"
-      className="bg-background/50 hover:bg-background/80 h-8 w-8"
-      title={copied ? "Copied!" : "Copy"}
-    >
-      {copied ? <CheckCheck size={14} className="text-success" /> : <Copy size={14} className="text-muted-foreground" />}
-    </Button>
-  );
-};
-
 const MethodBadge = ({ method, active }: { method: string; active?: boolean }) => {
-  const styles: Record<string, string> = {
-    GET: "status-success",
-    POST: "status-info",
-    PUT: "status-warning",
-    DELETE: "status-error",
-    PATCH: "bg-primary/10 text-primary border-primary/30",
+  const variants: Record<string, "success" | "info" | "warning" | "destructive" | "default"> = {
+    GET: "success",
+    POST: "info",
+    PUT: "warning",
+    DELETE: "destructive",
+    PATCH: "default",
   };
 
   return (
-    <div className={cn(
-      "px-2.5 py-1 rounded-lg text-[10px] font-black border uppercase tracking-wider min-w-[55px] text-center transition-all backdrop-blur-sm",
-      active && "ring-2 ring-primary/20 scale-105",
-      styles[method]
-    )}>
+    <Badge
+      variant={variants[method] || "outline"}
+      className={cn(
+        "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider min-w-[55px] justify-center transition-all backdrop-blur-sm",
+        active && "ring-2 ring-primary/20 scale-105 shadow-lg"
+      )}
+    >
       {method}
-    </div>
+    </Badge>
   );
 };
 
@@ -795,7 +771,7 @@ export function ApiReference() {
               </div>
 
               {/* Right: Playground */}
-              <div className="w-full lg:w-[450px] glass-panel rounded-none border-none bg-white/5 dark:bg-black/10 backdrop-blur-2xl h-full border-t lg:border-t-0 lg:border-l border-white/5 overflow-hidden flex flex-col">
+              <div className="w-full lg:w-[450px] glass-panel rounded-none border-none bg-muted/5 dark:bg-black/10 backdrop-blur-2xl h-full border-t lg:border-t-0 lg:border-l border-border/40 overflow-hidden flex flex-col">
                 <ScrollArea className="flex-1">
                   <div className="p-6 lg:p-8 space-y-6">
                     {/* Code Examples */}
@@ -890,7 +866,7 @@ export function ApiReference() {
                                                 </div>
                                               )}
                       
-                                              <div className="rounded-xl border border-primary/10 p-4 space-y-4 glass-card shadow-xl bg-white/5 dark:bg-black/5 backdrop-blur-xl">
+                                              <div className="rounded-xl border border-border/40 p-4 space-y-4 bg-card/30 dark:bg-black/5 backdrop-blur-xl shadow-sm">
                                                 {/* Send Button */}
                                                 <Button                          onClick={handleTryItOut}
                           isLoading={requestState.loading}
@@ -905,7 +881,7 @@ export function ApiReference() {
                         {/* Response Display */}
                         {(requestState.status || requestState.error) && (
                           <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                            <div className="flex items-center justify-between pb-2 border-b border-white/5">
+                            <div className="flex items-center justify-between pb-2 border-b border-border/40">
                               <div className="flex items-center gap-1.5">
                                 <div className={cn(
                                   "h-2 w-2 rounded-full animate-pulse",

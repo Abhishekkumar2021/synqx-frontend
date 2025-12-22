@@ -3,13 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getJobs, getPipelines, type Job } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { 
-    Play, Pause, StopCircle, RefreshCw, 
-    Search, Filter, Download, Trash2, 
-    MoreVertical, ExternalLink, Clock, Activity, ChevronRight,
-    History as HistoryIcon, ChevronDown, Terminal
+import {
+    RefreshCw, Filter, ChevronDown, Terminal, History as HistoryIcon
 } from 'lucide-react';
-
 import { cn } from '@/lib/utils';
 import { JobsList } from '@/components/features/jobs/JobsList';
 import { JobDetails } from '@/components/features/jobs/JobDetails';

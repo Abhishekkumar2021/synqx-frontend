@@ -1,5 +1,3 @@
-import React from 'react';
-import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { 
   ChevronRight, Book, Server, Database, 
@@ -52,9 +50,7 @@ const DOCS_NAV = [
   }
 ];
 
-export const DocsSidebar: React.FC<{ collapsed?: boolean }> = ({ collapsed }) => {
-  const location = useLocation();
-
+export const DocsSidebar = ({ collapsed }: { collapsed: boolean }) => {
   return (
     <div className={cn(
       "flex flex-col gap-8 animate-in fade-in duration-500",

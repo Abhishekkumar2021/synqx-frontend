@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable react-hooks/set-state-in-effect */
 import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import '@xyflow/react/dist/style.css'; 
 
@@ -27,7 +25,7 @@ import {
     Save, Play, ArrowLeft, Loader2, Layout, 
     Database, ArrowRightLeft, HardDriveUpload,
     Rocket, Square, Pencil, MousePointer2, History as HistoryIcon,
-    ExternalLink, Trash2
+    ExternalLink, Trash2, Plus, Search
 } from 'lucide-react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -35,6 +33,13 @@ import { toast } from 'sonner';
 import dagre from 'dagre';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
+
+import { 
+    DropdownMenu, 
+    DropdownMenuTrigger, 
+    DropdownMenuContent, 
+    DropdownMenuItem, 
+} from '@/components/ui/dropdown-menu';
 
 // API Imports
 import { 
@@ -46,6 +51,7 @@ import {
     publishPipelineVersion,
     getPipelineVersion,
     deletePipeline,
+    getPipelineVersions,
     type PipelineNode as ApiNode, 
     type PipelineEdge as ApiEdge,
     type PipelineCreate
@@ -95,6 +101,8 @@ const mapOperatorToNodeType = (opType: string) => {
         case 'extract': return 'source';
         case 'load': return 'sink';
         case 'transform': return 'transform';
+        case 'validate': return 'transform';
+        case 'noop': return 'transform';
         case 'merge': return 'transform';
         case 'union': return 'transform';
         case 'join': return 'transform';
@@ -108,8 +116,8 @@ const mapNodeTypeToOperator = (nodeType: string, operatorClass?: string) => {
     if (operatorClass === 'merge') return 'merge';
     if (operatorClass === 'union') return 'union';
     if (operatorClass === 'join') return 'join';
-    if (operatorClass === 'filter') return 'transform';
-    if (operatorClass === 'aggregate') return 'transform';
+    if (operatorClass === 'validate') return 'validate';
+    if (operatorClass === 'noop') return 'noop';
     
     // Fallback to node type mapping
     switch (nodeType) {
@@ -119,6 +127,53 @@ const mapNodeTypeToOperator = (nodeType: string, operatorClass?: string) => {
         default: return 'transform';
     }
 };
+
+// Helper: Detailed Node Definitions for Toolbox
+const NODE_DEFINITIONS = [
+    {
+        category: "IO Operations",
+        items: [
+            { label: "Extractor (Source)", type: "source", icon: Database, desc: "Ingest data from configured sources" },
+            { label: "Loader (Sink)", type: "sink", icon: HardDriveUpload, desc: "Load data into destination targets" }
+        ]
+    },
+    {
+        category: "Set Operations",
+        items: [
+            { label: "Join Datasets", type: "transform", opClass: "join", icon: ArrowRightLeft, desc: "Merge data based on keys" },
+            { label: "Union All", type: "transform", opClass: "union", icon: ArrowRightLeft, desc: "Combine datasets vertically" },
+            { label: "Merge", type: "transform", opClass: "merge", icon: ArrowRightLeft, desc: "Upsert/Merge data logic" }
+        ]
+    },
+    {
+        category: "Transformation",
+        items: [
+            { label: "Filter Rows", type: "transform", opClass: "filter", icon: ArrowRightLeft, desc: "Filter based on predicates" },
+            { label: "Map Fields", type: "transform", opClass: "map", icon: ArrowRightLeft, desc: "Transform column values" },
+            { label: "Aggregate", type: "transform", opClass: "aggregate", icon: ArrowRightLeft, desc: "Group by and summarize" },
+            { label: "Generic Pandas", type: "transform", opClass: "pandas_transform", icon: ArrowRightLeft, desc: "Custom Pandas operations" }
+        ]
+    },
+    {
+        category: "Data Quality",
+        items: [
+            { label: "Validate Schema", type: "transform", opClass: "validate", icon: ArrowRightLeft, desc: "Enforce schema & rules" },
+            { label: "Deduplicate", type: "transform", opClass: "deduplicate", icon: ArrowRightLeft, desc: "Remove duplicate records" },
+            { label: "Fill Nulls", type: "transform", opClass: "fill_nulls", icon: ArrowRightLeft, desc: "Impute missing values" },
+            { label: "Type Cast", type: "transform", opClass: "type_cast", icon: ArrowRightLeft, desc: "Convert column types" }
+        ]
+    },
+    {
+        category: "Advanced",
+        items: [
+            { label: "Python Code", type: "transform", opClass: "code", icon: ArrowRightLeft, desc: "Arbitrary Python execution" },
+            { label: "Rename Cols", type: "transform", opClass: "rename_columns", icon: ArrowRightLeft, desc: "Rename dataset columns" },
+            { label: "Drop Cols", type: "transform", opClass: "drop_columns", icon: ArrowRightLeft, desc: "Remove specific columns" },
+            { label: "Regex Replace", type: "transform", opClass: "regex_replace", icon: ArrowRightLeft, desc: "Pattern based replacement" },
+            { label: "No-Op", type: "transform", opClass: "noop", icon: ArrowRightLeft, desc: "Pass-through (Testing)" }
+        ]
+    }
+];
 
 export const PipelineCanvas: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -254,19 +309,26 @@ export const PipelineCanvas: React.FC = () => {
     [setEdges],
   );
 
-  const onAddNode = (type: string = 'default') => {
+  const onAddNode = (type: string, operatorClass?: string, label?: string) => {
       const newNodeId = `node_${Date.now()}`;
+      // Center the node somewhat in the view or randomize slightly
       const offset = Math.random() * 50; 
       const newNode: Node = {
           id: newNodeId,
           type: type,
           position: { x: 250 + offset, y: 250 + offset },
-          data: { label: `New ${type}`, type: type, config: {}, status: 'idle' },
+          data: { 
+              label: label || `New ${type}`, 
+              type: type, 
+              operator_class: operatorClass || 'pandas_transform',
+              config: {}, 
+              status: 'idle' 
+          },
       };
       setNodes((nds) => nds.concat(newNode));
       setSelectedNodeId(newNodeId);
-      toast.info("Node Added", { 
-          description: `A new ${type} operator has been placed on the canvas. Configure it in the inspector.` 
+      toast.success("Operator Added", { 
+          description: `Added ${label} to the canvas.` 
       });
   };
 
@@ -595,24 +657,26 @@ export const PipelineCanvas: React.FC = () => {
             />
 
             {/* FLOATING TOOLBOX PANEL */}
-            <Panel position="top-center" className="mt-4 pointer-events-none">
-                <div className="flex items-center gap-2 p-1.5 glass-panel rounded-full shadow-2xl pointer-events-auto border-border/50 bg-background/80 backdrop-blur-2xl">
+            <Panel position="top-center" className="mt-6 pointer-events-none">
+                <div className="flex items-center p-1.5 gap-1.5 glass-panel rounded-2xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.2)] pointer-events-auto border-border/40 bg-background/60 backdrop-blur-xl ring-1 ring-white/10 transition-all hover:scale-[1.02] hover:shadow-[0_12px_40px_-10px_rgba(0,0,0,0.3)]">
+                    
+                    {/* Primary Controls Group */}
                     <div className="flex items-center gap-1 pr-2 border-r border-border/20 mr-1">
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted" onClick={() => setSelectedNodeId(null)}>
+                                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => setSelectedNodeId(null)}>
                                         <MousePointer2 className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Select</TooltipContent>
+                                <TooltipContent>Select Mode</TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
 
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-muted" onClick={onLayout}>
+                                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={onLayout}>
                                         <Layout className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
@@ -621,32 +685,60 @@ export const PipelineCanvas: React.FC = () => {
                         </TooltipProvider>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
-                        <Button 
-                            variant="secondary" 
-                            size="sm" 
-                            className="h-8 rounded-full px-3 gap-2 bg-chart-1/10 text-chart-1 hover:bg-chart-1/20 border border-chart-1/20 transition-all font-medium text-xs" 
-                            onClick={() => onAddNode('source')}
+                    {/* Unified Add Node Menu */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button 
+                                className="h-9 rounded-xl px-4 gap-2 bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all"
+                            >
+                                <Plus className="h-4 w-4" /> Add Operator
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent 
+                            align="center" 
+                            sideOffset={10}
+                            className="w-64 bg-background/80 backdrop-blur-3xl border-border/20 shadow-2xl rounded-2xl p-2 ring-1 ring-white/5"
                         >
-                            <Database className="h-3 w-3" /> Source
-                        </Button>
-                        <Button 
-                            variant="secondary" 
-                            size="sm" 
-                            className="h-8 rounded-full px-3 gap-2 bg-chart-3/10 text-chart-3 hover:bg-chart-3/20 border border-chart-3/20 transition-all font-medium text-xs" 
-                            onClick={() => onAddNode('transform')}
-                        >
-                            <ArrowRightLeft className="h-3 w-3" /> Transform
-                        </Button>
-                        <Button 
-                            variant="secondary" 
-                            size="sm" 
-                            className="h-8 rounded-full px-3 gap-2 bg-chart-2/10 text-chart-2 hover:bg-chart-2/20 border border-chart-2/20 transition-all font-medium text-xs" 
-                            onClick={() => onAddNode('sink')}
-                        >
-                            <HardDriveUpload className="h-3 w-3" /> Sink
-                        </Button>
-                    </div>
+                            <div className="px-2 py-1.5 mb-2 relative">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                <input 
+                                    className="w-full h-8 pl-8 pr-3 rounded-lg bg-muted/30 border border-border/20 text-xs focus:outline-none focus:bg-muted/50 transition-colors"
+                                    placeholder="Filter operators..."
+                                />
+                            </div>
+
+                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar px-1">
+                                {NODE_DEFINITIONS.map((category, idx) => (
+                                    <div key={idx} className="mb-2 last:mb-0">
+                                        <div className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
+                                            {category.category}
+                                        </div>
+                                        {category.items.map((item, i) => (
+                                            <DropdownMenuItem 
+                                                key={i}
+                                                className="group flex items-center gap-3 p-2 rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer transition-colors"
+                                                onClick={() => onAddNode(item.type, (item as any).opClass, item.label)}
+                                            >
+                                                <div className={cn(
+                                                    "p-1.5 rounded-lg border shadow-sm transition-colors group-hover:border-primary/30",
+                                                    item.type === 'source' ? "bg-chart-1/10 border-chart-1/20 text-chart-1" :
+                                                    item.type === 'sink' ? "bg-chart-2/10 border-chart-2/20 text-chart-2" :
+                                                    "bg-chart-3/10 border-chart-3/20 text-chart-3"
+                                                )}>
+                                                    <item.icon className="h-3.5 w-3.5" />
+                                                </div>
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-xs font-semibold">{item.label}</span>
+                                                    <span className="text-[9px] text-muted-foreground group-hover:text-primary/70">{item.desc}</span>
+                                                </div>
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </div>
+                                ))}
+                            </div>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
                 </div>
             </Panel>
           </ReactFlow>
