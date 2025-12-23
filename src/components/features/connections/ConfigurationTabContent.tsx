@@ -1,11 +1,9 @@
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Settings2, Key, AlertTriangle, Activity } from 'lucide-react';
 import { ConfigField } from './ConfigField';
-import { cn } from '@/lib/utils'; // Import cn for conditional class names
 
 const ConfigurationTabContent = ({ 
     connection, 

@@ -795,6 +795,16 @@ export const ConnectionDetailsPage: React.FC = () => {
                     <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => navigate(`/explorer?connectionId=${connection.id}`)}
+                        className="h-11 px-5 rounded-2xl border-border/40 bg-background/40 backdrop-blur-md hover:shadow-lg transition-all shadow-sm font-semibold gap-2"
+                    >
+                        <Search className="h-4 w-4 text-primary" />
+                        Explore Data
+                    </Button>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => testMutation.mutate()}
                         disabled={testMutation.isPending}
                         className={cn(

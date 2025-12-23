@@ -26,6 +26,7 @@ const DocsPage = lazy(() => import('./pages/DocsPage').then(module => ({ default
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(module => ({ default: module.SettingsPage })));
 const AlertsPage = lazy(() => import('./pages/AlertsPage').then(module => ({ default: module.AlertsPage })));
 const OperatorsPage = lazy(() => import('./pages/OperatorsPage').then(module => ({ default: module.OperatorsPage })));
+const ExplorerPage = lazy(() => import('./pages/ExplorerPage').then(module => ({ default: module.ExplorerPage })));
 
 // React Query Configuration
 const queryClient = new QueryClient({
@@ -123,6 +124,7 @@ const AppRoutes = () => (
     {/* Secured Application Area */}
     <Route element={<ProtectedRoute />}>
       <Route path="/dashboard" element={<DashboardPage />} />
+      <Route path="/explorer" element={<ExplorerPage />} />
 
       <Route path="/connections" element={<ConnectionsPage />} />
       <Route path="/connections/:id" element={<ConnectionDetailsPage />} />

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getConnectionImpact, getConnectionUsageStats } from '@/lib/api';
 import ConfigurationTabContent from './ConfigurationTabContent';

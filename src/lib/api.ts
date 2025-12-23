@@ -728,6 +728,53 @@ export const createApiKey = async (payload: ApiKeyCreate) => {
 };
 
 export const revokeApiKey = async (id: number) => {
+
   const { data } = await api.delete<ApiKey>(`/api-keys/${id}`);
+
   return data;
+
+};
+
+
+
+// Explorer
+
+export interface QueryResponse {
+
+    results: any[];
+
+    count: number;
+
+    columns: string[];
+
+}
+
+
+
+export interface ConnectionSchemaMetadata {
+
+    connector_type: string;
+
+    metadata: Record<string, string[]>;
+
+}
+
+
+
+export const executeRawQuery = async (connectionId: number, query: string, limit: number = 100, offset: number = 0) => {
+
+    const { data } = await api.post<QueryResponse>(`/explorer/${connectionId}/execute`, { query, limit, offset });
+
+    return data;
+
+};
+
+
+
+export const getConnectionSchemaMetadata = async (connectionId: number) => {
+
+    const { data } = await api.get<ConnectionSchemaMetadata>(`/explorer/${connectionId}/schema-metadata`);
+
+    return data;
+
 };

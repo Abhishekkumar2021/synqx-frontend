@@ -115,6 +115,7 @@ export const Layout: React.FC<LayoutProps> = () => {
                                 <>
                                     <NavGroup collapsed={isSidebarCollapsed}>
                                         <NavItem to="/dashboard" icon={<LayoutDashboard />} label="Dashboard" collapsed={isSidebarCollapsed} />
+                                        <NavItem to="/explorer" icon={<Search />} label="Explorer" collapsed={isSidebarCollapsed} />
                                         <NavItem to="/connections" icon={<Cable />} label="Connections" collapsed={isSidebarCollapsed} />
                                         <NavItem to="/pipelines" icon={<Workflow />} label="Pipelines" collapsed={isSidebarCollapsed} />
                                         <NavItem to="/operators" icon={<Sparkles />} label="Operators" collapsed={isSidebarCollapsed} />
@@ -284,6 +285,7 @@ export const Layout: React.FC<LayoutProps> = () => {
                             </div>
                             <nav className="flex flex-col gap-2">
                                 <NavItem to="/dashboard" icon={<LayoutDashboard />} label="Dashboard" onClick={handleMobileNavClick} />
+                                <NavItem to="/explorer" icon={<Search />} label="Explorer" onClick={handleMobileNavClick} />
                                 <NavItem to="/connections" icon={<Cable />} label="Connections" onClick={handleMobileNavClick} />
                                 <NavItem to="/pipelines" icon={<Workflow />} label="Pipelines" onClick={handleMobileNavClick} />
                                 <NavItem to="/operators" icon={<Sparkles />} label="Operators" onClick={handleMobileNavClick} />
