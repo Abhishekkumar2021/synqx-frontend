@@ -149,7 +149,7 @@ function App() {
           <AuthProvider>
             <BrowserRouter>
               <AppRoutes />
-              <Toaster position='top-right' closeButton richColors theme="system" />
+              <Toaster position='top-right' closeButton />
             </BrowserRouter>
           </AuthProvider>
         </QueryClientProvider>

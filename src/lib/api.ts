@@ -346,8 +346,33 @@ export const getConnectionAssets = async (id: number) => {
     return data.assets;
 };
 
+
+export interface AssetBulkCreateItem {
+    name: string;
+    asset_type: string;
+    is_source: boolean;
+    is_destination: boolean;
+    fully_qualified_name?: string;
+}
+
+export interface AssetBulkCreate {
+    assets: AssetBulkCreateItem[];
+}
+
+export interface AssetBulkCreateResponse {
+    successful_creates: number;
+    failed_creates: number;
+    total_requested: number;
+    failures: { name: string; reason: string }[];
+}
+
 export const createAsset = async (connectionId: number, payload: AssetCreate) => {
     const { data } = await api.post<Asset>(`/connections/${connectionId}/assets`, payload);
+    return data;
+};
+
+export const bulkCreateAssets = async (connectionId: number, payload: AssetBulkCreate) => {
+    const { data } = await api.post<AssetBulkCreateResponse>(`/connections/${connectionId}/assets/bulk-create`, payload);
     return data;
 };
 

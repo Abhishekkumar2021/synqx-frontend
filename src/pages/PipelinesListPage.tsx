@@ -90,7 +90,6 @@ export const PipelinesListPage: React.FC = () => {
     if (isLoadingPipelines) return <LoadingSkeleton />;
 
     return (
-        // Main Container: Fixed height minus header to allow internal scrolling
         <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 md:gap-8 animate-in fade-in duration-700 p-4 md:p-0 ">
             <PageMeta title="Pipelines" description="Orchestrate and monitor your data workflows." />
 
@@ -115,7 +114,7 @@ export const PipelinesListPage: React.FC = () => {
             </div>
 
             {/* --- Content Pane (Glass) --- */}
-            <div className="flex-1 min-h-0 flex flex-col rounded-3xl border border-border/40 bg-background/40 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+            <div className="flex-1 min-h-0 flex flex-col rounded-3xl border border-border/40 bg-background/40 backdrop-blur-xl shadow-xl relative overflow-hidden">
 
                 {/* Toolbar */}
                 <div className="p-4 md:p-6 border-b border-border/40 bg-muted/20 flex flex-col md:flex-row items-center justify-between shrink-0 gap-4 md:gap-6">

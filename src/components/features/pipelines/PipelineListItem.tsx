@@ -76,7 +76,15 @@ export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, on
     return (
         <>
             <div
-                className="group grid grid-cols-12 gap-4 items-center px-6 py-4 hover:bg-muted/30 transition-all duration-200 border-b border-border/40 last:border-0"
+                className={cn(
+                    "group grid grid-cols-12 gap-4 items-center px-6 py-4 transition-all duration-200 cursor-pointer relative",
+                    "border-b border-border/30 last:border-0",
+                    "hover:bg-muted/30",
+                    "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1",
+                    "before:bg-primary before:scale-y-0 before:transition-transform before:duration-200",
+                    "hover:before:scale-y-100"
+                )}
+                onClick={() => navigate(`/pipelines/${pipeline.id}`)}
             >
                 {/* --- Column 1: Identity --- */}
                 <div className="col-span-12 md:col-span-4 flex items-center gap-4">

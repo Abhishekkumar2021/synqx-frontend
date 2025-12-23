@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -8,14 +7,12 @@ import {
     deleteConnection,
     discoverAssets,
     getConnectionAssets,
-    createAsset,
-    getConnectionImpact,
-    getConnectionUsageStats,
+    bulkCreateAssets,
     type Asset,
     type ConnectionTestResult,
-    type AssetCreate
+    getConnectionImpact,
+    getConnectionUsageStats,
 } from '@/lib/api';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -24,11 +21,11 @@ import {
     ArrowLeft, Database, RefreshCw, Search,
     ShieldCheck, AlertTriangle,
     Clock, Activity,
-    Layers, History,
-    Key, Server, Settings2, Lock,
-    MoreVertical, Trash2, Pencil, Copy, Check,
-    CheckCircle2, Download, Plus
-} from 'lucide-react';
+    Layers,
+    Key, Server, Settings2, 
+    MoreVertical, Trash2, Pencil, 
+    CheckCircle2, Download, Plus,
+    Sparkles} from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -51,55 +48,18 @@ import { Badge } from '@/components/ui/badge';
 import { format, formatDistanceToNow } from 'date-fns';
 import { Table, TableBody, TableHead, TableHeader, TableRow, TableCell } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import {
+    Dialog,
+    DialogContent
+} from "@/components/ui/dialog";
+import { CreateConnectionDialog } from '@/components/features/connections/CreateConnectionDialog';
 import { AssetTableRow } from '@/components/features/connections/AssetTableRow';
 import { PageMeta } from '@/components/common/PageMeta';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import {
-    Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
-} from "@/components/ui/dialog";
-
-// --- Sub-Components ---
-
-const ConfigField = ({ label, value, sensitive = false, copyable = false }: { label: string, value: React.ReactNode, sensitive?: boolean, copyable?: boolean }) => {
-    const [copied, setCopied] = useState(false);
-
-    const handleCopy = () => {
-        if (typeof value === 'string') {
-            navigator.clipboard.writeText(value);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-            toast.success("Copied to clipboard");
-        }
-    };
-
-    return (
-        <div className="space-y-1.5 group">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</label>
-            <div className={cn(
-                "text-sm font-medium p-3 rounded-lg border border-border/50 bg-muted/20 flex items-center justify-between transition-colors hover:border-border/80",
-                sensitive && "font-mono tracking-widest"
-            )}>
-                <span className="truncate">{value}</span>
-                <div className="flex items-center gap-2">
-                    {sensitive && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
-                    {copyable && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={handleCopy}
-                        >
-                            {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
-                        </Button>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-};
+import { CreateAssetsDialog } from '@/components/features/connections/CreateAssetsDialog';
+import { useMemo, useState } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ConfigField } from '@/components/features/connections/ConfigField';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const AssetsTabContent = ({
     connectionId,
@@ -117,31 +77,11 @@ const AssetsTabContent = ({
     setDiscoveredAssets: (assets: any[]) => void
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [importingName, setImportingName] = useState<string | null>(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [selectedDiscovered, setSelectedDiscovered] = useState<Set<string>>(new Set());
     
-    // Create Form State
-    const [newAssetName, setNewAssetName] = useState('');
-    const [newAssetType, setNewAssetType] = useState('table');
-    const [newUsageType, setNewUsageType] = useState('destination');
-    const [newFullyQualifiedName, setNewFullyQualifiedName] = useState('');
-    const [isIncremental, setIsIncremental] = useState(false);
-    const [configJson, setConfigJson] = useState('{}');
-
     const queryClient = useQueryClient();
 
-    // Reset form when opening dialog
-    const openCreateDialog = () => {
-        setNewAssetName('');
-        setNewAssetType('table');
-        setNewUsageType('destination');
-        setNewFullyQualifiedName('');
-        setIsIncremental(false);
-        setConfigJson('{}');
-        setIsCreateOpen(true);
-    };
-
-    // Client-side filtering for responsiveness
     const filteredAssets = useMemo(() => {
         if (!assets) return [];
         return assets.filter(asset =>
@@ -157,483 +97,509 @@ const AssetsTabContent = ({
         );
     }, [discoveredAssets, searchQuery]);
 
-    // Create Asset Mutation
-    const createMutation = useMutation({
-        mutationFn: async () => {
-            let parsedConfig = {};
-            try {
-                parsedConfig = JSON.parse(configJson);
-            } catch (e) {
-                toast.error("Invalid JSON configuration");
-                throw e;
+    const handleSelectDiscovered = (name: string, checked: boolean) => {
+        setSelectedDiscovered(prev => {
+            const newSet = new Set(prev);
+            if (checked) {
+                newSet.add(name);
+            } else {
+                newSet.delete(name);
             }
+            return newSet;
+        });
+    };
 
-            const payload: AssetCreate = {
-                name: newAssetName,
-                asset_type: newAssetType,
-                fully_qualified_name: newFullyQualifiedName || undefined,
-                connection_id: connectionId,
-                description: 'Manually created asset',
-                is_source: newUsageType === 'source',
-                is_destination: newUsageType === 'destination',
-                is_incremental_capable: isIncremental,
-                config: parsedConfig
-            };
-            return createAsset(connectionId, payload);
-        },
-        onSuccess: () => {
-            toast.success("Asset Created", {
-                description: `Successfully added "${newAssetName}" to managed assets.`
-            });
-            queryClient.invalidateQueries({ queryKey: ['assets', connectionId] });
-            setIsCreateOpen(false);
-        },
-        onError: (err) => {
-            console.error(err);
-            toast.error("Asset Creation Failed", {
-                description: "There was an error defining this asset. Please try again."
-            });
+    const handleSelectAllDiscovered = (checked: boolean) => {
+        if (checked) {
+            setSelectedDiscovered(new Set(filteredDiscovered.map(a => a.name)));
+        } else {
+            setSelectedDiscovered(new Set());
         }
-    });
+    };
 
-    // Import Asset Mutation
-    const importMutation = useMutation({
-        mutationFn: async ({ assetRaw, asDestination = false }: { assetRaw: any, asDestination?: boolean }) => {
-            setImportingName(assetRaw.name);
-            const payload: AssetCreate = {
-                name: assetRaw.name,
-                asset_type: assetRaw.type || assetRaw.asset_type || 'table',
-                connection_id: connectionId,
-                description: assetRaw.description,
+    const bulkImportMutation = useMutation({
+        mutationFn: async ({ assetNames, asDestination }: { assetNames: string[], asDestination: boolean }) => {
+            const assetsToCreate = assetNames.map(name => ({
+                name,
+                asset_type: 'table',
                 is_source: !asDestination,
-                is_destination: asDestination
-            };
-            return createAsset(connectionId, payload);
+                is_destination: asDestination,
+            }));
+            return bulkCreateAssets(connectionId, { assets: assetsToCreate });
         },
-        onSuccess: (_, variables) => {
-            toast.success(`Imported ${variables.assetRaw.name} as ${variables.asDestination ? 'Destination' : 'Source'}`);
-            // Remove from discovered list
-            setDiscoveredAssets(discoveredAssets.filter(a => a.name !== variables.assetRaw.name));
-            // Refresh managed assets
+        onSuccess: (data) => {
+            if (data.successful_creates > 0) {
+                toast.success("Bulk Import Successful", {
+                    description: `${data.successful_creates} of ${data.total_requested} assets were created.`,
+                });
+            }
+            if (data.failed_creates > 0) {
+                toast.warning("Some assets failed to import", {
+                    description: `${data.failed_creates} assets could not be created.`,
+                });
+            }
             queryClient.invalidateQueries({ queryKey: ['assets', connectionId] });
-            setImportingName(null);
+            const successfulNames = new Set(
+                [...selectedDiscovered].filter(
+                    name => !data.failures.some((f: { name: string; reason: string }) => f.name === name)
+                )
+            );
+            setDiscoveredAssets(discoveredAssets.filter(a => !successfulNames.has(a.name)));
+            setSelectedDiscovered(new Set());
         },
-        onError: () => {
-            toast.error("Import failed");
-            setImportingName(null);
+        onError: (err: any) => {
+            toast.error("Bulk Import Failed", {
+                description: err.response?.data?.detail?.message || "An unexpected error occurred."
+            });
         }
     });
+
 
     return (
-        <Card className="h-full flex flex-col border border-border/60 bg-card/40 backdrop-blur-xl shadow-sm overflow-hidden rounded-2xl">
-            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between py-4 px-6 border-b border-border/40 bg-muted/20 shrink-0 gap-4">
-                <div className="space-y-1">
-                    <CardTitle className="text-base font-semibold">Assets</CardTitle>
-                    <CardDescription className="text-xs">
-                        {assets?.length || 0} managed, {discoveredAssets.length} discovered.
-                    </CardDescription>
+        <div className="h-full flex flex-col rounded-2xl border border-border/40 bg-background/40 backdrop-blur-xl shadow-xl overflow-hidden relative">
+            <div className="p-4 md:p-5 border-b border-border/40 bg-muted/10 flex flex-col md:flex-row items-center justify-between shrink-0 gap-4 md:gap-6">
+                <div className="space-y-0.5 relative z-10">
+                    <h3 className="text-base font-bold flex items-center gap-2 text-foreground">
+                        <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                            <Layers className="h-3.5 w-3.5" />
+                        </div>
+                        Assets Registry
+                    </h3>
+                    <p className="text-[10px] text-muted-foreground font-bold tracking-tight pl-1">
+                        <span className="text-foreground">{assets?.length || 0}</span> MANAGED • <span className="text-amber-600 dark:text-amber-500">{discoveredAssets.length}</span> DISCOVERED
+                    </p>
                 </div>
-                <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <div className="relative flex-1 sm:w-64">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground z-20" />
+
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    <div className="relative w-full md:w-56 group">
+                        <Search className="absolute left-3 top-2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors z-20" />
                         <Input
                             placeholder="Filter assets..."
-                            className="pl-9 h-9 bg-background/50 border-border/50"
+                            className="pl-8 h-8 rounded-lg bg-background/50 border-border/40 focus:bg-background focus:border-primary/30 focus:ring-2 focus:ring-primary/5 transition-all shadow-none text-xs"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <Button
-                        onClick={openCreateDialog}
-                        size="sm"
-                        variant="secondary"
-                        className="rounded-lg shadow-sm"
-                    >
-                        <Plus className="mr-2 h-3.5 w-3.5" />
-                        New
-                    </Button>
-                    <Button
-                        onClick={onDiscover}
-                        size="sm"
-                        variant="outline"
-                        className="rounded-lg border-border/50 shadow-sm"
-                        disabled={isLoading}
-                    >
-                        <RefreshCw className={cn("mr-2 h-3.5 w-3.5", isLoading && "animate-spin")} />
-                        Scan
-                    </Button>
-                </div>
-            </CardHeader>
-
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                        <DialogTitle>Create New Asset</DialogTitle>
-                        <DialogDescription>
-                            Define a new table, file, or stream manually.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto px-1">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label>Asset Name <span className="text-destructive">*</span></Label>
-                                <Input 
-                                    placeholder="e.g. users_processed" 
-                                    value={newAssetName}
-                                    onChange={(e) => setNewAssetName(e.target.value)}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Asset Type</Label>
-                                <Select value={newAssetType} onValueChange={setNewAssetType}>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="table">Table</SelectItem>
-                                        <SelectItem value="view">View</SelectItem>
-                                        <SelectItem value="file">File</SelectItem>
-                                        <SelectItem value="stream">Stream</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Fully Qualified Name</Label>
-                            <Input 
-                                placeholder="e.g. public.users_processed" 
-                                value={newFullyQualifiedName}
-                                onChange={(e) => setNewFullyQualifiedName(e.target.value)}
-                            />
-                            <p className="text-[10px] text-muted-foreground">Optional schema-qualified name.</p>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Usage Type</Label>
-                            <Select value={newUsageType} onValueChange={setNewUsageType}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="source">Source (Read)</SelectItem>
-                                    <SelectItem value="destination">Destination (Write)</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                            <div className="space-y-0.5">
-                                <Label className="text-sm font-medium">Incremental Load</Label>
-                                <p className="text-xs text-muted-foreground">Supports incremental data processing</p>
-                            </div>
-                            <Switch checked={isIncremental} onCheckedChange={setIsIncremental} />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Configuration (JSON)</Label>
-                            <Textarea 
-                                placeholder='{"partition_by": "date", "compression": "snappy"}'
-                                className="font-mono text-xs"
-                                value={configJson}
-                                onChange={(e) => setConfigJson(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-                        <Button onClick={() => createMutation.mutate()} disabled={!newAssetName || createMutation.isPending}>
-                            {createMutation.isPending ? "Creating..." : "Create"}
+                    
+                    <div className="flex items-center gap-1.5">
+                        <Button
+                            onClick={onDiscover}
+                            size="icon"
+                            variant="outline"
+                            className="rounded-lg border-border/40 bg-background/50 backdrop-blur-sm hover:border-primary/30 hover:bg-primary/5 transition-all h-8 w-8 shrink-0 shadow-none"
+                            disabled={isLoading}
+                            title="Discover new assets"
+                        >
+                            <RefreshCw className={cn("h-3.5 w-3.5 text-muted-foreground", isLoading && "animate-spin text-primary")} />
                         </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                        <Button 
+                            size="sm" 
+                            className="rounded-lg shadow-sm h-8 px-3 gap-1.5 text-xs font-bold transition-all hover:scale-105 active:scale-95" 
+                            onClick={() => setIsCreateOpen(true)}
+                        >
+                            <Plus className="h-3.5 w-3.5" />
+                            <span>Add Asset</span>
+                        </Button>
+                    </div>
+                </div>
+            </div>
 
-            <CardContent className="flex-1 p-0 overflow-hidden">
-                <div className="h-full overflow-y-auto custom-scrollbar">
-                    {/* Discovered Assets Section */}
+            <CreateAssetsDialog 
+                connectionId={connectionId}
+                open={isCreateOpen}
+                onOpenChange={setIsCreateOpen}
+            />
+
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-border/50 hover:scrollbar-thumb-border/80 scrollbar-track-transparent">
+                <AnimatePresence mode="popLayout">
                     {filteredDiscovered.length > 0 && (
-                        <div className="mb-6 border-b border-border/40">
-                            <div className="px-6 py-3 bg-amber-500/10 border-b border-amber-500/20 flex items-center gap-2">
-                                <Download className="h-4 w-4 text-amber-500" />
-                                <h3 className="text-sm font-semibold text-amber-600 dark:text-amber-500">Discovered Assets</h3>
-                                <Badge variant="outline" className="ml-auto border-amber-500/30 text-amber-600 bg-amber-500/5">
-                                    {filteredDiscovered.length} Found
-                                </Badge>
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="border-b border-border/40 rounded-none relative z-20"
+                        >
+                            <div className="sticky top-0 z-30 px-6 py-2.5 bg-muted/90 backdrop-blur-md border-b border-border/40 flex items-center justify-between gap-2 shadow-sm">
+                                <div className="flex items-center gap-2.5">
+                                    <div className="p-1 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-500">
+                                        <Sparkles className="h-3.5 w-3.5" />
+                                    </div>
+                                    <h3 className="text-xs font-bold text-amber-700 dark:text-amber-500 uppercase tracking-widest">
+                                        Discovered Potential Assets
+                                    </h3>
+                                </div>
+                                {selectedDiscovered.size > 0 ? (
+                                     <div className="flex items-center gap-3">
+                                        <span className="text-[10px] font-bold text-amber-600/80 uppercase tracking-tighter">
+                                            {selectedDiscovered.size} selected
+                                        </span>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button 
+                                                    size="sm" 
+                                                    className="h-7 px-3 rounded-lg bg-amber-500 text-white hover:bg-amber-600 shadow-md shadow-amber-500/20 border-none gap-1.5 text-[10px] font-bold" 
+                                                    disabled={bulkImportMutation.isPending}
+                                                >
+                                                    {bulkImportMutation.isPending ? (
+                                                        <RefreshCw className="h-3 w-3 animate-spin" />
+                                                    ) : (
+                                                        <Download className="h-3 w-3" />
+                                                    )}
+                                                    Import
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="rounded-xl border-border/60 shadow-xl p-1">
+                                                <DropdownMenuItem 
+                                                    onClick={() => bulkImportMutation.mutate({ assetNames: Array.from(selectedDiscovered), asDestination: false })}
+                                                    className="rounded-lg text-xs font-medium py-2 gap-2"
+                                                >
+                                                    <Database className="h-3.5 w-3.5 text-primary" />
+                                                    Import as Source(s)
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem 
+                                                    onClick={() => bulkImportMutation.mutate({ assetNames: Array.from(selectedDiscovered), asDestination: true })}
+                                                    className="rounded-lg text-xs font-medium py-2 gap-2"
+                                                >
+                                                    <Download className="h-3.5 w-3.5 text-emerald-500" />
+                                                    Import as Destination(s)
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                     </div>
+                                ) : (
+                                    <Badge variant="outline" className="border-amber-500/30 text-amber-600 dark:text-amber-500 bg-amber-500/10 text-[10px] font-bold">
+                                        {filteredDiscovered.length} NEW ITEMS
+                                    </Badge>
+                                )}
                             </div>
-                            <Table>
-                                <TableHeader className="bg-muted/30">
-                                    <TableRow className="hover:bg-transparent border-b border-border/50">
-                                        <TableHead className="pl-6 w-[40%]">Asset Name</TableHead>
-                                        <TableHead className="px-6 py-3">Type</TableHead>
-                                        <TableHead className="text-right pr-6">Action</TableHead>
+                            <Table wrapperClassName="rounded-none border-none shadow-none">
+                                <TableHeader className="bg-muted/30 border-b border-border/20">
+                                    <TableRow className="hover:bg-transparent border-none">
+                                        <TableHead className="w-12 pl-6">
+                                            <Checkbox
+                                                checked={selectedDiscovered.size > 0 && selectedDiscovered.size === filteredDiscovered.length}
+                                                onCheckedChange={(checked) => handleSelectAllDiscovered(Boolean(checked))}
+                                                className="border-amber-500/50 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                                            />
+                                        </TableHead>
+                                        <TableHead className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Asset Name</TableHead>
+                                        <TableHead className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70 text-right pr-6">Type</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {filteredDiscovered.map((asset, idx) => (
-                                        <TableRow key={idx} className="hover:bg-muted/30 border-b border-border/40">
-                                            <TableCell className="pl-6 py-2.5 font-medium">{asset.name}</TableCell>
-                                            <TableCell className="px-6 py-2.5 capitalize text-muted-foreground text-xs">{asset.type || asset.asset_type}</TableCell>
+                                        <TableRow 
+                                            key={idx} 
+                                            className={cn(
+                                                "hover:bg-amber-500/5 transition-colors border-b border-amber-500/10 group",
+                                                selectedDiscovered.has(asset.name) && "bg-amber-500/5"
+                                            )}
+                                        >
+                                            <TableCell className="pl-6 py-2.5">
+                                                <Checkbox
+                                                    checked={selectedDiscovered.has(asset.name)}
+                                                    onCheckedChange={(checked) => handleSelectDiscovered(asset.name, Boolean(checked))}
+                                                    className="border-amber-500/30 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                                                />
+                                            </TableCell>
+                                            <TableCell className="font-bold text-sm text-foreground/80 group-hover:text-amber-700 dark:group-hover:text-amber-500 transition-colors">
+                                                {asset.name}
+                                            </TableCell>
                                             <TableCell className="text-right pr-6 py-2.5">
-                                                <div className="flex justify-end gap-2">
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button 
-                                                                size="sm" 
-                                                                variant="secondary" 
-                                                                className="h-7 text-xs gap-1"
-                                                                disabled={importingName === asset.name}
-                                                            >
-                                                                {importingName === asset.name ? (
-                                                                    <RefreshCw className="h-3 w-3 animate-spin" />
-                                                                ) : (
-                                                                    <Plus className="h-3 w-3" />
-                                                                )}
-                                                                Import
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem onClick={() => importMutation.mutate({ assetRaw: asset, asDestination: false })}>
-                                                                Import as Source (Read)
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => importMutation.mutate({ assetRaw: asset, asDestination: true })}>
-                                                                Import as Destination (Write)
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </div>
+                                                <Badge variant="outline" className="capitalize text-[9px] font-bold tracking-widest bg-muted/50 border-amber-500/20 text-muted-foreground">
+                                                    {asset.type || asset.asset_type}
+                                                </Badge>
                                             </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
                             </Table>
-                        </div>
+                        </motion.div>
                     )}
+                </AnimatePresence>
 
-                    {/* Managed Assets Section */}
+                {/* Managed Assets Section */}
+                <div className="relative z-10">
+                    <div className="sticky top-0 z-30 px-6 py-2.5 bg-muted/90 backdrop-blur-md border-b border-border/40 font-bold text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-2 shadow-sm">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                        Active Managed Assets
+                    </div>
+                    
                     {isLoading && !assets ? (
-                        <div className="space-y-4 p-6">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="flex justify-between items-center py-2">
+                        <div className="divide-y divide-border/20">
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="flex justify-between items-center py-4 px-6">
                                     <div className="flex items-center gap-4">
-                                        <Skeleton className="h-10 w-10 rounded-lg" />
+                                        <Skeleton className="h-10 w-10 rounded-xl" />
                                         <div className="space-y-2">
                                             <Skeleton className="h-4 w-48" />
                                             <Skeleton className="h-3 w-24" />
                                         </div>
                                     </div>
-                                    <Skeleton className="h-8 w-24" />
+                                    <Skeleton className="h-8 w-24 rounded-lg" />
                                 </div>
                             ))}
                         </div>
                     ) : filteredAssets.length > 0 ? (
-                        <>
-                             {(filteredDiscovered.length > 0) && (
-                                <div className="px-6 py-2 bg-muted/20 border-y border-border/50 font-semibold text-xs text-muted-foreground uppercase tracking-wider">
-                                    Managed Assets
-                                </div>
-                            )}
-                            <Table>
-                                <TableHeader className="bg-card sticky top-0 z-10 backdrop-blur-md shadow-sm">
-                                    <TableRow className="hover:bg-transparent border-b border-border/50">
-                                        <TableHead className="w-[40%] pl-6">Asset Name</TableHead>
-                                        <TableHead className="px-6 py-3">Type</TableHead>
-                                        <TableHead className="px-6 py-3">Schema</TableHead>
-                                        <TableHead className="px-6 py-3">Last Sync</TableHead>
-                                        <TableHead className="text-right pr-6">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredAssets.map((asset) => (
-                                        <AssetTableRow key={asset.id} asset={asset} connectionId={connectionId} />
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </>
+                        <Table wrapperClassName="rounded-none border-none shadow-none">
+                            <TableHeader className="bg-muted/20 border-b border-border/20">
+                                <TableRow className="hover:bg-transparent border-none">
+                                    <TableHead className="pl-6 font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Asset</TableHead>
+                                    <TableHead className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Type</TableHead>
+                                    <TableHead className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Schema</TableHead>
+                                    <TableHead className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Sync Status</TableHead>
+                                    <TableHead className="text-right pr-6 font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody className="divide-y divide-border/30">
+                                {filteredAssets.map((asset) => (
+                                    <AssetTableRow key={asset.id} asset={asset} connectionId={connectionId} />
+                                ))}
+                            </TableBody>
+                        </Table>
                     ) : (
-                        filteredDiscovered.length === 0 && (
-                            <div className="flex flex-col items-center justify-center h-full text-muted-foreground pb-12 p-4 text-center">
-                                <div className="h-20 w-20 bg-muted/30 rounded-full flex items-center justify-center mb-6 ring-1 ring-border/50">
-                                    {searchQuery ? <Search className="h-10 w-10 opacity-30" /> : <Database className="h-10 w-10 opacity-30" />}
+                        <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                className="relative mb-6"
+                            >
+                                <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full" />
+                                <div className="relative h-20 w-20 glass-card rounded-3xl border-border/40 flex items-center justify-center shadow-xl">
+                                    {searchQuery ? (
+                                        <Search className="h-10 w-10 text-muted-foreground/30" />
+                                    ) : (
+                                        <Database className="h-10 w-10 text-muted-foreground/30" />
+                                    )}
                                 </div>
-                                <h3 className="font-semibold text-lg text-foreground">
-                                    {searchQuery ? "No matching assets" : "No assets managed yet"}
-                                </h3>
-                                <p className="text-sm mt-2 max-w-sm leading-relaxed">
-                                    {searchQuery
-                                        ? `No assets found matching "${searchQuery}".`
-                                        : "Run a scan to find tables, then import them to start building pipelines."}
-                                </p>
-                                {!searchQuery && (
-                                    <Button variant="outline" size="sm" className="mt-6 border-dashed border-border" onClick={onDiscover}>
-                                        Start Discovery Scan
-                                    </Button>
-                                )}
-                            </div>
-                        )
+                            </motion.div>
+                            <h3 className="font-bold text-xl text-foreground">
+                                {searchQuery ? "No matching assets found" : "No managed assets yet"}
+                            </h3>
+                            <p className="text-sm mt-2 max-w-sm leading-relaxed text-muted-foreground font-medium">
+                                {searchQuery
+                                    ? `We couldn't find any assets matching "${searchQuery}". Try a broader term.`
+                                    : "You haven't added any assets to this connection yet. Discover assets or add them manually."}
+                            </p>
+                            {!searchQuery && (
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="mt-8 rounded-xl border-dashed border-border/60 bg-background/50 hover:border-primary/50 hover:bg-primary/5 px-6 gap-2 font-bold transition-all shadow-sm" 
+                                    onClick={onDiscover}
+                                >
+                                    <Sparkles className="h-4 w-4 text-primary" />
+                                    Discover Assets Now
+                                </Button>
+                            )}
+                        </div>
                     )}
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 };
 
 const ConfigurationTabContent = ({ 
     connection, 
     impactData, 
-    loadingImpact, 
-    usageStats, 
-    loadingUsageStats 
+    loadingImpact,
+    usageStats,
+    loadingUsageStats
 }: { 
-    connection: any; // Type 'Connection' from lib/api would be better here
-    impactData: any; // Type 'ConnectionImpact' from lib/api would be better here
+    connection: any;
+    impactData: any;
     loadingImpact: boolean;
-    usageStats: any; // Type 'ConnectionUsageStats' from lib/api would be better here
+    usageStats: any;
     loadingUsageStats: boolean;
 }) => {
     const config = connection.config || {};
     
-    // Define fields we want to show prominently or specifically format
     const mainFields = ['host', 'port', 'database', 'username', 'database_path', 'url', 'account', 'warehouse', 'schema', 'role', 'bucket', 'region'];
-    
-    // Filter sensitive keys
     const sensitiveKeys = ['password', 'secret', 'token', 'key', 'api_key', 'access_key'];
     
-    const configEntries = Object.entries(config).filter(([key]) => !mainFields.includes(key.toLowerCase()) && !sensitiveKeys.some(sk => key.toLowerCase().includes(sk)));
+    const configEntries = Object.entries(config).filter(
+        ([key]) => !mainFields.includes(key.toLowerCase()) && !sensitiveKeys.some(sk => key.toLowerCase().includes(sk))
+    );
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-y-auto p-4 custom-scrollbar z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-border/50 hover:scrollbar-thumb-border/80 scrollbar-track-transparent">
             {/* Config Details */}
-            <Card className="lg:col-span-2 border border-border/60 bg-card/40 backdrop-blur-xl shadow-sm h-fit">
-                <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
-                    <CardTitle className="text-base flex items-center gap-2">
-                        <Settings2 className="h-4 w-4 text-primary" />
-                        Connection Settings
-                    </CardTitle>
-                    <CardDescription>Technical configuration for this {connection.connector_type} source.</CardDescription>
-                </CardHeader>
-                <CardContent className="p-6 space-y-6">
-                    <div className="grid gap-6 md:grid-cols-2">
-                        <ConfigField label="Connection Name" value={connection.name} copyable />
-                        <ConfigField label="Connector Type" value={<span className="capitalize font-semibold text-foreground">{connection.connector_type}</span>} />
-                    </div>
-                    
-                    <div className="grid gap-6 md:grid-cols-2">
-                        {config.host && <ConfigField label="Host" value={config.host} copyable />}
-                        {config.port && <ConfigField label="Port" value={String(config.port)} />}
-                        {config.database && <ConfigField label="Database" value={config.database} copyable />}
-                        {config.username && <ConfigField label="Username" value={config.username} copyable />}
-                        {config.database_path && <ConfigField label="Database Path" value={config.database_path} copyable />}
-                        {config.account && <ConfigField label="Account" value={config.account} copyable />}
-                        {config.warehouse && <ConfigField label="Warehouse" value={config.warehouse} />}
-                        {config.schema && <ConfigField label="Schema" value={config.schema} />}
-                        {config.bucket && <ConfigField label="Bucket" value={config.bucket} copyable />}
-                        {config.region && <ConfigField label="Region" value={config.region} />}
-                    </div>
-
-                    {configEntries.length > 0 && (
-                        <div className="grid gap-6 md:grid-cols-2">
-                            {configEntries.map(([key, value]) => (
-                                <ConfigField 
-                                    key={key} 
-                                    label={key.replace(/_/g, ' ')} 
-                                    value={typeof value === 'object' ? JSON.stringify(value) : String(value)} 
-                                    copyable 
-                                />
-                            ))}
+            <div className="lg:col-span-3 space-y-6 pb-20">
+                <div className="rounded-2xl border border-border/40 bg-background/40 backdrop-blur-xl shadow-sm overflow-hidden">
+                    <div className="p-5 border-b border-border/40 bg-muted/10 flex items-center justify-between">
+                        <div className="space-y-0.5">
+                            <h3 className="text-sm font-bold flex items-center gap-2 text-foreground">
+                                <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                                    <Settings2 className="h-3.5 w-3.5" />
+                                </div>
+                                Technical Parameters
+                            </h3>
                         </div>
-                    )}
-
-                    <ConfigField label="Description" value={connection.description || '—'} />
-                    
-                    <div className="grid gap-6 md:grid-cols-2">
-                        <ConfigField label="Created On" value={format(new Date(connection.created_at || ''), 'PPP')} />
-                        <ConfigField label="Last Updated" value={format(new Date(connection.updated_at || ''), 'PPP')} />
+                        <Badge variant="outline" className="text-[10px] font-bold bg-primary/5 text-primary border-primary/20 tracking-widest px-2 py-0.5">
+                            CONFIG ID: {connection.id}
+                        </Badge>
                     </div>
+                    
+                    <div className="p-6 space-y-6">
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            <ConfigField label="Display Name" value={connection.name} copyable />
+                            <ConfigField 
+                                label="Connector Engine" 
+                                value={
+                                    <Badge variant="outline" className="capitalize font-bold bg-muted/50 text-foreground/70 border-border/50 tracking-wider text-[10px]">
+                                        {connection.connector_type}
+                                    </Badge>
+                                } 
+                            />
+                            {config.host && <ConfigField label="Hostname" value={config.host} copyable />}
+                            {config.port && <ConfigField label="Port" value={String(config.port)} />}
+                            {config.database && <ConfigField label="Database" value={config.database} copyable />}
+                            {config.username && <ConfigField label="Username" value={config.username} copyable />}
+                            {config.database_path && <ConfigField label="Path" value={config.database_path} copyable />}
+                            {config.account && <ConfigField label="Account" value={config.account} copyable />}
+                            {config.warehouse && <ConfigField label="Warehouse" value={config.warehouse} />}
+                            {config.schema && <ConfigField label="Schema" value={config.schema} />}
+                            {config.bucket && <ConfigField label="Bucket" value={config.bucket} copyable />}
+                            {config.region && <ConfigField label="Region" value={config.region} />}
+                        </div>
 
-                    <div className="border-t border-dashed border-border my-2" />
+                        {configEntries.length > 0 && (
+                            <>
+                                <div className="h-px bg-linear-to-r from-transparent via-border/30 to-transparent" />
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                    {configEntries.map(([key, value]) => (
+                                        <ConfigField 
+                                            key={key} 
+                                            label={key.replace(/_/g, ' ')} 
+                                            value={typeof value === 'object' ? JSON.stringify(value) : String(value)} 
+                                            copyable 
+                                        />
+                                    ))}
+                                </div>
+                            </>
+                        )}
 
-                    <div className="space-y-3">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                            <Key className="h-3.5 w-3.5" /> Authentication
-                        </h4>
-                        <div className="bg-muted/30 border border-border/60 rounded-lg p-4 flex items-center justify-between">
-                            <div className="space-y-1">
-                                <p className="text-xs font-medium text-muted-foreground">Security Credentials</p>
-                                <div className="font-mono text-sm tracking-widest text-foreground">••••••••••••••••</div>
+                        <div className="h-px bg-linear-to-r from-transparent via-border/30 to-transparent" />
+
+                        <div className="space-y-3">
+                            <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/70 flex items-center gap-2">
+                                <Key className="h-3 w-3 text-primary/70" /> 
+                                Security & Authentication
+                            </h4>
+                            <div className="rounded-xl border border-border/40 bg-muted/5 p-4 flex items-center justify-between shadow-inner">
+                                <div className="space-y-1">
+                                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Storage Status</p>
+                                    <div className="font-mono text-xs tracking-[0.4em] text-foreground/20">••••••••••••••••</div>
+                                </div>
+                                <Badge variant="outline" className="text-[9px] bg-emerald-500/5 text-emerald-600 dark:text-emerald-500 border-emerald-500/20 font-bold px-2 py-0.5 uppercase tracking-widest">
+                                    <ShieldCheck className="h-3 w-3 mr-1" />
+                                    Encrypted
+                                </Badge>
                             </div>
-                            <Badge variant="outline" className="text-[10px] bg-emerald-500/5 text-emerald-600 border-emerald-500/20">
-                                Encrypted at Rest
-                            </Badge>
+                        </div>
+
+                        {connection.description && (
+                            <ConfigField label="Administrative Description" value={connection.description} />
+                        )}
+                        
+                        <div className="h-px bg-linear-to-r from-transparent via-border/30 to-transparent" />
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <ConfigField label="Created On" value={format(new Date(connection.created_at || ''), 'PPP')} />
+                            <ConfigField label="Last Updated" value={format(new Date(connection.updated_at || ''), 'PPP')} />
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Side Panel Info */}
-            <div className="space-y-6">
-                <Card className="border-amber-500/20 bg-amber-500/5 shadow-sm backdrop-blur-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-bold text-amber-600 dark:text-amber-500 flex items-center gap-2">
-                            <AlertTriangle className="h-4 w-4" /> Impact Analysis
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground leading-relaxed">
-                        {loadingImpact ? (
-                            <Skeleton className="h-4 w-full" />
-                        ) : (
-                            <>
-                                This connection is actively used by <strong>{impactData?.pipeline_count || 0} pipelines</strong>.
-                                Changing credentials or host details may cause immediate failures in scheduled jobs.
-                            </>
-                        )}
-                    </CardContent>
-                </Card>
-
-                <Card className="border border-border/60 bg-card/40 backdrop-blur-xl shadow-sm">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <Activity className="h-4 w-4 text-primary" /> Usage Stats
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+            <div className="space-y-6 h-fit">
+                {/* Usage Stats Section */}
+                <div className="rounded-2xl border border-border/40 bg-background/40 backdrop-blur-xl shadow-sm overflow-hidden">
+                    <div className="p-4 border-b border-border/40 bg-muted/10 flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-primary" />
+                        <h4 className="text-xs font-bold text-foreground uppercase tracking-widest">
+                            Usage Statistics
+                        </h4>
+                    </div>
+                    <div className="p-4 space-y-4">
                         {loadingUsageStats ? (
-                            <div className="space-y-2">
-                                <Skeleton className="h-4 w-3/4" />
-                                <Skeleton className="h-4 w-1/2" />
-                                <Skeleton className="h-4 w-2/3" />
+                            <div className="space-y-3">
+                                <Skeleton className="h-12 w-full rounded-xl" />
+                                <Skeleton className="h-12 w-full rounded-xl" />
                             </div>
                         ) : (
-                            <>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Sync Success Rate (24h)</span>
-                                    <span className="font-mono font-bold text-emerald-500">{usageStats?.sync_success_rate}%</span>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="p-3 rounded-xl bg-muted/20 border border-border/30 text-center">
+                                    <div className="text-xl font-black text-primary">
+                                        {usageStats?.last_24h_runs || 0}
+                                    </div>
+                                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">
+                                        24h Runs
+                                    </div>
                                 </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Avg. Latency (24h)</span>
-                                    <span className="font-mono text-foreground">{usageStats?.average_latency_ms ? `${usageStats.average_latency_ms}ms` : 'N/A'}</span>
+                                <div className="p-3 rounded-xl bg-muted/20 border border-border/30 text-center">
+                                    <div className="text-xl font-black text-emerald-500">
+                                        {usageStats?.sync_success_rate ? `${usageStats.sync_success_rate.toFixed(0)}%` : '100%'}
+                                    </div>
+                                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">
+                                        Success Rate
+                                    </div>
                                 </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Total Runs (24h)</span>
-                                    <span className="font-mono text-foreground">{usageStats?.last_24h_runs || 0}</span>
-                                </div>
-                                 <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">Total Runs (7d)</span>
-                                    <span className="font-mono text-foreground">{usageStats?.last_7d_runs || 0}</span>
-                                </div>
-                            </>
+                            </div>
                         )}
-                    </CardContent>
-                </Card>
+                        <div className="pt-2">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 px-1">
+                                <span>Total (7d)</span>
+                                <span>{usageStats?.last_7d_runs || 0} runs</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden border border-border/20">
+                                <div 
+                                    className="h-full bg-primary rounded-full transition-all duration-500" 
+                                    style={{ width: `${usageStats?.sync_success_rate || 100}%` }} 
+                                />
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] font-bold px-1">
+                            <span className="text-muted-foreground uppercase tracking-widest">Avg Latency</span>
+                            <span className="text-foreground">{usageStats?.average_latency_ms ? `${usageStats.average_latency_ms.toFixed(0)}ms` : 'N/A'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 backdrop-blur-xl shadow-sm overflow-hidden">
+                    <div className="p-4 border-b border-amber-500/20 bg-amber-500/10 flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-600" />
+                        <h4 className="text-xs font-bold text-amber-700 dark:text-amber-500 uppercase tracking-widest">
+                            Impact Analysis
+                        </h4>
+                    </div>
+                    <div className="p-4 space-y-4">
+                        <div className="text-xs text-amber-900/70 dark:text-amber-200/70 leading-relaxed font-semibold">
+                            {loadingImpact ? (
+                                <div className="space-y-3">
+                                    <Skeleton className="h-4 w-full bg-amber-500/10" />
+                                    <Skeleton className="h-4 w-[85%] bg-amber-500/10" />
+                                </div>
+                            ) : (
+                                <>
+                                    Actively utilized by{' '}
+                                    <span className="text-amber-700 dark:text-amber-500 font-black">
+                                        {impactData?.pipeline_count || 0} pipelines
+                                    </span>.
+                                    Parameter changes will disrupt scheduled syncs.
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
 };
 
-
-// New component to encapsulate ConfigurationTabContent and its data fetching
 const ConnectionConfigStats = ({ connection, connectionId }: { connection: any; connectionId: number }) => {
-    // Fetch Impact Analysis
     const {
         data: impactData,
         isLoading: loadingImpact
@@ -643,7 +609,6 @@ const ConnectionConfigStats = ({ connection, connectionId }: { connection: any; 
         enabled: !!connection,
     });
 
-    // Fetch Usage Stats
     const {
         data: usageStats,
         isLoading: loadingUsageStats
@@ -664,9 +629,6 @@ const ConnectionConfigStats = ({ connection, connectionId }: { connection: any; 
     );
 };
 
-
-// --- Main Page Component ---
-
 export const ConnectionDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -675,8 +637,8 @@ export const ConnectionDetailsPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState('assets');
     const [discoveredAssets, setDiscoveredAssets] = useState<any[]>([]);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
-    // Fetch Connection
     const {
         data: connection,
         isLoading: loadingConnection,
@@ -687,7 +649,6 @@ export const ConnectionDetailsPage: React.FC = () => {
         retry: 1
     });
 
-    // Delete Mutation
     const deleteMutation = useMutation({
         mutationFn: () => deleteConnection(connectionId),
         onSuccess: () => {
@@ -698,22 +659,21 @@ export const ConnectionDetailsPage: React.FC = () => {
         onError: () => toast.error("Failed to delete connection")
     });
 
-    // Fetch Assets
     const {
         data: assets,
-        isLoading: loadingAssets } = useQuery({
-            queryKey: ['assets', connectionId],
-            queryFn: () => getConnectionAssets(connectionId),
-            enabled: !!connection // Only fetch if connection exists
-        });
+        isLoading: loadingAssets 
+    } = useQuery({
+        queryKey: ['assets', connectionId],
+        queryFn: () => getConnectionAssets(connectionId),
+        enabled: !!connection
+    });
 
-    // Test Connection Mutation
     const testMutation = useMutation({
         mutationFn: () => testConnection(connectionId),
         onSuccess: (data: ConnectionTestResult) => {
             if (data.success) {
                 toast.success("Connection Healthy", {
-                    description: `Verification successful. ${data.message || 'The system can successfully communicate with the data source.'}`,
+                    description: `${data.message || 'The system can successfully communicate with the data source.'}`,
                     icon: <ShieldCheck className="text-emerald-500 h-4 w-4" />
                 });
             } else {
@@ -728,7 +688,6 @@ export const ConnectionDetailsPage: React.FC = () => {
         })
     });
 
-    // Discover Assets Mutation
     const discoverMutation = useMutation({
         mutationFn: () => discoverAssets(connectionId),
         onSuccess: (data: any) => {
@@ -736,221 +695,227 @@ export const ConnectionDetailsPage: React.FC = () => {
             toast.success(`Discovery Complete`, { description: `Found ${data.discovered_count || newAssets.length || 0} items` });
             setDiscoveredAssets(newAssets);
         },
-        onError: () => toast.error("Discovery failed")
-    });
-
-    // --- Render States ---
-
+                onError: () => toast.error("Discovery failed")
+            });
     if (loadingConnection) return (
-        <div className="p-8 space-y-6 max-w-7xl mx-auto w-full">
+        <div className="p-8 space-y-6 max-w-7xl mx-auto w-full animate-in fade-in duration-500">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Skeleton className="h-10 w-10 rounded-xl" />
+                    <Skeleton className="h-12 w-12 rounded-2xl" />
                     <div className="space-y-2">
-                        <Skeleton className="h-6 w-48" />
-                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-7 w-56" />
+                        <Skeleton className="h-4 w-40" />
                     </div>
                 </div>
-                <Skeleton className="h-10 w-32 rounded-lg" />
+                <Skeleton className="h-10 w-36 rounded-xl" />
             </div>
-            <Skeleton className="h-[500px] w-full rounded-3xl" />
+            <Skeleton className="h-[600px] w-full rounded-3xl" />
         </div>
     );
 
     if (isConnectionError || !connection) return (
-        <div className="flex flex-col items-center justify-center h-[60vh] text-muted-foreground gap-6">
-            <div className="relative">
-                <div className="absolute inset-0 bg-destructive/20 blur-xl rounded-full" />
-                <div className="relative h-20 w-20 bg-card border border-border rounded-[2rem] flex items-center justify-center shadow-lg">
-                    <AlertTriangle className="h-10 w-10 text-destructive" />
+        <div className="flex flex-col items-center justify-center h-[60vh] text-muted-foreground gap-8 animate-in fade-in duration-500">
+            <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="relative"
+            >
+                <div className="absolute inset-0 bg-destructive/20 blur-3xl rounded-full" />
+                <div className="relative h-24 w-24 glass-card rounded-3xl flex items-center justify-center shadow-2xl">
+                    <AlertTriangle className="h-12 w-12 text-destructive" />
                 </div>
-            </div>
+            </motion.div>
             <div className="text-center space-y-2">
                 <h2 className="text-2xl font-bold text-foreground">Connection Not Found</h2>
-                <p className="max-w-md mx-auto">The connection you are looking for does not exist or you do not have permission to view it.</p>
+                <p className="max-w-md mx-auto text-sm leading-relaxed">
+                    The connection you are looking for does not exist or you do not have permission to view it.
+                </p>
             </div>
-            <Button variant="outline" onClick={() => navigate('/connections')} className="gap-2">
+            <Button 
+                variant="outline" 
+                onClick={() => navigate('/connections')} 
+                className="gap-2 rounded-xl shadow-sm hover:shadow-md transition-all"
+            >
                 <ArrowLeft className="h-4 w-4" /> Return to Connections
             </Button>
         </div>
     );
 
     return (
-        <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 animate-in fade-in duration-500">
+        <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 md:gap-8 animate-in fade-in duration-700 p-4 md:p-0">
             <PageMeta title={connection.name} description={`Manage ${connection.name} connection details.`} />
 
-            {/* --- Header Section --- */}
-            <div className="flex flex-col gap-6 shrink-0">
-                <div className="flex items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-10 w-10 hover:bg-muted/50 rounded-xl border border-transparent hover:border-border/50"
-                            onClick={() => navigate('/connections')}
-                        >
-                            <ArrowLeft className="h-5 w-5 text-muted-foreground" />
-                        </Button>
+            {/* --- Page Header --- */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between shrink-0 gap-6 md:gap-0 px-1">
+                <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-12 w-12 hover:bg-muted/50 rounded-2xl border border-border/40 transition-all shadow-sm hover:shadow-md hidden md:flex"
+                        onClick={() => navigate('/connections')}
+                    >
+                        <ArrowLeft className="h-6 w-6 text-muted-foreground" />
+                    </Button>
 
-                        <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-3">
-                                <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                                    {connection.name}
-                                </h2>
-                                <Badge variant="outline" className={cn(
-                                    "uppercase text-[10px] tracking-wider font-bold border px-2 py-0.5 rounded-md",
-                                    connection.health_status === 'active'
-                                        ? "text-emerald-600 bg-emerald-500/10 border-emerald-500/20"
-                                        : "text-muted-foreground border-border bg-muted/50"
-                                )}>
-                                    {connection.health_status || 'UNKNOWN'}
-                                </Badge>
-                            </div>
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground font-medium flex-wrap">
-                                <span className="flex items-center gap-1.5 capitalize">
-                                    <div className="p-1 rounded-md bg-muted/50 border border-border/50">
-                                        <Database className="h-3 w-3 text-primary" />
-                                    </div>
-                                    {connection.connector_type}
-                                </span>
-                                <span className="w-1 h-1 rounded-full bg-border" />
-                                <span className="flex items-center gap-1.5 font-mono opacity-80" title="Click to copy ID">
-                                    ID: {connection.id}
-                                </span>
-                                <span className="w-1 h-1 rounded-full bg-border" />
-                                <span className="flex items-center gap-1.5">
-                                    <Clock className="h-3.5 w-3.5" />
-                                    Updated {formatDistanceToNow(new Date(connection.updated_at || new Date()), { addSuffix: true })}
-                                </span>
-                            </div>
+                    <div className="space-y-1.5">
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-foreground flex items-center gap-3">
+                                <div className="p-2 bg-primary/10 rounded-2xl ring-1 ring-border/50 backdrop-blur-md shadow-sm">
+                                    <Database className="h-6 w-6 text-primary" />
+                                </div>
+                                {connection.name}
+                            </h2>
+                            <Badge variant="outline" className={cn(
+                                "uppercase text-[10px] tracking-widest font-bold px-2.5 py-1 rounded-lg shadow-sm mt-1",
+                                connection.health_status === 'active'
+                                    ? "text-emerald-600 dark:text-emerald-500 bg-emerald-500/10 border-emerald-500/30"
+                                    : "text-muted-foreground border-border bg-muted/50"
+                            )}>
+                                {connection.health_status || 'UNKNOWN'}
+                            </Badge>
                         </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => testMutation.mutate()}
-                            disabled={testMutation.isPending}
-                            className={cn(
-                                "border-border/50 bg-card hover:bg-muted/50 transition-all shadow-sm min-w-[140px]",
-                                testMutation.isSuccess && "text-emerald-600 border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10"
-                            )}
-                        >
-                            {testMutation.isPending ? (
-                                <RefreshCw className="mr-2 h-3.5 w-3.5 animate-spin" />
-                            ) : testMutation.isSuccess ? (
-                                <CheckCircle2 className="mr-2 h-3.5 w-3.5" />
-                            ) : (
-                                <Activity className="mr-2 h-3.5 w-3.5" />
-                            )}
-                            {testMutation.isPending ? 'Testing...' : 'Test Connectivity'}
-                        </Button>
-
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg hover:bg-muted">
-                                    <MoreVertical className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/60 bg-background/95 backdrop-blur-md shadow-xl">
-                                <DropdownMenuItem>
-                                    <Pencil className="mr-2 h-3.5 w-3.5" /> Edit Connection
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-border/50" />
-                                <DropdownMenuItem 
-                                    className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
-                                    onClick={() => setIsDeleteDialogOpen(true)}
-                                >
-                                    <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                        
-                        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This will permanently delete the connection "{connection.name}" and all associated metadata.
-                                        Pipelines using this connection may fail.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                        onClick={() => deleteMutation.mutate()}
-                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                        {deleteMutation.isPending ? "Deleting..." : "Delete"}
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground font-medium pl-1 overflow-x-auto whitespace-nowrap scrollbar-none">
+                            <span className="flex items-center gap-1.5 capitalize">
+                                <span className="font-semibold text-foreground/70">{connection.connector_type}</span>
+                            </span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
+                            <span className="flex items-center gap-1.5 font-mono">
+                                ID: <span className="font-bold text-foreground/70">{connection.id}</span>
+                            </span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
+                            <span className="flex items-center gap-1.5">
+                                <Clock className="h-4 w-4" />
+                                Updated {formatDistanceToNow(new Date(connection.updated_at || new Date()), { addSuffix: true })}
+                            </span>
+                        </div>
                     </div>
                 </div>
 
-                {/* Tabs */}
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="h-10 w-full justify-start rounded-lg bg-muted/40 p-1 text-muted-foreground gap-1">
+                <div className="flex items-center gap-3">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => testMutation.mutate()}
+                        disabled={testMutation.isPending}
+                        className={cn(
+                            "h-11 px-5 rounded-2xl border-border/40 bg-background/40 backdrop-blur-md hover:shadow-lg transition-all shadow-sm font-semibold gap-2 min-w-40",
+                            testMutation.isSuccess && "text-emerald-600 dark:text-emerald-500 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20"
+                        )}
+                    >
+                        {testMutation.isPending ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : testMutation.isSuccess ? (
+                            <CheckCircle2 className="h-4 w-4" />
+                        ) : (
+                            <Activity className="h-4 w-4" />
+                        )}
+                        {testMutation.isPending ? 'Testing...' : 'Test Connection'}
+                    </Button>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="h-11 w-11 rounded-2xl border-border/40 bg-background/40 backdrop-blur-md hover:shadow-lg transition-all shadow-sm"
+                            >
+                                <MoreVertical className="h-5 w-5" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56 rounded-2xl border-border/60 glass-panel shadow-2xl p-2">
+                            <DropdownMenuItem 
+                                className="rounded-xl cursor-pointer py-2.5 gap-2.5 font-medium"
+                                onClick={() => setIsEditDialogOpen(true)}
+                            >
+                                <Pencil className="h-4 w-4 text-primary" /> Edit Connection
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-border/40 my-1.5" />
+                            <DropdownMenuItem 
+                                className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer rounded-xl py-2.5 gap-2.5 font-medium"
+                                onClick={() => setIsDeleteDialogOpen(true)}
+                            >
+                                <Trash2 className="h-4 w-4" /> Delete Connection
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </div>
+
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <AlertDialogContent className="rounded-3xl glass-panel border-border/60 shadow-2xl overflow-hidden p-0">
+                    <div className="p-8 space-y-4">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-2xl font-bold tracking-tight">Delete Connection?</AlertDialogTitle>
+                            <AlertDialogDescription className="text-base leading-relaxed text-muted-foreground">
+                                This will permanently delete the connection <span className="font-bold text-foreground">"{connection.name}"</span> and all its metadata.
+                                Any pipelines using this connection will <span className="text-destructive font-semibold">stop working immediately</span>.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                    </div>
+                    <AlertDialogFooter className="bg-muted/30 p-6 gap-3">
+                        <AlertDialogCancel className="rounded-xl border-border/40 bg-background/50 hover:bg-background font-semibold h-11 px-6">Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => deleteMutation.mutate()}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl shadow-lg shadow-destructive/20 font-semibold h-11 px-6"
+                        >
+                            {deleteMutation.isPending ? "Deleting..." : "Delete Connection"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* --- Content Tabs --- */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+                <div className="flex items-center justify-between mb-4 px-1 shrink-0">
+                    <TabsList className="h-10 bg-muted/50 border border-border/40 rounded-xl p-1 shadow-inner gap-1">
                         <TabsTrigger
                             value="assets"
-                            className="
-                                flex-1 sm:flex-none inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 
-                                text-sm font-medium ring-offset-background transition-all focus-visible:outline-none 
-                                disabled:pointer-events-none disabled:opacity-50 
-                                data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm
-                            "
+                            className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-xs font-bold ring-offset-background transition-all focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
                         >
-                            <Layers className="h-4 w-4" />
-                            Metadata
+                            <Layers className="h-3.5 w-3.5" />
+                            Assets
                         </TabsTrigger>
 
                         <TabsTrigger
                             value="configuration"
-                            className="
-                                flex-1 sm:flex-none inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-1.5 
-                                text-sm font-medium ring-offset-background transition-all focus-visible:outline-none 
-                                disabled:pointer-events-none disabled:opacity-50 
-                                data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm
-                            "
+                            className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-xs font-bold ring-offset-background transition-all focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
                         >
-                            <Server className="h-4 w-4" />
-                            Config
-                        </TabsTrigger>
-
-                        <TabsTrigger
-                            value="logs"
-                            disabled
-                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-md px-4 py-1.5 text-sm"
-                        >
-                            <History className="h-4 w-4" />
-                            Logs
+                            <Server className="h-3.5 w-3.5" />
+                            Configuration
                         </TabsTrigger>
                     </TabsList>
+                </div>
 
-                    {/* Tab Content Wrappers */}
-                    <div className="pt-6 h-[calc(100vh-16rem)]">
-                        <TabsContent value="assets" className="h-full mt-0 focus-visible:outline-none">
-                            <AssetsTabContent
-                                connectionId={connectionId}
-                                assets={assets}
-                                discoveredAssets={discoveredAssets}
-                                isLoading={loadingAssets || discoverMutation.isPending}
-                                onDiscover={() => discoverMutation.mutate()}
-                                setDiscoveredAssets={setDiscoveredAssets}
-                            />
-                        </TabsContent>
+                <div className="flex-1 min-h-0">
+                    <TabsContent value="assets" className="h-full mt-0 focus-visible:outline-none">
+                        <AssetsTabContent
+                            connectionId={connectionId}
+                            assets={assets}
+                            discoveredAssets={discoveredAssets}
+                            isLoading={loadingAssets || discoverMutation.isPending}
+                            onDiscover={() => discoverMutation.mutate()}
+                            setDiscoveredAssets={setDiscoveredAssets}
+                        />
+                    </TabsContent>
 
-                        <TabsContent value="configuration" className="h-full mt-0 focus-visible:outline-none overflow-auto">
-                            <ConnectionConfigStats
-                                connection={connection}
-                                connectionId={connectionId}
-                            />
-                        </TabsContent>
-                    </div>
-                </Tabs>
-            </div>
-        </div>
-    );
-};
+                    <TabsContent value="configuration" className="h-full mt-0 focus-visible:outline-none">
+                        <ConnectionConfigStats
+                            connection={connection}
+                            connectionId={connectionId}
+                        />
+                    </TabsContent>
+                                </div>
+                            </Tabs>
+                
+                            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                                <DialogContent className="max-w-5xl h-[700px] flex flex-col p-0 gap-0 overflow-hidden rounded-3xl border-border/60 glass-panel shadow-2xl backdrop-blur-3xl">
+                                    <CreateConnectionDialog
+                                        initialData={connection}
+                                        onClose={() => setIsEditDialogOpen(false)}
+                                    />
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    );
+                };
+                

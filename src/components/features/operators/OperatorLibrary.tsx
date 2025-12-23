@@ -353,12 +353,11 @@ export const OperatorLibrary: React.FC = () => {
     return (
         <div className="flex flex-col gap-8 w-full">
             {/* Search & Category Header */}
-            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-card/30 p-4 rounded-3xl border border-border/40 backdrop-blur-md">
+            <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-muted/20 p-4 rounded-3xl border border-border/40 backdrop-blur-md">
                 <div className="relative group w-full md:w-80">
                     <Search className="z-20 absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input 
-                        className="h-10 pl-9 bg-background/50 border-border/20 rounded-2xl focus-visible:ring-primary/20"
-                        placeholder="Search operators..."
+                        className="pl-11 h-11 rounded-2xl bg-background/50 border-border/50 focus:bg-background focus:border-primary/30 focus:ring-4 focus:ring-primary/10 transition-all shadow-sm"placeholder="Search operators..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
@@ -453,7 +452,7 @@ export const OperatorLibrary: React.FC = () => {
                                     <TabsList className="
                                         w-full bg-black/5 dark:bg-white/5 
                                         p-1 rounded-2xl h-11 backdrop-blur-md 
-                                        border border-black/[0.03] dark:border-white/[0.05]
+                                        border border-black/3 dark:border-white/5
                                     ">
                                         <TabsTrigger 
                                             value="config" 

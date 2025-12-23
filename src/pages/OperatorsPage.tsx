@@ -1,4 +1,4 @@
-import { OperatorLibrary } from '@/components/features/transforms/OperatorLibrary';
+import { OperatorLibrary } from '@/components/features/operators/OperatorLibrary';
 import { Sparkles } from 'lucide-react';
 
 export const OperatorsPage = () => {
