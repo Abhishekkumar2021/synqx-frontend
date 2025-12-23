@@ -1,20 +1,30 @@
 import { type QueryResponse } from "@/lib/api";
 
+export interface ResultItem {
+    id: string;
+    timestamp: number;
+    statement: string;
+    data: QueryResponse;
+    duration?: number;
+}
+
 export interface QueryTab {
     id: string;
     title: string;
     query: string;
     language: string;
-    results: QueryResponse | null;
+    results: ResultItem[];
+    activeResultId?: string;
 }
 
 export interface HistoryItem {
-    id: string;
+    id: string | number;
     query: string;
-    timestamp: number;
+    timestamp: number | string;
     connectionName: string;
     duration?: number;
     rowCount?: number;
+    resultData?: QueryResponse;
 }
 
 export const SUPPORTED_EXPLORER_TYPES = [

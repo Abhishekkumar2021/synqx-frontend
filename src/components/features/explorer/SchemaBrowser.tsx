@@ -3,20 +3,36 @@ import { useQuery } from '@tanstack/react-query';
 import { getConnectionSchemaMetadata } from '@/lib/api';
 import {
     Database, Search, ChevronRight,
-    Columns, AlertCircle, RefreshCcw, Box
+    Columns, AlertCircle, RefreshCcw, Box,
+    MoreHorizontal, Copy,
+    FilePlus, PlayCircle, FileCode
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuLabel,
+    DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface SchemaBrowserProps {
     connectionId: number | null;
-    onTableClick: (table: string) => void;
+    onAction: (type: 'run' | 'insert', sql: string) => void;
 }
 
-export const SchemaBrowser: React.FC<SchemaBrowserProps> = ({ connectionId, onTableClick }) => {
+export const SchemaBrowser: React.FC<SchemaBrowserProps> = ({ connectionId, onAction }) => {
     const { data: metadata, isLoading, isError, refetch, isFetching } = useQuery({
         queryKey: ['schema-metadata', connectionId],
         queryFn: () => getConnectionSchemaMetadata(connectionId!),
@@ -47,6 +63,11 @@ export const SchemaBrowser: React.FC<SchemaBrowserProps> = ({ connectionId, onTa
         if (next.has(table)) next.delete(table);
         else next.add(table);
         setExpandedTables(next);
+    };
+
+    const handleCopy = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast.success("Copied to clipboard");
     };
 
     if (!connectionId) return (
@@ -113,46 +134,82 @@ export const SchemaBrowser: React.FC<SchemaBrowserProps> = ({ connectionId, onTa
                         onChange={(e) => setFilter(e.target.value)}
                     />
                 </div>
-                <Button
-                    size="icon"
-                    variant="ghost"
-                    className={cn("h-9 w-9 rounded-xl transition-all border border-border/20", isFetching && "bg-primary/5")}
-                    onClick={() => refetch()}
-                >
-                    <RefreshCcw className={cn("h-3.5 w-3.5 text-muted-foreground", isFetching && "animate-spin text-primary")} />
-                </Button>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            size="icon"
+                            variant="ghost"
+                            className={cn("h-9 w-9 rounded-xl transition-all border border-border/20", isFetching && "bg-primary/5")}
+                            onClick={() => refetch()}
+                        >
+                            <RefreshCcw className={cn("h-3.5 w-3.5 text-muted-foreground", isFetching && "animate-spin text-primary")} />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Refresh Schema</TooltipContent>
+                </Tooltip>
             </div>
 
             <div className="flex-1 overflow-auto custom-scrollbar select-none">
                 <div className="p-3 space-y-1">
                     {filteredMetadata && Object.entries(filteredMetadata).map(([table, columns], idx) => (
-                        <div key={table} className="relative">
-                            <motion.button
-                                initial={{ opacity: 0, x: -5 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.01 }}
-                                onClick={() => toggleTable(table)}
-                                onDoubleClick={() => onTableClick(table)}
-                                className={cn(
-                                    "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all group/table text-left",
-                                    expandedTables.has(table)
-                                        ? "text-primary bg-primary/5 shadow-sm ring-1 ring-primary/10"
-                                        : "text-muted-foreground/60 hover:bg-muted/40 hover:text-foreground"
-                                )}
-                            >
-                                <ChevronRight className={cn(
-                                    "h-3.5 w-3.5 shrink-0 transition-transform duration-300 ease-in-out",
-                                    expandedTables.has(table) && "rotate-90 text-primary"
-                                )} />
-                                <Box className={cn(
-                                    "h-3.5 w-3.5 shrink-0 transition-opacity",
-                                    expandedTables.has(table) ? "opacity-100" : "opacity-30 group-hover/table:opacity-100"
-                                )} />
-                                <span className="truncate flex-1 italic tracking-tighter">{table}</span>
-                                <span className="text-[9px] font-mono font-black opacity-20 group-hover/table:opacity-100 transition-opacity">
-                                    {columns.length}
-                                </span>
-                            </motion.button>
+                        <div key={table} className="relative group/wrapper">
+                            <div className="relative flex items-center">
+                                <motion.button
+                                    initial={{ opacity: 0, x: -5 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: idx * 0.01 }}
+                                    onClick={() => toggleTable(table)}
+                                    onDoubleClick={() => onAction('run', `SELECT * FROM ${table} LIMIT 50;`)}
+                                    className={cn(
+                                        "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all group/table text-left pr-10",
+                                        expandedTables.has(table)
+                                            ? "text-primary bg-primary/5 shadow-sm ring-1 ring-primary/10"
+                                            : "text-muted-foreground/60 hover:bg-muted/40 hover:text-foreground"
+                                    )}
+                                >
+                                    <ChevronRight className={cn(
+                                        "h-3.5 w-3.5 shrink-0 transition-transform duration-300 ease-in-out",
+                                        expandedTables.has(table) && "rotate-90 text-primary"
+                                    )} />
+                                    <Box className={cn(
+                                        "h-3.5 w-3.5 shrink-0 transition-opacity",
+                                        expandedTables.has(table) ? "opacity-100" : "opacity-30 group-hover/table:opacity-100"
+                                    )} />
+                                    <span className="truncate flex-1 italic tracking-tighter">{table}</span>
+                                    <span className="text-[9px] font-mono font-black opacity-20 group-hover/table:opacity-100 transition-opacity">
+                                        {columns.length}
+                                    </span>
+                                </motion.button>
+                                
+                                <div className="absolute right-2 opacity-0 group-hover/wrapper:opacity-100 transition-opacity z-10">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg hover:bg-background/80">
+                                                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent className="w-48 glass-panel border-border/40 rounded-xl" align="end">
+                                            <DropdownMenuLabel className="text-[9px] font-black uppercase tracking-widest opacity-40">Actions</DropdownMenuLabel>
+                                            <DropdownMenuItem onClick={() => onAction('run', `SELECT * FROM ${table} LIMIT 100;`)} className="gap-2 text-[10px] font-bold uppercase tracking-wide">
+                                                <PlayCircle size={12} className="text-primary" /> Select Top 100
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem 
+                                                onClick={() => onAction('insert', `INSERT INTO ${table} (${columns.join(', ')})\nVALUES (${columns.map(() => 'NULL').join(', ')});`)} 
+                                                className="gap-2 text-[10px] font-bold uppercase tracking-wide"
+                                            >
+                                                <FilePlus size={12} className="text-muted-foreground" /> Generate INSERT
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onClick={() => onAction('insert', `SELECT * FROM ${table}`)} className="gap-2 text-[10px] font-bold uppercase tracking-wide">
+                                                <FileCode size={12} className="text-muted-foreground" /> Generate SELECT
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleCopy(table)} className="gap-2 text-[10px] font-bold uppercase tracking-wide">
+                                                <Copy size={12} className="text-muted-foreground" /> Copy Name
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
+                            </div>
 
                             <AnimatePresence initial={false}>
                                 {expandedTables.has(table) && (
@@ -169,11 +226,26 @@ export const SchemaBrowser: React.FC<SchemaBrowserProps> = ({ connectionId, onTa
                                         {columns.map((col) => (
                                             <div
                                                 key={col}
-                                                className="flex items-center gap-3 px-3 py-1.5 text-[10px] font-bold text-muted-foreground/50 hover:text-foreground hover:bg-primary/3 rounded-lg transition-all group/col cursor-pointer"
-                                                onClick={() => onTableClick(col)}
+                                                className="flex items-center gap-3 px-3 py-1.5 text-[10px] font-bold text-muted-foreground/50 hover:text-foreground hover:bg-primary/3 rounded-lg transition-all group/col cursor-pointer justify-between group/cell"
+                                                onClick={() => onAction('insert', col)}
                                             >
-                                                <Columns className="h-3 w-3 opacity-20 group-hover/col:opacity-80 group-hover/col:text-primary transition-all" />
-                                                <span className="truncate font-mono tracking-tight">{col}</span>
+                                                <div className="flex items-center gap-3 overflow-hidden">
+                                                    <Columns className="h-3 w-3 opacity-20 group-hover/col:opacity-80 group-hover/col:text-primary transition-all shrink-0" />
+                                                    <span className="truncate font-mono tracking-tight">{col}</span>
+                                                </div>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            className="h-4 w-4 opacity-0 group-hover/cell:opacity-100 transition-opacity"
+                                                            onClick={(e) => { e.stopPropagation(); handleCopy(col); }}
+                                                        >
+                                                            <Copy className="h-2.5 w-2.5" />
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="left">Copy Column</TooltipContent>
+                                                </Tooltip>
                                             </div>
                                         ))}
                                         {columns.length === 0 && (

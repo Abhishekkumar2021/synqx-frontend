@@ -1,9 +1,15 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock, X, Trash2, ArrowRight, ListFilter, History, Copy, Check } from 'lucide-react';
+import { X, Trash2, ArrowRight, ListFilter, History, Copy, Check, Search, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { type HistoryItem } from './types';
@@ -16,7 +22,8 @@ interface ExecutionHistoryProps {
 }
 
 export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ history, onClose, onRestore, onClear }) => {
-    const [copiedId, setCopiedId] = React.useState<string | null>(null);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [search, setSearch] = useState('');
 
     const handleCopy = (e: React.MouseEvent, query: string, id: string) => {
         e.stopPropagation();
@@ -26,6 +33,15 @@ export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ history, onC
         setTimeout(() => setCopiedId(null), 2000);
     };
 
+    const filteredHistory = useMemo(() => {
+        if (!search) return history;
+        const lowSearch = search.toLowerCase();
+        return history.filter(item => 
+            item.query.toLowerCase().includes(lowSearch) || 
+            item.connectionName.toLowerCase().includes(lowSearch)
+        );
+    }, [history, search]);
+
     return (
         <motion.div
             initial={{ x: '100%' }}
@@ -34,44 +50,56 @@ export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ history, onC
             transition={{ type: "spring", stiffness: 380, damping: 35 }}
             className={cn(
                 "absolute right-0 top-0 bottom-0 w-96 z-100 flex flex-col overflow-hidden shadow-[-20px_0_50px_rgba(0,0,0,0.2)] isolate",
-                "bg-background/40 backdrop-blur-3xl border-l border-white/10"
+                "bg-background/95 backdrop-blur-3xl border-l border-border/40"
             )}
         >
-            {/* Refractive Edge & Internal Shadow */}
-            <div className="absolute inset-y-0 left-0 w-0.5 bg-linear-to-b from-white/20 via-white/5 to-white/20 pointer-events-none z-20" />
-            <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
-
-            {/* Header: Industrial Layout */}
-            <header className="p-6 border-b border-white/5 bg-white/5 backdrop-blur-md flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-4">
-                    <div className="p-2.5 rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20 shadow-lg shadow-primary/5">
-                        <History size={18} />
+            {/* Header */}
+            <header className="p-5 border-b border-border/40 bg-muted/10 shrink-0 space-y-4">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                            <History size={16} />
+                        </div>
+                        <div className="flex flex-col">
+                            <h3 className="text-xs font-black uppercase tracking-widest text-foreground">
+                                History
+                            </h3>
+                            <span className="text-[9px] font-bold text-muted-foreground/50 uppercase tracking-wider">
+                                {history.length} Events
+                            </span>
+                        </div>
                     </div>
-                    <div className="flex flex-col">
-                        <h3 className="text-xs font-black uppercase tracking-[0.25em] text-foreground leading-none">
-                            Registry Audit
-                        </h3>
-                        <span className="text-[9px] font-bold text-muted-foreground/50 uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
-                            <span className="h-1 w-1 rounded-full bg-success animate-pulse" />
-                            Session Archive
-                        </span>
-                    </div>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-lg"
+                                onClick={onClose}
+                            >
+                                <X size={16} />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className='z-200'>Close History</TooltipContent>
+                    </Tooltip>
                 </div>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 rounded-2xl hover:bg-white/10 hover:text-foreground transition-all active:scale-95"
-                    onClick={onClose}
-                >
-                    <X size={18} />
-                </Button>
+
+                <div className="relative group">
+                    <Search className="z-20 absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                    <Input 
+                        placeholder="Filter history..." 
+                        className="h-9 pl-9 rounded-xl bg-background/50 border-border/40 text-xs font-medium focus:ring-primary/10"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </div>
             </header>
 
-            {/* History List: Staggered Interaction */}
+            {/* History List */}
             <ScrollArea className="flex-1 px-4">
                 <div className="py-6 space-y-4">
                     <AnimatePresence mode="popLayout">
-                        {history.map((item, idx) => (
+                        {filteredHistory.map((item, idx) => (
                             <motion.div
                                 key={item.id}
                                 layout
@@ -79,113 +107,96 @@ export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ history, onC
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, scale: 0.95 }}
                                 transition={{ delay: idx * 0.04 }}
-                                className="group relative p-5 rounded-[2rem] border border-white/5 bg-white/3 hover:bg-white/[0.07] hover:border-primary/30 transition-all cursor-pointer overflow-hidden active:scale-[0.98]"
+                                className="group relative p-4 rounded-2xl border border-border/40 bg-card hover:bg-muted/40 hover:border-primary/20 transition-all cursor-pointer overflow-hidden active:scale-[0.98]"
                                 onClick={() => onRestore(item.query)}
                             >
-                                {/* Card Subtle Glow */}
-                                <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                                <div className="flex items-center justify-between mb-4 relative z-10">
-                                    <Badge variant="outline" className="text-[9px] font-black bg-primary/10 border-primary/20 text-primary uppercase tracking-tighter px-2.5 h-5 rounded-lg">
+                                <div className="flex items-center justify-between mb-3">
+                                    <Badge variant="outline" className="text-[9px] font-bold bg-primary/5 text-primary border-primary/10 px-2 h-5 rounded-md">
                                         {item.connectionName}
                                     </Badge>
-                                    <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground/40 italic">
-                                        <Clock size={11} />
-                                        {new Date(item.timestamp).toLocaleTimeString([], { hour12: false })}
+                                    <div className="flex items-center gap-3">
+                                        {item.duration !== undefined && (
+                                            <div className="flex items-center gap-1 text-[9px] font-mono font-bold text-muted-foreground/60">
+                                                <Zap size={10} className="text-yellow-500/70" />
+                                                {item.duration}ms
+                                            </div>
+                                        )}
+                                        <span className="text-[9px] font-mono text-muted-foreground/40">
+                                            {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
                                     </div>
                                 </div>
 
-                                <div className="relative group/code mb-4">
+                                <div className="relative group/code mb-3">
                                     <code className={cn(
-                                        "block p-4 rounded-2xl border transition-all duration-300",
-                                        "text-[11px] font-mono leading-relaxed line-clamp-4 select-all",
-                                        // Light Mode: Subtle grey recessed look
-                                        "bg-neutral-100/50 text-neutral-800 border-neutral-200/50",
-                                        // Dark Mode: Deep obsidian recessed look
-                                        "dark:bg-black/40 dark:text-neutral-300 dark:border-white/5",
-                                        // Hover State
-                                        "group-hover/code:border-primary/30 group-hover/code:shadow-inner"
+                                        "block p-3 rounded-xl border border-border/40 bg-muted/20 text-[10px] font-mono leading-relaxed line-clamp-3 transition-colors",
+                                        "group-hover:bg-background group-hover:border-border/60"
                                     )}>
                                         {item.query}
                                     </code>
-                                    <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover/code:opacity-100 bg-background/80 backdrop-blur-md rounded-xl transition-all"
-                                        onClick={(e) => handleCopy(e, item.query, item.id)}
-                                    >
-                                        {copiedId === item.id ? <Check size={12} className="text-success" /> : <Copy size={12} />}
-                                    </Button>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover/code:opacity-100 bg-background/80 backdrop-blur-md rounded-lg shadow-sm"
+                                                onClick={(e) => handleCopy(e, item.query, item.id as string)}
+                                            >
+                                                {copiedId === item.id ? <Check size={10} className="text-success" /> : <Copy size={10} />}
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="left">Copy SQL</TooltipContent>
+                                    </Tooltip>
                                 </div>
 
-                                <div className="flex items-center justify-between relative z-10">
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">
-                                            <ListFilter size={12} className="text-primary" />
-                                            {item.rowCount?.toLocaleString() ?? 0} <span className="opacity-40 font-bold">Rows</span>
-                                        </div>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground/50 uppercase tracking-wider">
+                                        <ListFilter size={10} />
+                                        {item.rowCount?.toLocaleString() ?? 0} Rows
                                     </div>
 
-                                    <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-primary opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0">
-                                        Restore <ArrowRight size={14} />
+                                    <div className="flex items-center gap-1 text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                        Restore <ArrowRight size={10} />
                                     </div>
                                 </div>
                             </motion.div>
                         ))}
                     </AnimatePresence>
 
-                    {history.length === 0 && (
+                    {filteredHistory.length === 0 && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="py-32 flex flex-col items-center justify-center gap-6"
+                            className="py-20 flex flex-col items-center justify-center gap-4 text-center"
                         >
-                            <div className="p-8 rounded-[2.5rem] bg-white/2 border-2 border-dashed border-white/5 text-muted-foreground/20">
-                                <History size={48} strokeWidth={1} />
+                            <div className="p-6 rounded-full bg-muted/30 text-muted-foreground/30">
+                                <Search size={32} />
                             </div>
-                            <div className="text-center space-y-1">
-                                <p className="text-xs font-black uppercase tracking-[0.3em] text-foreground/40">Archive Empty</p>
-                                <p className="text-[10px] font-bold uppercase text-muted-foreground/20">No execution logs found</p>
+                            <div className="space-y-1">
+                                <p className="text-xs font-bold text-muted-foreground">No events found</p>
+                                <p className="text-[10px] text-muted-foreground/50">Try adjusting your filters</p>
                             </div>
                         </motion.div>
                     )}
                 </div>
             </ScrollArea>
 
-            {/* Footer: Adaptive Tactical Action */}
-            <footer className={cn(
-                "p-8 shrink-0 relative isolate",
-                "border-t border-border/40",
-                "bg-background/80 dark:bg-black/40 backdrop-blur-2xl backdrop-saturate-150"
-            )}>
-                {/* Internal Refractive Edge - Provides depth in both modes */}
-                <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-primary/20 to-transparent opacity-50" />
-
-                <Button
-                    variant="outline"
-                    disabled={history.length === 0}
-                    onClick={onClear}
-                    className={cn(
-                        "w-full h-14 rounded-[1.5rem] transition-all duration-300 group",
-                        "text-[10px] font-black uppercase tracking-[0.25em] gap-3",
-                        // Light Mode: Subtle grey border with soft shadow
-                        "border-border/60 bg-background shadow-sm hover:shadow-md",
-                        // Dark Mode: Transparent obsidian with glow
-                        "dark:bg-transparent dark:border-white/10 dark:hover:border-destructive/40",
-                        // Hover States
-                        "hover:bg-destructive/5 hover:text-destructive active:scale-[0.98] disabled:opacity-30"
-                    )}
-                >
-                    <div className="relative">
-                        <Trash2
-                            size={16}
-                            className="transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110"
-                        />
-                        {/* Subtle ping animation on hover for extra tactical feel */}
-                        <span className="absolute inset-0 rounded-full bg-destructive/20 animate-ping opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                    <span>Purge Registry</span>
-                </Button>
+            {/* Footer */}
+            <footer className="p-5 shrink-0 border-t border-border/40 bg-background/50 backdrop-blur-xl">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button
+                            variant="outline"
+                            disabled={history.length === 0}
+                            onClick={onClear}
+                            className="w-full h-10 rounded-xl text-[10px] font-black uppercase tracking-widest gap-2 hover:bg-destructive/5 hover:text-destructive hover:border-destructive/20 transition-all"
+                        >
+                            <Trash2 size={12} />
+                            Clear History
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Purge all execution logs</TooltipContent>
+                </Tooltip>
             </footer>
         </motion.div>
     );

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -84,14 +85,14 @@ export const JobsPage: React.FC = () => {
             {/* --- Header Section --- */}
             <div className="flex items-center justify-between shrink-0 px-2 pb-2">
                 <div className="flex items-center gap-5">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-[1.25rem] bg-primary/10 border border-primary/20 backdrop-blur-md shadow-xl shadow-primary/5">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-primary/10 border border-primary/20 backdrop-blur-md shadow-xl shadow-primary/5">
                         <HistoryIcon className="h-7 w-7 text-primary" />
                     </div>
                     <div className="space-y-1">
                         <h2 className="text-3xl font-black tracking-tight text-foreground">
                             Execution Forensic
                         </h2>
-                        <p className="text-sm text-muted-foreground font-semibold uppercase tracking-[0.1em] opacity-70">
+                        <p className="text-sm text-muted-foreground font-semibold uppercase tracking-widest opacity-70">
                             Real-time pipeline monitoring & log inspection
                         </p>
                     </div>
@@ -108,7 +109,7 @@ export const JobsPage: React.FC = () => {
                                 <ChevronDown className="h-3.5 w-3.5 opacity-40" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-64 glass-card rounded-[1.25rem] p-2">
+                        <DropdownMenuContent align="end" className="w-64 glass-card rounded-3xl p-2">
                             <DropdownMenuLabel className="px-3 pt-2 pb-1 text-[10px] font-black uppercase tracking-widest opacity-50">Filter Pipelines</DropdownMenuLabel>
                             <DropdownMenuSeparator className="bg-border/10 my-2" />
                             <DropdownMenuItem onClick={() => setPipelineIdFilter(null)} className="rounded-xl px-3 py-2 cursor-pointer focus:bg-primary/10">

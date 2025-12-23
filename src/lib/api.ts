@@ -778,3 +778,24 @@ export const getConnectionSchemaMetadata = async (connectionId: number) => {
     return data;
 
 };
+
+export interface HistoryItem {
+    id: number;
+    query: string;
+    status: string;
+    execution_time_ms: number;
+    row_count: number | null;
+    created_at: string;
+    connection_name: string;
+    created_by: string | null;
+}
+
+export const getHistory = async (limit: number = 50, offset: number = 0) => {
+    const { data } = await api.get<HistoryItem[]>('/explorer/history', { params: { limit, offset } });
+    return data;
+};
+
+export const clearHistory = async () => {
+    const { data } = await api.delete<{ status: string }>('/explorer/history');
+    return data;
+};

@@ -111,7 +111,21 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ data, isLoading }) => 
     };
 
     if (isLoading) return <LoadingSkeleton />;
-    if (!data || data.results.length === 0) return <EmptyState />;
+    if (!data) return <EmptyState />;
+
+    if (data.results.length === 0 && data.columns.length === 0) {
+        return (
+             <div className="flex-1 h-full flex flex-col items-center justify-center text-muted-foreground gap-4 bg-card/5 animate-in fade-in duration-500">
+                <div className="p-4 rounded-full bg-success/10 text-success">
+                    <Terminal size={32} />
+                </div>
+                <div className="text-center">
+                    <h3 className="text-lg font-bold text-foreground">Command Executed</h3>
+                    <p className="text-xs text-muted-foreground">No data returned.</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex-1 flex flex-col min-h-0 h-full bg-background/60 dark:bg-background/40 backdrop-blur-2xl backdrop-saturate-150 relative overflow-hidden isolate">
@@ -155,11 +169,6 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ data, isLoading }) => 
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
-
-                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/10 border border-success/20">
-                        <div className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-success">Live View</span>
-                    </div>
                 </div>
             </div>
 
