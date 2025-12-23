@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/purity */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import '@xyflow/react/dist/style.css'; 
 
@@ -24,8 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { 
     Save, Play, ArrowLeft, Loader2, Layout, 
     Rocket, Square, Pencil, MousePointer2, History as HistoryIcon,
-    ExternalLink, Trash2, Plus, Search
-} from 'lucide-react';
+    ExternalLink, Trash2, Plus} from 'lucide-react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -522,7 +523,7 @@ export const PipelineCanvas: React.FC = () => {
 
           {/* Historical Version Banner - Relocated to Bottom for better UX */}
           {versionIdParam && (
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[100] w-fit min-w-[400px] max-w-[90%] bg-background/60 backdrop-blur-2xl border border-primary/30 rounded-2xl px-6 py-4 flex items-center justify-between gap-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom duration-500 ring-1 ring-white/5">
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-100 w-fit min-w-[400px] max-w-[90%] bg-background/60 backdrop-blur-2xl border border-primary/30 rounded-2xl px-6 py-4 flex items-center justify-between gap-8 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom duration-500 ring-1 ring-white/5">
                   <div className="flex items-center gap-4">
                       <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
                           <HistoryIcon className="h-5 w-5 text-primary" />
@@ -630,14 +631,6 @@ export const PipelineCanvas: React.FC = () => {
                             sideOffset={10}
                             className="w-64 bg-background/80 backdrop-blur-3xl border-border/20 shadow-2xl rounded-2xl p-2 ring-1 ring-white/5"
                         >
-                            <div className="px-2 py-1.5 mb-2 relative">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                                <input 
-                                    className="w-full h-8 pl-8 pr-3 rounded-lg bg-muted/30 border border-border/20 text-xs focus:outline-none focus:bg-muted/50 transition-colors"
-                                    placeholder="Filter operators..."
-                                />
-                            </div>
-
                             <div className="max-h-[300px] overflow-y-auto custom-scrollbar px-1">
                                 {NODE_DEFINITIONS.map((category, idx) => (
                                     <div key={idx} className="mb-2 last:mb-0">

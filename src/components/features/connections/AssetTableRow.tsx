@@ -1,10 +1,11 @@
 /* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useMemo } from 'react';
 import {
     Table as TableIcon, Eye, MoreHorizontal, RefreshCw, FileJson, Terminal,
-    FileText, Database, Copy, Check, Maximize2, Minimize2, Search, ArrowUpDown,
-    Filter, X
+    FileText, Database, Copy, Check, Maximize2, Minimize2, Search, ArrowUpDown, 
+    ChevronDown, Filter, X, Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -49,9 +51,9 @@ interface AssetTableRowProps {
 // Helper to choose icon based on asset type
 const getAssetIcon = (type: string) => {
     const t = type.toLowerCase();
-    if (t.includes('table')) return <TableIcon className="h-4 w-4" />;
-    if (t.includes('file') || t.includes('csv') || t.includes('json')) return <FileText className="h-4 w-4" />;
-    return <Database className="h-4 w-4" />;
+    if (t.includes('table')) return <TableIcon className="h-4 w-4" />; 
+    if (t.includes('file') || t.includes('csv') || t.includes('json')) return <FileText className="h-4 w-4" />; 
+    return <Database className="h-4 w-4" />; 
 };
 
 export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionId }) => {
@@ -63,6 +65,7 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
     const [copied, setCopied] = useState(false);
     const [sampleFilter, setSampleFilter] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+    const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
     const queryClient = useQueryClient();
 
     // Fetch Schema Versions
@@ -109,13 +112,13 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
 
     const processedSampleData = useMemo(() => {
         if (!sampleData?.rows) return [];
-        let data = [...sampleData.rows];
+        let data = sampleData.rows.map((row, idx) => ({ ...row, __idx: idx }));
 
         // Filter
         if (sampleFilter) {
-            data = data.filter(row =>
-                Object.values(row).some(val =>
-                    String(val).toLowerCase().includes(sampleFilter.toLowerCase())
+            data = data.filter(row => 
+                Object.entries(row).some(([key, val]) => 
+                    key !== '__idx' && String(val).toLowerCase().includes(sampleFilter.toLowerCase())
                 )
             );
         }
@@ -141,6 +144,48 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
         });
     };
 
+    const handleSelectRow = (idx: number, checked: boolean) => {
+        const next = new Set(selectedRows);
+        if (checked) next.add(idx);
+        else next.delete(idx);
+        setSelectedRows(next);
+    };
+
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedRows(new Set(processedSampleData.map(r => r.__idx)));
+        } else {
+            setSelectedRows(new Set());
+        }
+    };
+
+    const exportData = (format: 'json' | 'csv') => {
+        const dataToExport = selectedRows.size > 0 
+            ? sampleData!.rows.filter((_, i) => selectedRows.has(i))
+            : processedSampleData.map(({ __idx, ...rest }) => rest);
+
+        if (format === 'json') {
+            const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${asset.name}_export.json`;
+            a.click();
+        } else {
+            const headers = Object.keys(dataToExport[0]).join(',');
+            const rows = dataToExport.map(row => 
+                Object.values(row).map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
+            ).join('\n');
+            const blob = new Blob([`${headers}\n${rows}`], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${asset.name}_export.csv`;
+            a.click();
+        }
+        toast.success("Export Successful", { description: `Exported ${dataToExport.length} records.` });
+    };
+
     const JsonPreview = ({ data }: { data: any }) => {
         const str = JSON.stringify(data, null, 2);
         return (
@@ -148,9 +193,9 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                 <pre className="text-[10px] font-mono text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/5 p-2 rounded-lg border border-blue-200 dark:border-blue-500/10 max-h-32 overflow-auto scrollbar-none transition-colors leading-tight">
                     {str}
                 </pre>
-                <Button
-                    variant="ghost"
-                    size="icon"
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
                     className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-background/80 backdrop-blur-sm border border-border/20"
                     onClick={(e) => {
                         e.stopPropagation();
@@ -241,7 +286,7 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                                 <FileJson className="mr-2 h-3.5 w-3.5" /> View History
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem
+                            <DropdownMenuItem 
                                 className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
                                 onClick={() => setIsDeleteAlertOpen(true)}
                                 disabled={deleteMutation.isPending}
@@ -261,7 +306,7 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
+                                <AlertDialogAction 
                                     onClick={() => deleteMutation.mutate()}
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
@@ -371,11 +416,14 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                 {/* --- Sample Data Dialog --- */}
                 <Dialog open={isSampleDialogOpen} onOpenChange={(open) => {
                     setIsSampleDialogOpen(open);
-                    if (!open) setIsMaximized(false);
+                    if (!open) {
+                        setIsMaximized(false);
+                        setSelectedRows(new Set());
+                    }
                 }}>
                     <DialogContent className={cn(
                         "flex flex-col p-0 gap-0 overflow-hidden border-border/60 bg-background/95 backdrop-blur-3xl shadow-2xl transition-all duration-300",
-                        isMaximized ? "max-w-[100vw] h-screen sm:rounded-none" : "max-w-6xl h-[85vh] sm:rounded-[2rem]"
+                        isMaximized ? "max-w-[100vw] h-screen sm:rounded-none" : "max-w-7xl h-[85vh] sm:rounded-[2rem]"
                     )}>
                         <DialogHeader className="px-8 py-6 border-b border-border/40 bg-muted/20 shrink-0 flex flex-row items-center justify-between space-y-0">
                             <div className="flex items-center gap-4">
@@ -384,28 +432,28 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                                 </div>
                                 <div className="space-y-1">
                                     <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
-                                        Exploration: {asset.name}
+                                        Data Explorer: {asset.name}
                                     </DialogTitle>
                                     <DialogDescription className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-                                        Previewing latest records from the connected entity
+                                        Exploration & Export Suite
                                         <span className="w-1 h-1 rounded-full bg-border" />
                                         <Badge variant="outline" className="h-5 text-[9px] font-bold bg-background/50 border-emerald-500/20 text-emerald-600 uppercase tracking-widest px-2">
-                                            {sampleData?.count || 0} ROWS TOTAL
+                                            {selectedRows.size > 0 ? `${selectedRows.size} SELECTED` : `${sampleData?.count || 0} TOTAL`}
                                         </Badge>
                                     </DialogDescription>
                                 </div>
                             </div>
                             <div className="flex items-center gap-3 pr-8">
                                 <div className="relative group">
-                                    <Search className="z-20 absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-emerald-500 transition-colors" />
-                                    <Input
-                                        placeholder="Filter records..."
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-emerald-500 transition-colors" />
+                                    <Input 
+                                        placeholder="Global search..."
                                         className="h-9 w-64 pl-9 rounded-xl bg-background/50 border-border/40 focus:ring-4 focus:ring-emerald-500/5 transition-all text-xs font-medium shadow-sm"
                                         value={sampleFilter}
                                         onChange={(e) => setSampleFilter(e.target.value)}
                                     />
                                     {sampleFilter && (
-                                        <button
+                                        <button 
                                             onClick={() => setSampleFilter('')}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                         >
@@ -413,6 +461,27 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                                         </button>
                                     )}
                                 </div>
+
+                                <div className="h-6 w-px bg-border/40 mx-1" />
+
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="sm" className="h-9 rounded-xl gap-2 font-bold bg-background/50 border-border/40 shadow-sm">
+                                            <Download className="h-3.5 w-3.5" />
+                                            Export
+                                            <ChevronDown className="h-3 w-3 opacity-50" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/60 shadow-xl">
+                                        <DropdownMenuItem onClick={() => exportData('csv')} className="gap-2 rounded-lg cursor-pointer">
+                                            <FileText className="h-4 w-4 text-emerald-500" /> Export CSV
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => exportData('json')} className="gap-2 rounded-lg cursor-pointer">
+                                            <FileJson className="h-4 w-4 text-blue-500" /> Export JSON
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+
                                 <Button
                                     variant="outline"
                                     size="icon"
@@ -435,16 +504,23 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                                     </div>
                                 </div>
                             ) : processedSampleData.length > 0 ? (
-                                <div className="relative rounded-none">
-                                    <table className="w-full text-left border-collapse min-w-max rounded-none">
-                                        <thead className="sticky top-0 bg-muted/95 backdrop-blur-xl z-20 shadow-sm rounded-none">
-                                            <tr className="rounded-none">
-                                                <th className="w-12 px-4 py-4 text-[9px] font-black text-muted-foreground/40 border-b border-border/40 text-center">#</th>
+                                <div className="relative border-x border-border/10 h-full">
+                                    <table className="w-full text-left border-collapse min-w-max">
+                                        <thead className="sticky top-0 bg-muted/95 backdrop-blur-xl z-20 shadow-sm">
+                                            <tr>
+                                                <th className="w-12 px-4 py-4 border-b border-r border-border/20 bg-muted/50 text-center">
+                                                    <Checkbox 
+                                                        checked={selectedRows.size > 0 && selectedRows.size === processedSampleData.length}
+                                                        onCheckedChange={handleSelectAll}
+                                                        className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                                                    />
+                                                </th>
+                                                <th className="w-12 px-4 py-4 text-[9px] font-black text-muted-foreground/40 border-b border-r border-border/20 text-center uppercase">#</th>
                                                 {Object.keys(sampleData!.rows[0]).map((header) => (
-                                                    <th
-                                                        key={header}
+                                                    <th 
+                                                        key={header} 
                                                         onClick={() => handleSort(header)}
-                                                        className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/80 border-b border-border/40 cursor-pointer group/th hover:bg-muted transition-colors rounded-none"
+                                                        className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/80 border-b border-r border-border/20 last:border-r-0 cursor-pointer group/th hover:bg-muted transition-colors"
                                                     >
                                                         <div className="flex items-center gap-2">
                                                             {header}
@@ -457,40 +533,49 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                                                 ))}
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-border/10 dark:divide-border/5 rounded-none">
+                                        <tbody className="divide-y divide-border/10 dark:divide-border/5">
                                             {processedSampleData.map((row, i) => (
-                                                <tr
-                                                    key={i}
+                                                <tr 
+                                                    key={row.__idx} 
                                                     className={cn(
-                                                        "transition-colors group/row rounded-none",
-                                                        i % 2 === 0 ? "bg-transparent" : "bg-muted dark:bg-muted/10",
-                                                        "hover:bg-primary/10 dark:hover:bg-primary/4",
+                                                        "transition-colors group/row",
+                                                        selectedRows.has(row.__idx) ? "bg-emerald-500/5" : (i % 2 === 0 ? "bg-transparent" : "bg-muted/60 dark:bg-muted/10"),
+                                                        "hover:bg-primary/8 dark:hover:bg-primary/4"
                                                     )}
                                                 >
-                                                    <td className="w-12 px-4 py-4 text-[10px] font-mono text-muted-foreground/40 dark:text-muted-foreground/30 text-center border-b border-border/5">
+                                                    <td className="w-12 px-4 py-4 border-r border-border/10 text-center">
+                                                        <Checkbox 
+                                                            checked={selectedRows.has(row.__idx)}
+                                                            onCheckedChange={(checked) => handleSelectRow(row.__idx, !!checked)}
+                                                            className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                                                        />
+                                                    </td>
+                                                    <td className="w-12 px-4 py-4 text-[10px] font-mono text-muted-foreground/40 dark:text-muted-foreground/30 border-r border-border/10 text-center">
                                                         {i + 1}
                                                     </td>
-                                                    {Object.entries(row).map(([, val]: [string, any], j) => (
-                                                        <td key={j} className="px-6 py-4 text-xs font-medium border-b border-border/5 rounded-none max-w-md">
-                                                            {val === null ? (
-                                                                <span className="text-muted-foreground/40 dark:text-muted-foreground/20 italic tracking-widest text-[9px] uppercase">null</span>
-                                                            ) : typeof val === 'object' ? (
-                                                                <JsonPreview data={val} />
-                                                            ) : typeof val === 'boolean' ? (
-                                                                <Badge variant="outline" className={cn(
-                                                                    "text-[9px] px-1.5 h-4.5 font-bold border-none tracking-widest",
-                                                                    val
-                                                                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
-                                                                        : "bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400"
-                                                                )}>
-                                                                    {String(val).toUpperCase()}
-                                                                </Badge>
-                                                            ) : typeof val === 'number' ? (
-                                                                <span className="text-indigo-700 dark:text-indigo-400 font-mono font-bold">{val}</span>
-                                                            ) : (
-                                                                <span className="text-foreground/80 dark:text-foreground/70 break-all whitespace-pre-wrap leading-relaxed">{String(val)}</span>
-                                                            )}
-                                                        </td>
+                                                    {Object.entries(row).map(([key, val]: [string, any], j) => (
+                                                        key !== '__idx' && (
+                                                            <td key={j} className="px-6 py-4 text-xs font-medium border-r border-border/10 last:border-r-0 max-w-md">
+                                                                {val === null ? (
+                                                                    <span className="text-muted-foreground/40 dark:text-muted-foreground/20 italic tracking-widest text-[9px] uppercase">null</span>
+                                                                ) : typeof val === 'object' ? (
+                                                                    <JsonPreview data={val} />
+                                                                ) : typeof val === 'boolean' ? (
+                                                                    <Badge variant="outline" className={cn(
+                                                                        "text-[9px] px-1.5 h-4.5 font-bold border-none tracking-widest",
+                                                                        val 
+                                                                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400" 
+                                                                            : "bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400"
+                                                                    )}>
+                                                                        {String(val).toUpperCase()}
+                                                                    </Badge>
+                                                                ) : typeof val === 'number' ? (
+                                                                    <span className="text-indigo-700 dark:text-indigo-400 font-mono font-bold">{val}</span>
+                                                                ) : (
+                                                                    <span className="text-foreground/80 dark:text-foreground/70 break-all whitespace-pre-wrap leading-relaxed">{String(val)}</span>
+                                                                )}
+                                                            </td>
+                                                        )
                                                     ))}
                                                 </tr>
                                             ))}
@@ -512,8 +597,8 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                                             Try adjusting your search terms or clear the filter.
                                         </p>
                                     </div>
-                                    <Button
-                                        variant="outline"
+                                    <Button 
+                                        variant="outline" 
                                         className="rounded-xl border-dashed border-border/60 hover:border-emerald-500/50 hover:bg-emerald-500/5 font-bold transition-all shadow-sm"
                                         onClick={() => setSampleFilter('')}
                                     >
