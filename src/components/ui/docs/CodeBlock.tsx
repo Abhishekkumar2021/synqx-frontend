@@ -28,7 +28,7 @@ export const CodeBlock = ({
   className,
   placeholder,
   title,
-  maxHeight = '400px'
+  maxHeight = '300px'
 }: CodeBlockProps) => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [highlightedCode, setHighlightedCode] = useState('');
@@ -38,13 +38,12 @@ export const CodeBlock = ({
   const { theme } = useTheme();
 
   const isDark = useMemo(() =>
-    theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches),
+    theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches),
     [theme]
   );
 
-  const shikiTheme = useMemo(() => isDark ? 'github-dark' : 'github-light', [isDark]);
+  const shikiTheme = useMemo(() => isDark ? 'vitesse-dark' : 'vitesse-light', [isDark]);
 
-  // Handle Keyboard Escape
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setIsMaximized(false);
@@ -53,7 +52,6 @@ export const CodeBlock = ({
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isMaximized]);
 
-  // Prevent background scroll
   useEffect(() => {
     if (isMaximized) {
       document.body.style.overflow = 'hidden';
@@ -78,14 +76,14 @@ export const CodeBlock = ({
   }, [code, language, editable, shikiTheme]);
 
   const handleCopy = useCallback(async (e?: React.MouseEvent) => {
-    e?.stopPropagation(); // Prevent modal toggle
+    e?.stopPropagation();
     await navigator.clipboard.writeText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [code]);
 
   const renderContent = (isExpanded: boolean) => (
-    <div className="relative w-full h-full group/content overflow-hidden">
+    <div className="relative w-full h-full group/content flex flex-col min-h-0">
       <div className="absolute inset-0 bg-noise opacity-[0.03] dark:opacity-[0.02] pointer-events-none" />
 
       {editable ? (
@@ -96,23 +94,22 @@ export const CodeBlock = ({
           placeholder={placeholder}
           className={cn(
             "font-mono bg-transparent border-0 focus-visible:ring-0 resize-none w-full relative z-10",
-            "scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent",
+            "overflow-y-auto custom-scrollbar flex-1",
             "selection:bg-primary/30 selection:text-foreground",
-            isExpanded ? "text-sm leading-relaxed p-8 h-full" : "text-xs leading-relaxed p-5 min-h-[140px]"
+            isExpanded ? "text-sm leading-relaxed p-8" : "text-xs leading-relaxed p-5"
           )}
           spellCheck={false}
         />
       ) : (
         <div
           className={cn(
-            "w-full h-full overflow-auto relative z-20 select-text cursor-text",
-            "scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent",
+            "w-full h-full overflow-y-auto relative z-20 select-text cursor-text custom-scrollbar flex-1",
+            "dark:[&_.shiki_span]:filter dark:[&_.shiki_span]:brightness-125",
             "selection:bg-primary/20 dark:selection:bg-primary/40 selection:text-foreground",
             isExpanded ? "text-[13px]" : "text-[11px]",
-            "[&>pre]:bg-transparent! [&>pre]:p-0 [&>pre]:m-0 [&>pre]:w-full",
+            "[&>pre]:bg-transparent! [&>pre]:m-0 [&>pre]:w-full [&>pre]:h-full",
             isExpanded ? "[&>pre]:p-8 [&>pre]:leading-7" : "[&>pre]:p-5 [&>pre]:leading-6"
           )}
-          // Fix: prevent dragging/selecting from closing the modal
           onMouseDown={(e) => e.stopPropagation()}
           dangerouslySetInnerHTML={{
             __html: highlightedCode || `<pre class="p-4 opacity-40">${code}</pre>`
@@ -124,21 +121,21 @@ export const CodeBlock = ({
 
   return (
     <>
-      {/* Compact Mode */}
       <div
         className={cn(
           "relative group transition-all duration-500 w-full flex flex-col overflow-hidden",
-          "glass rounded-none border-0 shadow-none",
+          "glass rounded-none border-0 shadow-none flex flex-col",
           "hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-primary/5",
           className
         )}
+        style={{ height: maxHeight }} // Fixed height enables internal scroll
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
         <div className="absolute inset-0 ring-1 ring-inset ring-black/5 dark:ring-white/10 pointer-events-none" />
 
         <div className={cn(
-          "flex items-center justify-between px-5 py-2.5",
+          "flex items-center justify-between px-5 py-2.5 shrink-0",
           "bg-white/40 dark:bg-black/20 backdrop-blur-xl border-b border-black/3 dark:border-white/5"
         )}>
           <div className="flex items-center gap-4">
@@ -166,7 +163,8 @@ export const CodeBlock = ({
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden" style={{ maxHeight }}>
+        {/* This container allows the internal scroll to happen */}
+        <div className="flex-1 min-h-0">
           {renderContent(false)}
         </div>
       </div>
@@ -196,7 +194,6 @@ export const CodeBlock = ({
                   "glass-panel border-0 shadow-2xl pointer-events-auto",
                   "ring-1 ring-black/10 dark:ring-white/20"
                 )}
-                // This stops clicks on the header/padding from closing the modal
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between px-8 py-5 bg-white/20 dark:bg-black/20 backdrop-blur-3xl shrink-0 border-b border-black/5 dark:border-white/5">
@@ -237,7 +234,7 @@ export const CodeBlock = ({
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-hidden bg-white/10 dark:bg-black/40">
+                <div className="flex-1 min-h-0 bg-background">
                   {renderContent(true)}
                 </div>
               </motion.div>
