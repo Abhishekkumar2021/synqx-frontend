@@ -6,9 +6,9 @@ import { useForm } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import {
     X, Trash2, Save, Code, Sliders,
-    Filter, Layers, ArrowRightLeft,
-    Database, HardDriveUpload, PlayCircle,
-    Braces
+    Filter, Layers, Database, HardDriveUpload,
+    Braces, ListPlus, ShieldCheck, Copy,
+    PaintBucket, FileType, Type, Regex
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,15 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { type Node } from '@xyflow/react';
 import { toast } from 'sonner';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+    Select, 
+    SelectContent, 
+    SelectItem, 
+    SelectTrigger, 
+    SelectValue,
+    SelectGroup,
+    SelectLabel
+} from '@/components/ui/select';
 import {
     AlertDialog,
     AlertDialogTrigger,
@@ -34,6 +42,7 @@ import {
     AlertDialogAction,
 } from '@/components/ui/alert-dialog';
 import { getConnections, getConnectionAssets } from '@/lib/api';
+import { NODE_DEFINITIONS, getNodeIcon } from '@/lib/pipeline-definitions';
 
 interface NodePropertiesProps {
     node: Node | null;
@@ -58,20 +67,34 @@ interface FormData {
     // Asset Selection
     connection_id: string;
     asset_id: string;
+
+    // New Operator Fields
+    map_transformations: string; // JSON string
+    agg_functions: string; // JSON string
+    validate_schema: string; // JSON string
+    dedup_subset: string;
+    fill_value: string;
+    fill_method: string;
+    cast_mapping: string; // JSON string
+    rename_mapping: string; // JSON string
+    regex_column: string;
+    regex_pattern: string;
+    regex_replacement: string;
 }
 
-// Icon helper
-const getNodeIcon = (type: string) => {
-    switch (type) {
-        case 'source': return Database;
-        case 'transform': return ArrowRightLeft;
-        case 'sink': return HardDriveUpload;
-        default: return PlayCircle;
+const isTransformLike = (type: string) => 
+    ['transform', 'join', 'union', 'merge', 'validate', 'noop'].includes(type);
+
+const findTypeForOpClass = (opClass: string) => {
+    for (const cat of NODE_DEFINITIONS) {
+        const item = cat.items.find(i => (i as any).opClass === opClass);
+        if (item) return item.type;
     }
-}
+    return 'transform';
+};
 
 export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, onUpdate, onDelete }) => {
-    const { register, handleSubmit, setValue, watch, getValues, formState: { errors } } = useForm<FormData>({
+    const { register, handleSubmit, setValue, watch, getValues, reset, formState: { errors } } = useForm<FormData>({
         defaultValues: {
             label: '',
             type: 'default',
@@ -83,7 +106,18 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
             group_by: '',
             drop_columns: '',
             connection_id: '',
-            asset_id: ''
+            asset_id: '',
+            map_transformations: '{}',
+            agg_functions: '{}',
+            validate_schema: '[]',
+            dedup_subset: '',
+            fill_value: '',
+            fill_method: 'value',
+            cast_mapping: '{}',
+            rename_mapping: '{}',
+            regex_column: '',
+            regex_pattern: '',
+            regex_replacement: ''
         }
     });
     const [activeTab, setActiveTab] = useState('settings');
@@ -92,6 +126,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
     const nodeType = watch('type');
     const operatorClass = watch('operator_class');
     const selectedConnectionId = watch('connection_id');
+    const fillMethod = watch('fill_method');
 
     // Fetch Connections
     const { data: connections } = useQuery({
@@ -115,27 +150,89 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
     useEffect(() => {
         if (node) {
             const config = node.data.config as any || {};
+            
+            let currentType = (node.data.type as string) || 'default';
+            const currentOpClass = (node.data.operator_class as string) || 'pandas_transform';
 
-            setValue('label', node.data.label as string);
-            setValue('type', (node.data.type as string) || 'default');
-            setValue('operator_class', (node.data.operator_class as string) || 'pandas_transform');
-            setValue('config', JSON.stringify(config, null, 2));
+            // Auto-correct type if it is generic but the class implies a specific type
+            // This fixes issues where 'transform' type is persisted but 'join' class is used.
+            if (currentType === 'transform' || currentType === 'default') {
+                const inferredType = findTypeForOpClass(currentOpClass);
+                if (inferredType && inferredType !== 'transform') {
+                    currentType = inferredType;
+                }
+            }
+
+            const defaultValues: FormData = {
+                label: node.data.label as string,
+                type: currentType,
+                operator_class: currentOpClass,
+                config: JSON.stringify(config, null, 2),
+                
+                // Defaults
+                filter_condition: '',
+                join_on: '',
+                join_type: 'inner',
+                group_by: '',
+                drop_columns: '',
+                connection_id: '',
+                asset_id: '',
+                map_transformations: '{}',
+                agg_functions: '{}',
+                validate_schema: '[]',
+                dedup_subset: '',
+                fill_value: '',
+                fill_method: 'value',
+                cast_mapping: '{}',
+                rename_mapping: '{}',
+                regex_column: '',
+                regex_pattern: '',
+                regex_replacement: ''
+            };
 
             // Hydrate visual fields from JSON config
-            if (config.condition) setValue('filter_condition', config.condition);
-            if (config.on) setValue('join_on', config.on);
-            if (config.how) setValue('join_type', config.how);
-            if (config.columns && Array.isArray(config.columns)) setValue('drop_columns', config.columns.join(', '));
-            if (config.group_by && Array.isArray(config.group_by)) setValue('group_by', config.group_by.join(', '));
+            if (config.condition) defaultValues.filter_condition = config.condition;
+            if (config.on) defaultValues.join_on = config.on;
+            if (config.how) defaultValues.join_type = config.how;
+            if (config.columns && Array.isArray(config.columns)) defaultValues.drop_columns = config.columns.join(', ');
+            if (config.group_by && Array.isArray(config.group_by)) defaultValues.group_by = config.group_by.join(', ');
             
+            // Hydrate New Fields
+            if (config.transformations) defaultValues.map_transformations = JSON.stringify(config.transformations, null, 2);
+            if (config.aggregates) defaultValues.agg_functions = JSON.stringify(config.aggregates, null, 2);
+            if (config.schema) defaultValues.validate_schema = JSON.stringify(config.schema, null, 2);
+            if (config.subset && Array.isArray(config.subset)) defaultValues.dedup_subset = config.subset.join(', ');
+            if (config.value !== undefined) defaultValues.fill_value = String(config.value);
+            if (config.method) defaultValues.fill_method = config.method;
+            
+            // Mapping fields (Cast / Rename)
+            if (config.columns && !Array.isArray(config.columns)) {
+                 if (currentOpClass === 'rename_columns') defaultValues.rename_mapping = JSON.stringify(config.columns, null, 2);
+                 if (currentOpClass === 'type_cast') defaultValues.cast_mapping = JSON.stringify(config.columns, null, 2);
+            }
+            // Fallback for 'mapping' key if used
+             if (config.mapping) {
+                 if (currentOpClass === 'rename_columns') defaultValues.rename_mapping = JSON.stringify(config.mapping, null, 2);
+                 if (currentOpClass === 'type_cast') defaultValues.cast_mapping = JSON.stringify(config.mapping, null, 2);
+             }
+
+            if (config.column) defaultValues.regex_column = config.column;
+            if (config.pattern) defaultValues.regex_pattern = config.pattern;
+            if (config.replacement) defaultValues.regex_replacement = config.replacement;
+
             // Hydrate Asset Selection
-            if (node.data.connection_id) setValue('connection_id', String(node.data.connection_id));
-            if (node.data.asset_id) setValue('asset_id', String(node.data.asset_id));
-            // Backwards compatibility/Alternative storage for asset_id
-            if (node.data.source_asset_id) setValue('asset_id', String(node.data.source_asset_id));
-            if (node.data.destination_asset_id) setValue('asset_id', String(node.data.destination_asset_id));
+            if (node.data.connection_id) defaultValues.connection_id = String(node.data.connection_id);
+            if (node.data.asset_id) defaultValues.asset_id = String(node.data.asset_id);
+            if (node.data.source_asset_id) defaultValues.asset_id = String(node.data.source_asset_id);
+            if (node.data.destination_asset_id) defaultValues.asset_id = String(node.data.destination_asset_id);
+
+            // Use reset to update all fields at once, preventing race conditions with watchers
+            // and ensuring the form state is clean for the selected node.
+            // We cast defaultValues to any to avoid strict TS issues with optional fields if needed, 
+            // but FormData matches.
+            reset(defaultValues);
         }
-    }, [node, setValue]);
+    }, [node, reset]);
 
     if (!node) return null;
 
@@ -156,8 +253,8 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
         try {
             const config = JSON.parse(data.config);
 
-            // Merge visual fields based on type just before saving to be sure
-            if (data.type === 'transform') {
+            // Merge visual fields based on operator class/type
+            if (isTransformLike(data.type)) {
                 if (data.operator_class === 'filter') config.condition = data.filter_condition;
                 if (data.operator_class === 'join') {
                     config.on = data.join_on;
@@ -165,6 +262,34 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                 }
                 if (data.operator_class === 'drop_columns') {
                     config.columns = data.drop_columns.split(',').map(s => s.trim()).filter(Boolean);
+                }
+                if (data.operator_class === 'map') {
+                    config.transformations = JSON.parse(data.map_transformations || '{}');
+                }
+                if (data.operator_class === 'aggregate') {
+                    config.group_by = data.group_by.split(',').map(s => s.trim()).filter(Boolean);
+                    config.aggregates = JSON.parse(data.agg_functions || '{}');
+                }
+                if (data.operator_class === 'validate') {
+                    config.schema = JSON.parse(data.validate_schema || '[]');
+                }
+                if (data.operator_class === 'deduplicate') {
+                    config.subset = data.dedup_subset.split(',').map(s => s.trim()).filter(Boolean);
+                }
+                if (data.operator_class === 'fill_nulls') {
+                    config.method = data.fill_method;
+                    config.value = data.fill_method === 'value' ? data.fill_value : undefined;
+                }
+                if (data.operator_class === 'type_cast') {
+                    config.columns = JSON.parse(data.cast_mapping || '{}');
+                }
+                if (data.operator_class === 'rename_columns') {
+                    config.columns = JSON.parse(data.rename_mapping || '{}');
+                }
+                if (data.operator_class === 'regex_replace') {
+                    config.column = data.regex_column;
+                    config.pattern = data.regex_pattern;
+                    config.replacement = data.regex_replacement;
                 }
             }
 
@@ -190,8 +315,8 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                 description: `Operator "${data.label}" has been updated.`
             });
         } catch (e) {
-            toast.error("Invalid JSON configuration", {
-                description: "Please check your manual JSON input for syntax errors."
+            toast.error("Invalid Configuration", {
+                description: "Please check your input values (especially JSON fields) for syntax errors."
             });
         }
     };
@@ -207,7 +332,10 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                     <div className={cn(
                         "h-14 w-14 rounded-2xl flex items-center justify-center border-2 shadow-2xl transition-all duration-500",
                         node.type === 'source' ? "bg-chart-1/10 text-chart-1 border-chart-1/20 shadow-chart-1/5" :
-                            node.type === 'transform' ? "bg-chart-3/10 text-chart-3 border-chart-3/20 shadow-chart-3/5" :
+                            isTransformLike(node.type || '') ? 
+                                (node.type === 'validate' ? "bg-chart-4/10 text-chart-4 border-chart-4/20 shadow-chart-4/5" :
+                                 ['join', 'union', 'merge'].includes(node.type || '') ? "bg-chart-5/10 text-chart-5 border-chart-5/20 shadow-chart-5/5" :
+                                 "bg-chart-3/10 text-chart-3 border-chart-3/20 shadow-chart-3/5") :
                                 node.type === 'sink' ? "bg-chart-2/10 text-chart-2 border-chart-2/20 shadow-chart-2/5" :
                                     "bg-muted text-muted-foreground border-border/10"
                     )}>
@@ -275,6 +403,11 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                             <SelectContent>
                                                 <SelectItem value="source">Source</SelectItem>
                                                 <SelectItem value="transform">Transform</SelectItem>
+                                                <SelectItem value="join">Join</SelectItem>
+                                                <SelectItem value="union">Union</SelectItem>
+                                                <SelectItem value="merge">Merge</SelectItem>
+                                                <SelectItem value="validate">Validate</SelectItem>
+                                                <SelectItem value="noop">No-Op</SelectItem>
                                                 <SelectItem value="sink">Sink (Destination)</SelectItem>
                                             </SelectContent>
                                         </Select>
@@ -287,35 +420,38 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                             {/* --- Visual Editor Tab --- */}
                             <TabsContent value="settings" className="m-0 space-y-6 focus-visible:outline-none">
 
-                                {nodeType === 'transform' && (
+                                {isTransformLike(nodeType) && (
                                     <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
                                         <div className="space-y-2.5">
                                             <Label className="text-primary font-semibold ml-1">Transformation Logic</Label>
                                             <div className="relative">
                                                 <Select
                                                     value={watch('operator_class')}
-                                                    onValueChange={(v) => setValue('operator_class', v)}
+                                                    onValueChange={(v) => {
+                                                        setValue('operator_class', v);
+                                                        // Update visual type based on operator class
+                                                        const newType = findTypeForOpClass(v);
+                                                        setValue('type', newType);
+                                                    }}
                                                 >
                                                     <SelectTrigger className="h-11 rounded-xl bg-background/50">
                                                         <SelectValue placeholder="Select transformation" />
                                                     </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="pandas_transform">Generic (Pandas)</SelectItem>
-                                                        <SelectItem value="code">Python Code</SelectItem>
-                                                        <SelectItem value="filter">Filter Rows</SelectItem>
-                                                        <SelectItem value="map">Map Values</SelectItem>
-                                                        <SelectItem value="join">Join</SelectItem>
-                                                        <SelectItem value="union">Union</SelectItem>
-                                                        <SelectItem value="merge">Merge</SelectItem>
-                                                        <SelectItem value="aggregate">Aggregate</SelectItem>
-                                                        <SelectItem value="validate">Validate Schema</SelectItem>
-                                                        <SelectItem value="deduplicate">Deduplicate</SelectItem>
-                                                        <SelectItem value="fill_nulls">Fill Nulls</SelectItem>
-                                                        <SelectItem value="type_cast">Type Cast</SelectItem>
-                                                        <SelectItem value="rename_columns">Rename Columns</SelectItem>
-                                                        <SelectItem value="drop_columns">Drop Columns</SelectItem>
-                                                        <SelectItem value="regex_replace">Regex Replace</SelectItem>
-                                                        <SelectItem value="noop">No-Op</SelectItem>
+                                                    <SelectContent className="max-h-[300px]">
+                                                        {NODE_DEFINITIONS.map((category) => {
+                                                            const transformItems = category.items.filter(i => i.type !== 'source' && i.type !== 'sink');
+                                                            if (transformItems.length === 0) return null;
+                                                            return (
+                                                                <SelectGroup key={category.category}>
+                                                                    <SelectLabel>{category.category}</SelectLabel>
+                                                                    {transformItems.map((item) => (
+                                                                        <SelectItem key={(item as any).opClass} value={(item as any).opClass}>
+                                                                            {item.label}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectGroup>
+                                                            );
+                                                        })}
                                                     </SelectContent>
                                                 </Select>
                                             </div>
@@ -370,7 +506,6 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                                                     errors.join_on && "border-destructive"
                                                                 )}
                                                             />
-                                                            {errors.join_on && <p className="text-[10px] text-destructive">{errors.join_on.message}</p>}
                                                         </div>
                                                         <div className="space-y-2">
                                                             <Label className="text-xs font-medium ml-1 text-muted-foreground">Join Type</Label>
@@ -410,7 +545,216 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                                     <p className="text-[10px] text-muted-foreground pl-1">Comma separated list of column names.</p>
                                                 </div>
                                             )}
+                                            
+                                            {/* --- New Operators --- */}
 
+                                            {operatorClass === 'map' && (
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <div className="p-1.5 rounded-md bg-chart-3/10">
+                                                            <ListPlus className="h-4 w-4 text-chart-3" />
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-foreground">Transformations</span>
+                                                    </div>
+                                                    <Textarea 
+                                                        {...register('map_transformations', {
+                                                            validate: (v) => { try { JSON.parse(v); return true; } catch { return 'Invalid JSON'; } },
+                                                            onChange: (e) => { try { syncVisualToConfig({ transformations: JSON.parse(e.target.value) }) } catch {} }
+                                                        })}
+                                                        placeholder='{ "new_col": "col1 * 2", "status": "upper(status_col)" }'
+                                                        className="font-mono text-xs h-24 rounded-lg bg-background/80 border-border/50"
+                                                    />
+                                                    <p className="text-[10px] text-muted-foreground pl-1">JSON object mapping column names to expressions.</p>
+                                                </div>
+                                            )}
+
+                                            {operatorClass === 'aggregate' && (
+                                                <div className="space-y-4">
+                                                    <div className="space-y-3">
+                                                        <Label className="text-xs font-medium ml-1 text-muted-foreground">Group By</Label>
+                                                        <Input 
+                                                            {...register('group_by', {
+                                                                onChange: (e) => syncVisualToConfig({ group_by: e.target.value.split(',') })
+                                                            })}
+                                                            placeholder="category, region"
+                                                            className="h-10 rounded-lg bg-background/80 border-border/50"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        <Label className="text-xs font-medium ml-1 text-muted-foreground">Aggregates (JSON)</Label>
+                                                        <Textarea 
+                                                            {...register('agg_functions', {
+                                                                onChange: (e) => { try { syncVisualToConfig({ aggregates: JSON.parse(e.target.value) }) } catch {} }
+                                                            })}
+                                                            placeholder='{ "sales": "sum", "id": "count" }'
+                                                            className="font-mono text-xs h-20 rounded-lg bg-background/80 border-border/50"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {operatorClass === 'validate' && (
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <div className="p-1.5 rounded-md bg-chart-3/10">
+                                                            <ShieldCheck className="h-4 w-4 text-chart-3" />
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-foreground">Validation Schema</span>
+                                                    </div>
+                                                    <Textarea 
+                                                        {...register('validate_schema', {
+                                                            onChange: (e) => { try { syncVisualToConfig({ schema: JSON.parse(e.target.value) }) } catch {} }
+                                                        })}
+                                                        placeholder='[ { "column": "age", "check": ">= 0" } ]'
+                                                        className="font-mono text-xs h-32 rounded-lg bg-background/80 border-border/50"
+                                                    />
+                                                    <p className="text-[10px] text-muted-foreground pl-1">List of validation rules (JSON).</p>
+                                                </div>
+                                            )}
+
+                                            {operatorClass === 'deduplicate' && (
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <div className="p-1.5 rounded-md bg-chart-3/10">
+                                                            <Copy className="h-4 w-4 text-chart-3" />
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-foreground">Subset Columns</span>
+                                                    </div>
+                                                    <Input 
+                                                        {...register('dedup_subset', {
+                                                            onChange: (e) => syncVisualToConfig({ subset: e.target.value.split(',') })
+                                                        })}
+                                                        placeholder="email, transaction_id"
+                                                        className="h-10 rounded-lg bg-background/80 border-border/50"
+                                                    />
+                                                    <p className="text-[10px] text-muted-foreground pl-1">Optional: Comma-separated columns to check for duplicates.</p>
+                                                </div>
+                                            )}
+
+                                            {operatorClass === 'fill_nulls' && (
+                                                <div className="space-y-5">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <div className="p-1.5 rounded-md bg-chart-3/10">
+                                                            <PaintBucket className="h-4 w-4 text-chart-3" />
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-foreground">Fill Strategy</span>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs font-medium ml-1 text-muted-foreground">Method</Label>
+                                                            <Select
+                                                                value={watch('fill_method')}
+                                                                onValueChange={(v) => {
+                                                                    setValue('fill_method', v);
+                                                                    syncVisualToConfig({ method: v, value: v === 'value' ? getValues('fill_value') : undefined });
+                                                                }}
+                                                            >
+                                                                <SelectTrigger className="h-10 rounded-lg bg-background/80">
+                                                                    <SelectValue placeholder="Method" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="value">Fixed Value</SelectItem>
+                                                                    <SelectItem value="ffill">Forward Fill</SelectItem>
+                                                                    <SelectItem value="bfill">Backward Fill</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        {fillMethod === 'value' && (
+                                                            <div className="space-y-2">
+                                                                <Label className="text-xs font-medium ml-1 text-muted-foreground">Value</Label>
+                                                                <Input 
+                                                                    {...register('fill_value', {
+                                                                        required: fillMethod === 'value' ? 'Value is required' : false,
+                                                                        onChange: (e) => syncVisualToConfig({ value: e.target.value, method: 'value' })
+                                                                    })}
+                                                                    placeholder="0, 'N/A', etc."
+                                                                    className="h-10 rounded-lg bg-background/80 border-border/50"
+                                                                />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {operatorClass === 'type_cast' && (
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <div className="p-1.5 rounded-md bg-chart-3/10">
+                                                            <FileType className="h-4 w-4 text-chart-3" />
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-foreground">Type Mapping</span>
+                                                    </div>
+                                                    <Textarea 
+                                                        {...register('cast_mapping', {
+                                                            onChange: (e) => { try { syncVisualToConfig({ columns: JSON.parse(e.target.value) }) } catch {} }
+                                                        })}
+                                                        placeholder='{ "age": "int", "price": "float" }'
+                                                        className="font-mono text-xs h-24 rounded-lg bg-background/80 border-border/50"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {operatorClass === 'rename_columns' && (
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <div className="p-1.5 rounded-md bg-chart-3/10">
+                                                            <Type className="h-4 w-4 text-chart-3" />
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-foreground">Rename Columns</span>
+                                                    </div>
+                                                    <Textarea 
+                                                        {...register('rename_mapping', {
+                                                            onChange: (e) => { try { syncVisualToConfig({ columns: JSON.parse(e.target.value) }) } catch {} }
+                                                        })}
+                                                        placeholder='{ "old_name": "new_name" }'
+                                                        className="font-mono text-xs h-24 rounded-lg bg-background/80 border-border/50"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {operatorClass === 'regex_replace' && (
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <div className="p-1.5 rounded-md bg-chart-3/10">
+                                                            <Regex className="h-4 w-4 text-chart-3" />
+                                                        </div>
+                                                        <span className="text-sm font-semibold text-foreground">Regex Replacement</span>
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label className="text-xs font-medium ml-1 text-muted-foreground">Target Column</Label>
+                                                        <Input 
+                                                            {...register('regex_column', {
+                                                                required: 'Column is required',
+                                                                onChange: (e) => syncVisualToConfig({ column: e.target.value })
+                                                            })}
+                                                            className="h-10 rounded-lg bg-background/80 border-border/50"
+                                                        />
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs font-medium ml-1 text-muted-foreground">Pattern (Regex)</Label>
+                                                            <Input 
+                                                                {...register('regex_pattern', {
+                                                                    required: 'Pattern is required',
+                                                                    onChange: (e) => syncVisualToConfig({ pattern: e.target.value })
+                                                                })}
+                                                                className="h-10 rounded-lg bg-background/80 border-border/50 font-mono"
+                                                            />
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <Label className="text-xs font-medium ml-1 text-muted-foreground">Replacement</Label>
+                                                            <Input 
+                                                                {...register('regex_replacement', {
+                                                                    onChange: (e) => syncVisualToConfig({ replacement: e.target.value })
+                                                                })}
+                                                                className="h-10 rounded-lg bg-background/80 border-border/50"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Fallback for others */}
                                             {operatorClass === 'pandas_transform' && (
                                                 <div className="flex flex-col items-center justify-center p-6 text-center text-muted-foreground bg-muted/30 rounded-xl border border-dashed border-border/60">
                                                     <Braces className="h-10 w-10 mb-3 opacity-30" />
@@ -428,8 +772,8 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                     <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300">
                                          <div className="p-5 rounded-2xl border border-border/40 bg-muted/20 space-y-5 shadow-sm">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <div className="p-1.5 rounded-md bg-chart-1/10">
-                                                    <Database className="h-4 w-4 text-chart-1" />
+                                                <div className={cn("p-1.5 rounded-md", nodeType === 'source' ? "bg-chart-1/10" : "bg-chart-2/10")}>
+                                                    {nodeType === 'source' ? <Database className="h-4 w-4 text-chart-1" /> : <HardDriveUpload className="h-4 w-4 text-chart-2" />}
                                                 </div>
                                                 <span className="text-sm font-semibold text-foreground">
                                                     {nodeType === 'source' ? 'Source' : 'Target'} Asset

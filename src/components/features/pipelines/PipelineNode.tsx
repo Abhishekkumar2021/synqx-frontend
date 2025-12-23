@@ -12,7 +12,10 @@ import {
     Copy,
     Trash2,
     AlertCircle,
-    CheckCircle2
+    CheckCircle2,
+    Layers,
+    ShieldCheck,
+    Square
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -46,6 +49,31 @@ const NODE_CONFIG: Record<string, { icon: React.ElementType, colorVar: string, l
         icon: ArrowRightLeft,
         colorVar: "chart-3", // Purple
         label: "Transform"
+    },
+    join: {
+        icon: Layers,
+        colorVar: "chart-5", // Dark Red/Brown
+        label: "Set Op"
+    },
+    union: {
+        icon: Layers,
+        colorVar: "chart-5",
+        label: "Set Op"
+    },
+    merge: {
+        icon: Layers,
+        colorVar: "chart-5",
+        label: "Set Op"
+    },
+    validate: {
+        icon: ShieldCheck,
+        colorVar: "chart-4", // Orange
+        label: "Quality"
+    },
+    noop: {
+        icon: Square,
+        colorVar: "chart-3", // Purple (Reuse)
+        label: "No-Op"
     },
     destination: {
         icon: HardDriveUpload,
@@ -98,6 +126,10 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
             case 'chart-4': return {
                 bg: "bg-chart-4/10", text: "text-chart-4", border: "border-chart-4/20", ring: "ring-chart-4/30",
                 handle: "hover:border-chart-4 hover:bg-chart-4/10 hover:shadow-[0_0_8px_rgba(var(--chart-4),0.4)]"
+            };
+            case 'chart-5': return {
+                bg: "bg-chart-5/10", text: "text-chart-5", border: "border-chart-5/20", ring: "ring-chart-5/30",
+                handle: "hover:border-chart-5 hover:bg-chart-5/10 hover:shadow-[0_0_8px_rgba(var(--chart-5),0.4)]"
             };
             default: return {
                 bg: "bg-primary/10", text: "text-primary", border: "border-primary/20", ring: "ring-primary/30",

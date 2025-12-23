@@ -23,7 +23,6 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { 
     Save, Play, ArrowLeft, Loader2, Layout, 
-    Database, ArrowRightLeft, HardDriveUpload,
     Rocket, Square, Pencil, MousePointer2, History as HistoryIcon,
     ExternalLink, Trash2, Plus, Search
 } from 'lucide-react';
@@ -72,6 +71,11 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { 
+    NODE_DEFINITIONS, 
+    mapOperatorToNodeType, 
+    mapNodeTypeToOperator 
+} from '@/lib/pipeline-definitions';
 
 /* --- Layout Engine --- */
 const dagreGraph = new dagre.graphlib.Graph();
@@ -94,86 +98,6 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
     });
     return { nodes: layoutedNodes, edges };
 };
-
-// Helper: Map Backend OperatorType to Frontend Node Type
-const mapOperatorToNodeType = (opType: string) => {
-    switch (opType) {
-        case 'extract': return 'source';
-        case 'load': return 'sink';
-        case 'transform': return 'transform';
-        case 'validate': return 'transform';
-        case 'noop': return 'transform';
-        case 'merge': return 'transform';
-        case 'union': return 'transform';
-        case 'join': return 'transform';
-        default: return 'default';
-    }
-};
-
-// Helper: Map Frontend Node Type to Backend OperatorType
-const mapNodeTypeToOperator = (nodeType: string, operatorClass?: string) => {
-    // Explicit overrides based on operator class
-    if (operatorClass === 'merge') return 'merge';
-    if (operatorClass === 'union') return 'union';
-    if (operatorClass === 'join') return 'join';
-    if (operatorClass === 'validate') return 'validate';
-    if (operatorClass === 'noop') return 'noop';
-    
-    // Fallback to node type mapping
-    switch (nodeType) {
-        case 'source': return 'extract';
-        case 'sink': return 'load';
-        case 'transform': return 'transform';
-        default: return 'transform';
-    }
-};
-
-// Helper: Detailed Node Definitions for Toolbox
-const NODE_DEFINITIONS = [
-    {
-        category: "IO Operations",
-        items: [
-            { label: "Extractor (Source)", type: "source", icon: Database, desc: "Ingest data from configured sources" },
-            { label: "Loader (Sink)", type: "sink", icon: HardDriveUpload, desc: "Load data into destination targets" }
-        ]
-    },
-    {
-        category: "Set Operations",
-        items: [
-            { label: "Join Datasets", type: "transform", opClass: "join", icon: ArrowRightLeft, desc: "Merge data based on keys" },
-            { label: "Union All", type: "transform", opClass: "union", icon: ArrowRightLeft, desc: "Combine datasets vertically" },
-            { label: "Merge", type: "transform", opClass: "merge", icon: ArrowRightLeft, desc: "Upsert/Merge data logic" }
-        ]
-    },
-    {
-        category: "Transformation",
-        items: [
-            { label: "Filter Rows", type: "transform", opClass: "filter", icon: ArrowRightLeft, desc: "Filter based on predicates" },
-            { label: "Map Fields", type: "transform", opClass: "map", icon: ArrowRightLeft, desc: "Transform column values" },
-            { label: "Aggregate", type: "transform", opClass: "aggregate", icon: ArrowRightLeft, desc: "Group by and summarize" },
-            { label: "Generic Pandas", type: "transform", opClass: "pandas_transform", icon: ArrowRightLeft, desc: "Custom Pandas operations" }
-        ]
-    },
-    {
-        category: "Data Quality",
-        items: [
-            { label: "Validate Schema", type: "transform", opClass: "validate", icon: ArrowRightLeft, desc: "Enforce schema & rules" },
-            { label: "Deduplicate", type: "transform", opClass: "deduplicate", icon: ArrowRightLeft, desc: "Remove duplicate records" },
-            { label: "Fill Nulls", type: "transform", opClass: "fill_nulls", icon: ArrowRightLeft, desc: "Impute missing values" },
-            { label: "Type Cast", type: "transform", opClass: "type_cast", icon: ArrowRightLeft, desc: "Convert column types" }
-        ]
-    },
-    {
-        category: "Advanced",
-        items: [
-            { label: "Python Code", type: "transform", opClass: "code", icon: ArrowRightLeft, desc: "Arbitrary Python execution" },
-            { label: "Rename Cols", type: "transform", opClass: "rename_columns", icon: ArrowRightLeft, desc: "Rename dataset columns" },
-            { label: "Drop Cols", type: "transform", opClass: "drop_columns", icon: ArrowRightLeft, desc: "Remove specific columns" },
-            { label: "Regex Replace", type: "transform", opClass: "regex_replace", icon: ArrowRightLeft, desc: "Pattern based replacement" },
-            { label: "No-Op", type: "transform", opClass: "noop", icon: ArrowRightLeft, desc: "Pass-through (Testing)" }
-        ]
-    }
-];
 
 export const PipelineCanvas: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -218,6 +142,11 @@ export const PipelineCanvas: React.FC = () => {
     source: PipelineNode,
     transform: PipelineNode,
     sink: PipelineNode,
+    join: PipelineNode,
+    union: PipelineNode,
+    merge: PipelineNode,
+    validate: PipelineNode,
+    noop: PipelineNode,
     default: PipelineNode
   }), []);
 
@@ -647,8 +576,10 @@ export const PipelineCanvas: React.FC = () => {
                 className="hidden md:block bg-background/80! backdrop-blur-xl! border-border/40! shadow-lg! rounded-xl! overflow-hidden m-4 border" 
                 nodeColor={(node) => {
                     if (node.type === 'source') return 'var(--color-chart-1)';
-                    if (node.type === 'transform') return 'var(--color-chart-3)';
                     if (node.type === 'sink') return 'var(--color-chart-2)';
+                    if (node.type === 'validate') return 'var(--color-chart-4)';
+                    if (['join', 'union', 'merge'].includes(node.type || '')) return 'var(--color-chart-5)';
+                    if (node.type === 'transform' || node.type === 'noop') return 'var(--color-chart-3)';
                     return 'var(--muted)';
                 }}
                 maskColor="var(--color-background)"
@@ -723,6 +654,8 @@ export const PipelineCanvas: React.FC = () => {
                                                     "p-1.5 rounded-lg border shadow-sm transition-colors group-hover:border-primary/30",
                                                     item.type === 'source' ? "bg-chart-1/10 border-chart-1/20 text-chart-1" :
                                                     item.type === 'sink' ? "bg-chart-2/10 border-chart-2/20 text-chart-2" :
+                                                    item.type === 'validate' ? "bg-chart-4/10 border-chart-4/20 text-chart-4" :
+                                                    ['join', 'union', 'merge'].includes(item.type) ? "bg-chart-5/10 border-chart-5/20 text-chart-5" :
                                                     "bg-chart-3/10 border-chart-3/20 text-chart-3"
                                                 )}>
                                                     <item.icon className="h-3.5 w-3.5" />
