@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import {
-    Database, Cloud, HardDrive, Globe, FileJson, Server
+    Database, Cloud, HardDrive, Globe, FileJson, Server, Code
 } from 'lucide-react';
 
 export interface ConnectorMetadata {
@@ -10,7 +10,7 @@ export interface ConnectorMetadata {
     name: string;
     description: string;
     icon: React.ReactNode;
-    category: 'Database' | 'Warehouse' | 'File' | 'API';
+    category: 'Database' | 'Warehouse' | 'File' | 'API' | 'Generic';
     color: string;
     popular?: boolean;
 }
@@ -78,6 +78,10 @@ export const CONNECTOR_META: Record<string, ConnectorMetadata> = {
     rest_api: { 
         id: 'rest_api', name: 'REST API', description: 'Connect to generic HTTP endpoints.', 
         icon: <Globe />, category: 'API', color: "text-purple-500 bg-purple-500/10 border-purple-500/20"
+    },
+    custom_script: {
+        id: 'custom_script', name: 'Custom Script', description: 'Execute Python or Shell scripts to extract data.',
+        icon: <Code />, category: 'Generic', color: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20"
     },
 };
 
@@ -224,5 +228,11 @@ export const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
         fields: [
             { name: "base_path", label: "Base Path", type: "text", required: true, placeholder: "/data/files" }
         ] 
+    },
+    custom_script: {
+        fields: [
+            { name: "base_path", label: "Base Script Path (Optional)", type: "text", placeholder: "/opt/scripts" },
+            { name: "env_vars", label: "Global Env Vars (JSON)", type: "textarea", placeholder: "{\"API_KEY\": \"...\"}" }
+        ]
     }
 };

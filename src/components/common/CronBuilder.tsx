@@ -7,13 +7,8 @@ import {
     Info, CalendarClock, Settings2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 
 interface CronBuilderProps {
     value: string;
@@ -30,8 +25,6 @@ const PRESETS = [
 ];
 
 export const CronBuilder: React.FC<CronBuilderProps> = ({ value, onChange }) => {
-    // Determine mode based on whether current value matches a preset
-    // We use a local override so user can force "Custom" view even if value matches a preset
     const [modeOverride, setModeOverride] = useState<'preset' | 'custom' | null>(null);
 
     const isMatchingPreset = useMemo(() => PRESETS.some(p => p.value === value), [value]);
@@ -70,25 +63,29 @@ export const CronBuilder: React.FC<CronBuilderProps> = ({ value, onChange }) => 
     };
 
     return (
-        <div className="flex flex-col gap-4 rounded-xl glass-card border-none p-1 shadow-sm">
+        <div className="flex flex-col gap-6 p-1 relative">
             
-            {/* --- Header / Tabs --- */}
-            <div className="flex items-center justify-between p-3 pb-0">
-                <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-primary/10 rounded-md text-primary">
+            {/* --- Navigation Toggle --- */}
+            <div className="flex items-center justify-between px-2">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-xl text-primary ring-1 ring-primary/20">
                         <CalendarClock className="h-4 w-4" />
                     </div>
-                    <span className="font-semibold text-sm">Schedule</span>
+                    <div className="flex flex-col">
+                        <span className="font-black text-sm tracking-tight leading-none uppercase tracking-widest">Schedule</span>
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-50 mt-1">Recurrence Logic</span>
+                    </div>
                 </div>
                 
-                <div className="flex p-1 bg-muted/50 rounded-lg border border-border/50">
+                <div className="flex p-1 bg-white/[0.03] backdrop-blur-sm rounded-xl border border-border/40 shadow-inner">
                     <button
+                        type="button"
                         onClick={() => setModeOverride('preset')}
                         className={cn(
-                            "px-3 py-1 text-xs font-medium rounded-md transition-all duration-200",
+                            "px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300",
                             mode === 'preset' 
-                                ? "bg-background text-foreground shadow-sm ring-1 ring-black/5 dark:ring-white/10" 
-                                : "text-muted-foreground hover:text-foreground"
+                                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
+                                : "text-muted-foreground/60 hover:text-foreground hover:bg-white/5"
                         )}
                     >
                         Presets
@@ -97,10 +94,10 @@ export const CronBuilder: React.FC<CronBuilderProps> = ({ value, onChange }) => 
                         type="button"
                         onClick={() => setModeOverride('custom')}
                         className={cn(
-                            "px-3 py-1 text-xs font-medium rounded-md transition-all duration-200",
+                            "px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all duration-300",
                             mode === 'custom' 
-                                ? "bg-background text-foreground shadow-sm ring-1 ring-black/5 dark:ring-white/10" 
-                                : "text-muted-foreground hover:text-foreground"
+                                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
+                                : "text-muted-foreground/60 hover:text-foreground hover:bg-white/5"
                         )}
                     >
                         Advanced
@@ -108,144 +105,149 @@ export const CronBuilder: React.FC<CronBuilderProps> = ({ value, onChange }) => 
                 </div>
             </div>
 
-            <div className="p-4 pt-2">
+            <div className="px-1">
                 {/* --- PRESET VIEW --- */}
                 {mode === 'preset' && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in slide-in-from-left-2 duration-300">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in slide-in-from-left-4 duration-500">
                         {PRESETS.map((preset) => (
                             <button
                                 type="button"
                                 key={preset.label}
                                 onClick={() => handlePresetClick(preset.value)}
                                 className={cn(
-                                    "relative flex flex-col items-start p-3 rounded-lg border text-left transition-all duration-200 outline-none group",
+                                    "relative flex flex-col items-start p-5 rounded-[1.5rem] border text-left transition-all duration-300 outline-none group overflow-hidden",
                                     value === preset.value
-                                        ? "bg-primary/5 border-primary/50 shadow-[0_0_15px_-5px_var(--color-primary)]"
-                                        : "bg-white/5 border-white/5 hover:border-primary/30 hover:bg-white/10"
+                                        ? "bg-primary/[0.08] border-primary/40 ring-1 ring-primary/20 shadow-xl"
+                                        : "bg-white/[0.02] border-white/5 hover:border-primary/30 hover:bg-white/[0.05]"
                                 )}
                             >
-                                <div className="flex justify-between w-full mb-1">
-                                    <span className={cn("text-sm font-medium", value === preset.value ? "text-primary" : "text-foreground")}>
+                                {value === preset.value && (
+                                    <div className="absolute -top-10 -right-10 w-24 h-24 bg-primary/20 blur-3xl rounded-full" />
+                                )}
+
+                                <div className="flex justify-between w-full mb-1.5 relative z-10">
+                                    <span className={cn("text-xs font-black uppercase tracking-widest", value === preset.value ? "text-primary" : "text-foreground/80")}>
                                         {preset.label}
                                     </span>
                                     {value === preset.value && (
-                                        <CheckCircle2 className="h-4 w-4 text-primary animate-in zoom-in duration-300" />
+                                        <CheckCircle2 className="h-4 w-4 text-primary animate-in zoom-in duration-500" />
                                     )}
                                 </div>
-                                <span className="text-xs text-muted-foreground mb-2">{preset.desc}</span>
+                                <span className="text-[10px] text-muted-foreground/60 font-bold tracking-tight mb-4 line-clamp-1 relative z-10">{preset.desc}</span>
                                 <code className={cn(
-                                    "text-[10px] px-1.5 py-0.5 rounded font-mono transition-colors",
-                                    value === preset.value ? "bg-primary/10 text-primary" : "bg-black/20 text-muted-foreground"
+                                    "text-[10px] px-2.5 py-1 rounded-lg font-mono font-bold transition-all relative z-10",
+                                    value === preset.value ? "bg-primary/20 text-primary ring-1 ring-primary/30" : "bg-black/40 text-muted-foreground/40 border border-white/5"
                                 )}>
                                     {preset.value}
                                 </code>
                             </button>
                         ))}
                         
-                        {/* "Go Custom" hint if they want more control */}
                         <button 
                             type="button"
                             onClick={() => setModeOverride('custom')}
-                            className="flex flex-col items-center justify-center p-3 rounded-lg border border-dashed border-white/10 text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5 transition-all gap-2"
+                            className="flex flex-col items-center justify-center p-5 rounded-[1.5rem] border border-dashed border-white/10 text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/[0.02] transition-all gap-3 group"
                         >
-                            <Settings2 className="h-5 w-5" />
-                            <span className="text-xs font-medium">Create Custom Schedule</span>
+                            <div className="p-2 rounded-xl bg-white/[0.02] group-hover:bg-primary/10 transition-colors">
+                                <Settings2 className="h-5 w-5 opacity-40 group-hover:opacity-100 group-hover:scale-110 transition-all" />
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 group-hover:opacity-100 transition-opacity">Custom Definition</span>
                         </button>
                     </div>
                 )}
 
                 {/* --- CUSTOM VIEW --- */}
                 {mode === 'custom' && (
-                    <div className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-300">
-                        
-                        {/* Input Area */}
-                        <div className="space-y-2">
-                            <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Cron Expression</Label>
+                    <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+                        <div className="space-y-3">
+                            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Cron Expression</Label>
                             <div className="relative group">
                                 <Input
                                     value={value}
                                     onChange={(e) => onChange(e.target.value)}
                                     className={cn(
-                                        "font-mono text-center tracking-widest text-lg h-14 glass-input transition-all",
-                                        isValid 
-                                            ? "focus-visible:ring-primary/30 focus-visible:border-primary/50" 
-                                            : "border-destructive/50 focus-visible:ring-destructive/30 text-destructive"
+                                        "font-mono text-center tracking-[0.3em] text-xl h-16 rounded-2xl bg-white/2 border border-border/40 shadow-inner placeholder:opacity-30 focus:ring-1 focus:ring-white/10 transition-all pr-10",
+                                        isValid && "border-emerald-500/40 focus:border-emerald-500/60 focus:ring-emerald-500/5 text-emerald-500",
+                                        !isValid && value && "border-destructive/40 focus:border-destructive/60 focus:ring-destructive/5 text-destructive"
                                     )}
                                     placeholder="* * * * *"
                                 />
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                <div className="absolute right-5 top-1/2 -translate-y-1/2">
                                     {isValid ? (
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger>
-                                                    <CheckCircle2 className="h-5 w-5 text-emerald-500 opacity-80" />
-                                                </TooltipTrigger>
-                                                <TooltipContent className="bg-emerald-500 text-white border-0">Valid Format</TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    ) : (
-                                        <TooltipProvider>
-                                            <Tooltip>
-                                                <TooltipTrigger>
-                                                    <AlertCircle className="h-5 w-5 text-destructive animate-pulse" />
-                                                </TooltipTrigger>
-                                                <TooltipContent className="bg-destructive text-white border-0">Invalid Cron Format</TooltipContent>
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    )}
+                                        <CheckCircle2 className="h-5 w-5 text-emerald-500 opacity-60" />
+                                    ) : value ? (
+                                        <AlertCircle className="h-5 w-5 text-destructive animate-pulse" />
+                                    ) : null}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Visual Breakdown Slots */}
-                        <div className="grid grid-cols-5 gap-2">
-                            <CronSlot label="Minute" value={parts.min} />
+                        <div className="grid grid-cols-5 gap-3">
+                            <CronSlot label="Min" value={parts.min} />
                             <CronSlot label="Hour" value={parts.hour} />
-                            <CronSlot label="Day (Mo)" value={parts.day} />
-                            <CronSlot label="Month" value={parts.month} />
-                            <CronSlot label="Day (Wk)" value={parts.week} />
+                            <CronSlot label="Day" value={parts.day} />
+                            <CronSlot label="Mon" value={parts.month} />
+                            <CronSlot label="Wk" value={parts.week} />
                         </div>
 
-                        {/* Cheat Sheet */}
-                        <div className="rounded-lg bg-white/5 border border-white/5 p-4">
-                            <div className="flex items-center gap-2 mb-3 text-muted-foreground">
-                                <Info className="h-4 w-4 text-primary" />
-                                <span className="text-xs font-semibold uppercase tracking-wider">Quick Reference</span>
+                        <div className="rounded-[1.5rem] bg-white/[0.02] border border-border/40 p-6 shadow-inner relative overflow-hidden">
+                            <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-primary/5 blur-3xl rounded-full" />
+                            <div className="flex items-center gap-2 mb-4 text-muted-foreground relative z-10">
+                                <div className="p-1 rounded-md bg-primary/10">
+                                    <Info className="h-3 w-3 text-primary" />
+                                </div>
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/80">Reference Syntax</span>
                             </div>
-                            <div className="grid grid-cols-2 gap-y-2 gap-x-8 text-xs text-muted-foreground">
-                                <div className="flex justify-between"><span><code>*</code></span> <span>Any value</span></div>
-                                <div className="flex justify-between"><span><code>,</code></span> <span>Value separator</span></div>
-                                <div className="flex justify-between"><span><code>-</code></span> <span>Range (e.g. 1-5)</span></div>
-                                <div className="flex justify-between"><span><code>/</code></span> <span>Step (e.g. */5)</span></div>
+                            <div className="grid grid-cols-2 gap-y-3 gap-x-10 text-[10px] font-bold text-muted-foreground/60 relative z-10">
+                                <div className="flex justify-between items-center border-b border-white/[0.03] pb-1.5">
+                                    <code className="text-primary/60 font-black">*</code> 
+                                    <span className="opacity-80">Wildcard</span>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-white/[0.03] pb-1.5">
+                                    <code className="text-primary/60 font-black">,</code> 
+                                    <span className="opacity-80">List</span>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-white/[0.03] pb-1.5">
+                                    <code className="text-primary/60 font-black">-</code> 
+                                    <span className="opacity-80">Range</span>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-white/[0.03] pb-1.5">
+                                    <code className="text-primary/60 font-black">/</code> 
+                                    <span className="opacity-80">Steps</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* --- Footer Status --- */}
             <div className={cn(
-                "px-4 py-3 border-t border-white/5 bg-black/20 flex items-center justify-between rounded-b-xl transition-colors",
-                isValid ? "bg-emerald-500/5" : "bg-destructive/5"
+                "px-6 py-4 border border-border/40 bg-black/20 backdrop-blur-md flex items-center justify-between rounded-2xl shadow-xl transition-all duration-500 ring-1 ring-white/5",
+                isValid ? "bg-emerald-500/[0.03] border-emerald-500/10" : value ? "bg-destructive/[0.03] border-destructive/10" : ""
             )}>
-                <span className="text-xs font-medium text-muted-foreground">Summary:</span>
-                <span className={cn(
-                    "text-xs font-semibold",
-                    isValid ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
-                )}>
-                    {humanReadable}
-                </span>
+                <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">Translation</span>
+                    <div className="h-3 w-px bg-white/10" />
+                    <span className={cn(
+                        "text-[11px] font-black tracking-tight",
+                        isValid ? "text-foreground opacity-90" : "text-destructive/80 italic"
+                    )}>
+                        {humanReadable}
+                    </span>
+                </div>
+                {isValid && (
+                    <Badge variant="outline" className="text-[8px] font-black border-emerald-500/20 text-emerald-500 bg-emerald-500/5">SYNCED</Badge>
+                )}
             </div>
         </div>
     );
 };
 
-// Helper for the digital-clock style slots
 const CronSlot = ({ label, value }: { label: string, value: string }) => (
-    <div className="flex flex-col items-center gap-1.5">
-        <div className="w-full aspect-square flex items-center justify-center rounded-lg bg-background border border-border/60 shadow-inner font-mono text-sm sm:text-base font-medium text-foreground transition-all hover:border-primary/40 hover:shadow-primary/5">
+    <div className="flex flex-col items-center gap-2 group">
+        <div className="w-full aspect-[4/5] flex items-center justify-center rounded-xl bg-background/40 border border-border/40 shadow-inner font-mono text-sm sm:text-base font-black text-foreground transition-all group-hover:border-primary/30 group-hover:shadow-[0_0_15px_-5px_rgba(var(--primary),0.3)] ring-1 ring-white/5 backdrop-blur-sm">
             {value}
         </div>
-        <span className="text-[9px] uppercase font-bold text-muted-foreground/70 tracking-tight">{label}</span>
+        <span className="text-[8px] uppercase font-black text-muted-foreground/40 tracking-[0.1em]">{label}</span>
     </div>
 );

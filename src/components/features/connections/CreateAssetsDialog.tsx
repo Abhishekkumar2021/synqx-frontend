@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/incompatible-library */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -7,10 +8,11 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type AssetBulkCreate, bulkCreateAssets } from '@/lib/api';
 import { toast } from 'sonner';
-import { Plus, X, Database, Layers, ArrowRightLeft, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, X, Database, Layers, ArrowRightLeft, Sparkles, Loader2, Code } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,14 +28,15 @@ type FormValues = {
         name: string;
         asset_type: string;
         usageType: 'source' | 'destination';
+        query?: string;
     }[];
 };
 
 export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connectionId, open, onOpenChange }) => {
     const queryClient = useQueryClient();
-    const { register, control, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
+    const { register, control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormValues>({
         defaultValues: {
-            assets: [{ name: '', asset_type: 'table', usageType: 'source' }]
+            assets: [{ name: '', asset_type: 'table', usageType: 'source', query: '' }]
         }
     });
 
@@ -42,9 +45,11 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
         name: "assets"
     });
     
+    const watchedAssets = watch("assets");
+    
     useEffect(() => {
         if (open) {
-            reset({ assets: [{ name: '', asset_type: 'table', usageType: 'source' }] });
+            reset({ assets: [{ name: '', asset_type: 'table', usageType: 'source', query: '' }] });
         }
     }, [open, reset]);
 
@@ -73,12 +78,22 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
 
     const onSubmit = (data: FormValues) => {
         const payload: AssetBulkCreate = {
-            assets: data.assets.filter(a => a.name.trim() !== '').map(asset => ({
-                name: asset.name,
-                asset_type: asset.asset_type,
-                is_source: asset.usageType === 'source',
-                is_destination: asset.usageType === 'destination',
-            })),
+            assets: data.assets.filter(a => a.name.trim() !== '').map(asset => {
+                let config = undefined;
+                if (['sql_query', 'nosql_query'].includes(asset.asset_type)) {
+                    config = { query: asset.query };
+                } else if (['python', 'shell'].includes(asset.asset_type)) {
+                    config = { code: asset.query, language: asset.asset_type };
+                }
+
+                return {
+                    name: asset.name,
+                    asset_type: asset.asset_type,
+                    is_source: asset.usageType === 'source',
+                    is_destination: asset.usageType === 'destination',
+                    config
+                };
+            }),
         };
         if (payload.assets.length === 0) {
             toast.error("Validation Error", { description: "Please provide at least one asset name." });
@@ -98,7 +113,7 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                         <div className="space-y-1">
                             <DialogTitle className="text-2xl font-bold tracking-tight">Manual Asset Registration</DialogTitle>
                             <DialogDescription className="text-sm font-medium text-muted-foreground">
-                                Add physical data entities like tables or files to your connection registry.
+                                Add physical data entities like tables or files, or define query-based assets.
                             </DialogDescription>
                         </div>
                     </div>
@@ -108,96 +123,147 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                     <ScrollArea className="flex-1">
                         <div className="p-8 pt-6 space-y-4">
                             <div className="grid grid-cols-12 gap-4 px-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                                <div className="col-span-6">Asset Physical Name</div>
+                                <div className="col-span-6">Asset Name / Identifier</div>
                                 <div className="col-span-3">Type</div>
                                 <div className="col-span-2">Sync Usage</div>
                                 <div className="col-span-1"></div>
                             </div>
 
                             <AnimatePresence initial={false}>
-                                {fields.map((field, index) => (
-                                    <motion.div
-                                        key={field.id}
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, scale: 0.95 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="grid grid-cols-12 gap-3 items-center group bg-muted/5 hover:bg-muted/20 p-2 rounded-2xl border border-border/20 transition-all"
-                                    >
-                                        <div className="col-span-6 relative">
-                                            <Database className="z-20 absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 group-focus-within:text-primary transition-colors" />
-                                            <Input
-                                                {...register(`assets.${index}.name`, { required: true })}
-                                                placeholder="Table or file name..."
-                                                className={cn(
-                                                    "pl-9 h-10 rounded-xl bg-background/50 border-border/40 focus:ring-4 focus:ring-primary/5 transition-all text-sm font-medium",
-                                                    errors.assets?.[index]?.name && "border-destructive focus:ring-destructive/5"
-                                                )}
-                                            />
-                                        </div>
-                                        <div className="col-span-3">
-                                            <Controller
-                                                control={control}
-                                                name={`assets.${index}.asset_type`}
-                                                render={({ field }) => (
-                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                        <SelectTrigger className="h-10 rounded-xl bg-background/50 border-border/40 text-sm font-medium">
-                                                            <div className="flex items-center gap-2">
-                                                                <Layers className="h-3.5 w-3.5 text-muted-foreground" />
-                                                                <SelectValue />
-                                                            </div>
-                                                        </SelectTrigger>
-                                                        <SelectContent className="rounded-xl">
-                                                            <SelectItem value="table">Table</SelectItem>
-                                                            <SelectItem value="view">View</SelectItem>
-                                                            <SelectItem value="file">File</SelectItem>
-                                                            <SelectItem value="stream">Stream</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                )}
-                                            />
-                                        </div>
-                                        <div className="col-span-2">
-                                             <Controller
-                                                control={control}
-                                                name={`assets.${index}.usageType`}
-                                                render={({ field }) => (
-                                                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                        <SelectTrigger className="h-10 rounded-xl bg-background/50 border-border/40 text-sm font-medium">
-                                                            <div className="flex items-center gap-2">
-                                                                <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" />
-                                                                <SelectValue />
-                                                            </div>
-                                                        </SelectTrigger>
-                                                        <SelectContent className="rounded-xl">
-                                                            <SelectItem value="source">Source</SelectItem>
-                                                            <SelectItem value="destination">Destination</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                )}
-                                            />
-                                        </div>
-                                        <div className="col-span-1 flex justify-center">
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                                                onClick={() => remove(index)}
-                                                disabled={fields.length <= 1}
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </motion.div>
-                                ))}
+                                {fields.map((field, index) => {
+                                    const assetType = watchedAssets?.[index]?.asset_type;
+                                    const isQuery = ['sql_query', 'nosql_query', 'python', 'shell'].includes(assetType);
+
+                                    return (
+                                        <motion.div
+                                            key={field.id}
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="flex flex-col gap-3 bg-muted/5 hover:bg-muted/20 p-3 rounded-2xl border border-border/20 transition-all"
+                                        >
+                                            <div className="grid grid-cols-12 gap-3 items-center w-full">
+                                                <div className="col-span-6 relative">
+                                                    <Database className="z-20 absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 group-focus-within:text-primary transition-colors" />
+                                                    <Input
+                                                        {...register(`assets.${index}.name`, { required: true })}
+                                                        placeholder={isQuery ? "Name for this asset..." : "Table or file name..."}
+                                                        className={cn(
+                                                            "pl-9 h-10 rounded-xl bg-background/50 border-border/40 focus:ring-4 focus:ring-primary/5 transition-all text-sm font-medium",
+                                                            errors.assets?.[index]?.name && "border-destructive focus:ring-destructive/5"
+                                                        )}
+                                                    />
+                                                </div>
+                                                <div className="col-span-3">
+                                                    <Controller
+                                                        control={control}
+                                                        name={`assets.${index}.asset_type`}
+                                                        render={({ field }) => (
+                                                            <Select 
+                                                                onValueChange={(val) => {
+                                                                    field.onChange(val);
+                                                                    if (['sql_query', 'nosql_query', 'python', 'shell'].includes(val)) {
+                                                                        setValue(`assets.${index}.usageType`, 'source');
+                                                                    }
+                                                                }} 
+                                                                defaultValue={field.value}
+                                                            >
+                                                                <SelectTrigger className="h-10 rounded-xl bg-background/50 border-border/40 text-sm font-medium">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <Layers className="h-3.5 w-3.5 text-muted-foreground" />
+                                                                        <SelectValue />
+                                                                    </div>
+                                                                </SelectTrigger>
+                                                                <SelectContent className="rounded-xl">
+                                                                    <SelectItem value="table">Table</SelectItem>
+                                                                    <SelectItem value="view">View</SelectItem>
+                                                                    <SelectItem value="file">File</SelectItem>
+                                                                    <SelectItem value="stream">Stream</SelectItem>
+                                                                    <SelectItem value="sql_query">SQL Query</SelectItem>
+                                                                    <SelectItem value="nosql_query">NoSQL Query</SelectItem>
+                                                                    <SelectItem value="python">Python Script</SelectItem>
+                                                                    <SelectItem value="shell">Shell Script</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        )}
+                                                    />
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <Controller
+                                                        control={control}
+                                                        name={`assets.${index}.usageType`}
+                                                        render={({ field }) => (
+                                                            <Select 
+                                                                onValueChange={field.onChange} 
+                                                                value={field.value} 
+                                                                disabled={isQuery}
+                                                            >
+                                                                <SelectTrigger className="h-10 rounded-xl bg-background/50 border-border/40 text-sm font-medium">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                                                                        <SelectValue />
+                                                                    </div>
+                                                                </SelectTrigger>
+                                                                <SelectContent className="rounded-xl">
+                                                                    <SelectItem value="source">Source</SelectItem>
+                                                                    <SelectItem value="destination">Destination</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        )}
+                                                    />
+                                                </div>
+                                                <div className="col-span-1 flex justify-center">
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                                        onClick={() => remove(index)}
+                                                        disabled={fields.length <= 1}
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+
+                                            {isQuery && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    className="w-full pb-1"
+                                                >
+                                                    <div className="relative">
+                                                        <Code className="z-20 absolute left-3 top-3 h-4 w-4 text-muted-foreground/50" />
+                                                        <Textarea 
+                                                            {...register(`assets.${index}.query`, { required: isQuery })}
+                                                            placeholder={
+                                                                assetType === 'sql_query' ? "SELECT * FROM ..." :
+                                                                assetType === 'python' ? "def extract():\n    return [{'id': 1}]" :
+                                                                assetType === 'shell' ? "curl https://api.example.com/data" :
+                                                                '{ "collection": "users", ... }'
+                                                            }
+                                                            className="min-h-20 font-mono text-xs pl-9 bg-background/30"
+                                                        />
+                                                    </div>
+                                                    <p className="text-[10px] text-muted-foreground mt-1.5 ml-1">
+                                                        {assetType === 'sql_query' ? "Enter a valid SQL query." :
+                                                         assetType === 'python' ? "Enter Python code defining an 'extract' function or returning a DataFrame." :
+                                                         assetType === 'shell' ? "Enter a shell command. Stdout should be JSONL." :
+                                                         "Enter a JSON object query."}
+                                                    </p>
+                                                </motion.div>
+                                            )}
+                                        </motion.div>
+                                    );
+                                })}
                             </AnimatePresence>
 
                             <Button
                                 type="button"
                                 variant="outline"
                                 className="w-full h-12 rounded-2xl border-dashed border-border/60 bg-background/20 hover:bg-background/50 hover:border-primary/40 transition-all font-bold text-muted-foreground gap-2 mt-2"
-                                onClick={() => append({ name: '', asset_type: 'table', usageType: 'source' })}
+                                onClick={() => append({ name: '', asset_type: 'table', usageType: 'source', query: '' })}
                             >
                                 <Plus className="h-4 w-4" /> Add Row
                             </Button>

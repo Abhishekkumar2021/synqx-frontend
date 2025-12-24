@@ -80,6 +80,10 @@ interface FormData {
     regex_column: string;
     regex_pattern: string;
     regex_replacement: string;
+
+    // Retry & Timeout
+    max_retries: number;
+    timeout_seconds: number;
 }
 
 const isTransformLike = (type: string) => 
@@ -117,7 +121,9 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
             rename_mapping: '{}',
             regex_column: '',
             regex_pattern: '',
-            regex_replacement: ''
+            regex_replacement: '',
+            max_retries: 3,
+            timeout_seconds: 3600
         }
     });
     const [activeTab, setActiveTab] = useState('settings');
@@ -187,7 +193,9 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                 rename_mapping: '{}',
                 regex_column: '',
                 regex_pattern: '',
-                regex_replacement: ''
+                regex_replacement: '',
+                max_retries: 3,
+                timeout_seconds: 3600
             };
 
             // Hydrate visual fields from JSON config
@@ -219,6 +227,10 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
             if (config.column) defaultValues.regex_column = config.column;
             if (config.pattern) defaultValues.regex_pattern = config.pattern;
             if (config.replacement) defaultValues.regex_replacement = config.replacement;
+
+            // Hydrate Retry & Timeout
+            defaultValues.max_retries = node.data.max_retries !== undefined ? (node.data.max_retries as number) : 3;
+            defaultValues.timeout_seconds = node.data.timeout_seconds !== undefined ? (node.data.timeout_seconds as number) : 3600;
 
             // Hydrate Asset Selection
             if (node.data.connection_id) defaultValues.connection_id = String(node.data.connection_id);
@@ -300,6 +312,8 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                 config: config,
                 connection_id: data.connection_id ? parseInt(data.connection_id) : undefined,
                 asset_id: data.asset_id ? parseInt(data.asset_id) : undefined,
+                max_retries: data.max_retries,
+                timeout_seconds: data.timeout_seconds,
             };
 
             // Distinct fields for Source/Sink to match API expectations if needed or just store in data
@@ -826,6 +840,43 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                          </div>
                                     </div>
                                 )}
+
+                                <Separator className="bg-border/40" />
+
+                                {/* Execution Reliability Section */}
+                                <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-300 pb-6">
+                                    <div className="flex items-center gap-2 mb-1 px-1">
+                                        <div className="p-1.5 rounded-md bg-primary/10">
+                                            <ShieldCheck className="h-4 w-4 text-primary" />
+                                        </div>
+                                        <span className="text-sm font-semibold text-foreground tracking-tight">Execution Reliability</span>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-6 px-1">
+                                        <div className="space-y-2.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Max Retries</Label>
+                                            <Input 
+                                                type="number"
+                                                min={0}
+                                                max={10}
+                                                {...register('max_retries', { valueAsNumber: true })}
+                                                className="h-11 rounded-xl bg-background/50 border-border/50 focus-visible:bg-background transition-all font-bold"
+                                            />
+                                        </div>
+                                        <div className="space-y-2.5">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Timeout (Sec)</Label>
+                                            <Input 
+                                                type="number"
+                                                min={0}
+                                                {...register('timeout_seconds', { valueAsNumber: true })}
+                                                className="h-11 rounded-xl bg-background/50 border-border/50 focus-visible:bg-background transition-all font-bold"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground/50 italic font-medium px-2">
+                                        Automated recovery attempts and hard execution limits for this node.
+                                    </p>
+                                </div>
                             </TabsContent>
 
                             {/* --- JSON Editor Tab --- */}

@@ -6,6 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createConnection, updateConnection, type ConnectionCreate } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label'; // Use primitive Label for robustness
 import {
     ShieldCheck, Lock, RefreshCw, CheckCircle2, Server, ArrowLeft
@@ -276,6 +277,12 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                                                     {field.options?.map((o: any) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
                                                                 </SelectContent>
                                                             </Select>
+                                                        ) : field.type === 'textarea' ? (
+                                                            <Textarea
+                                                                {...f}
+                                                                placeholder={field.placeholder}
+                                                                className="min-h-[120px] rounded-lg bg-background font-mono text-xs"
+                                                            />
                                                         ) : (
                                                             <div className="relative">
                                                                 <Input

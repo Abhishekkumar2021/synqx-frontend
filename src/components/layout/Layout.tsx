@@ -115,10 +115,10 @@ export const Layout: React.FC<LayoutProps> = () => {
                                 <>
                                     <NavGroup collapsed={isSidebarCollapsed}>
                                         <NavItem to="/dashboard" icon={<LayoutDashboard />} label="Dashboard" collapsed={isSidebarCollapsed} />
-                                        <NavItem to="/explorer" icon={<Search />} label="Explorer" collapsed={isSidebarCollapsed} />
                                         <NavItem to="/connections" icon={<Cable />} label="Connections" collapsed={isSidebarCollapsed} />
-                                        <NavItem to="/pipelines" icon={<Workflow />} label="Pipelines" collapsed={isSidebarCollapsed} />
+                                        <NavItem to="/explorer" icon={<Search />} label="Explorer" collapsed={isSidebarCollapsed} />
                                         <NavItem to="/operators" icon={<Sparkles />} label="Operators" collapsed={isSidebarCollapsed} />
+                                        <NavItem to="/pipelines" icon={<Workflow />} label="Pipelines" collapsed={isSidebarCollapsed} />
                                         <NavItem to="/jobs" icon={<Activity />} label="Jobs & Runs" collapsed={isSidebarCollapsed} />
                                     </NavGroup>
 
@@ -285,10 +285,10 @@ export const Layout: React.FC<LayoutProps> = () => {
                             </div>
                             <nav className="flex flex-col gap-2">
                                 <NavItem to="/dashboard" icon={<LayoutDashboard />} label="Dashboard" onClick={handleMobileNavClick} />
-                                <NavItem to="/explorer" icon={<Search />} label="Explorer" onClick={handleMobileNavClick} />
                                 <NavItem to="/connections" icon={<Cable />} label="Connections" onClick={handleMobileNavClick} />
-                                <NavItem to="/pipelines" icon={<Workflow />} label="Pipelines" onClick={handleMobileNavClick} />
+                                <NavItem to="/explorer" icon={<Search />} label="Explorer" onClick={handleMobileNavClick} />
                                 <NavItem to="/operators" icon={<Sparkles />} label="Operators" onClick={handleMobileNavClick} />
+                                <NavItem to="/pipelines" icon={<Workflow />} label="Pipelines" onClick={handleMobileNavClick} />
                                 <NavItem to="/jobs" icon={<Activity />} label="Jobs & Runs" onClick={handleMobileNavClick} />
                                 {/* Theme-aware divider */}
                                 <div className="h-px bg-border/40 my-4"></div>

@@ -159,6 +159,7 @@ export interface Pipeline {
   current_version?: number;
   published_version_id?: number;
   max_parallel_runs?: number;
+  max_retries?: number;
   execution_timeout_seconds?: number;
   tags?: Record<string, any>;
   priority?: number;
@@ -173,6 +174,7 @@ export interface PipelineCreate {
   schedule_enabled?: boolean;
   schedule_timezone?: string;
   max_parallel_runs?: number;
+  max_retries?: number;
   execution_timeout_seconds?: number;
   tags?: Record<string, any>;
   priority?: number;
@@ -187,6 +189,7 @@ export interface PipelineUpdate {
   schedule_timezone?: string;
   status?: PipelineStatus;
   max_parallel_runs?: number;
+  max_retries?: number;
   execution_timeout_seconds?: number;
   tags?: Record<string, any>;
   priority?: number;
@@ -353,6 +356,7 @@ export interface AssetBulkCreateItem {
     is_source: boolean;
     is_destination: boolean;
     fully_qualified_name?: string;
+    config?: Record<string, any>;
 }
 
 export interface AssetBulkCreate {

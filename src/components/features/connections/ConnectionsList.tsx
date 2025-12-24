@@ -172,12 +172,9 @@ const ConnectionCard = ({
                     </div>
                 </div>
 
-                {/* Description */}
-                {connection.description && (
                     <p className="text-xs text-muted-foreground leading-relaxed mb-4 line-clamp-2 relative z-10">
-                        {connection.description}
+                        {connection.description || 'No description provided.'}
                     </p>
-                )}
 
                 {/* Footer */}
                 <div className="flex items-center justify-between pt-4 border-t border-border/40 relative z-10">
@@ -245,11 +242,10 @@ const ConnectionRow = ({
                             <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate">
                                 {connection.name}
                             </h3>
-                            {connection.description && (
-                                <p className="text-xs text-muted-foreground truncate mt-0.5">
-                                    {connection.description}
-                                </p>
-                            )}
+                            
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">
+                                {connection.description || 'No description provided.'}
+                            </p>
                         </div>
                     </div>
 
