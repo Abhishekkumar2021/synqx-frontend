@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { type Pipeline, type Job, type PipelineStatsResponse, deletePipeline } from '@/lib/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { 
-    GitBranch, Play, MoreVertical, Settings, History as HistoryIcon, 
-    Trash2, CheckCircle2, AlertCircle, Loader2 
+    Workflow, Play, MoreVertical, Settings, History, 
+    Trash2, CheckCircle2, XCircle, Loader2, Zap
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -28,10 +29,12 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { PipelineStatusBadge } from './PipelineStatusBadge';
+import { RunPipelineDialog } from './RunPipelineDialog';
 
 interface PipelineListItemProps {
     pipeline: Pipeline & { lastJob?: Job; stats?: PipelineStatsResponse };
-    onRun: (id: number) => void;
+    onRun: (id: number, versionId?: number) => void;
+    onOpenSettings: (pipeline: Pipeline) => void;
     onViewVersions: (pipeline: Pipeline) => void;
     isRunningMutation: boolean;
 }
@@ -45,12 +48,11 @@ const formatDuration = (seconds?: number) => {
     return `${minutes}m ${remainingSeconds}s`;
 }
 
-export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, onRun, onViewVersions, isRunningMutation }) => {
+export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, onRun, onOpenSettings, onViewVersions, isRunningMutation }) => {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    
-    console.log("Rendering PipelineListItem for", pipeline.name); // Diagnostic log
+    const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
 
     const lastJob = pipeline.lastJob;
     const isSuccess = lastJob?.status === 'success';
@@ -60,9 +62,7 @@ export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, on
     const deleteMutation = useMutation({
         mutationFn: () => deletePipeline(pipeline.id),
         onSuccess: () => {
-            toast.success("Pipeline deleted", {
-                description: `"${pipeline.name}" has been permanently removed.`
-            });
+            toast.success("Pipeline deleted");
             queryClient.invalidateQueries({ queryKey: ['pipelines'] });
             setIsDeleteDialogOpen(false);
         },
@@ -77,9 +77,9 @@ export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, on
         <>
             <div
                 className={cn(
-                    "group grid grid-cols-12 gap-4 items-center px-6 py-4 transition-all duration-200 cursor-pointer relative",
+                    "group grid grid-cols-12 gap-4 items-center px-6 py-3.5 transition-all duration-200 cursor-pointer relative",
                     "border-b border-border/30 last:border-0",
-                    "hover:bg-muted/30",
+                    "hover:bg-muted/40",
                     "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1",
                     "before:bg-primary before:scale-y-0 before:transition-transform before:duration-200",
                     "hover:before:scale-y-100"
@@ -88,99 +88,101 @@ export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, on
             >
                 {/* --- Column 1: Identity --- */}
                 <div className="col-span-12 md:col-span-4 flex items-center gap-4">
-                    <div className="p-2.5 rounded-xl bg-muted/50 border border-border/50 text-muted-foreground group-hover:text-primary group-hover:border-primary/20 group-hover:bg-primary/5 transition-all duration-300">
-                        <GitBranch className="h-5 w-5" />
+                    <div className={cn(
+                        "h-10 w-10 rounded-xl border flex items-center justify-center transition-all duration-300 shadow-xs shrink-0",
+                        isRunning ? "bg-blue-500/10 border-blue-500/20 text-blue-500" : 
+                        "bg-muted/40 border-border/40 text-muted-foreground group-hover:text-primary group-hover:border-primary/20 group-hover:bg-primary/5"
+                    )}>
+                        {isRunning ? <Loader2 className="h-5 w-5 animate-spin" /> : <Workflow className="h-5 w-5" />}
                     </div>
                     <div className="min-w-0 flex-1">
-                        <Link
-                            to={`/pipelines/${pipeline.id}`}
-                            className="block font-semibold text-sm text-foreground hover:text-primary hover:underline decoration-dashed decoration-primary/30 underline-offset-4 truncate mb-0.5 transition-colors"
-                        >
-                            {pipeline.name}
-                        </Link>
-                        <div className="text-xs text-muted-foreground truncate max-w-[90%]">
-                            {pipeline.description || <span className="italic opacity-50">No description provided</span>}
+                        <div className="flex items-center gap-2 mb-0.5">
+                            <span className="font-bold text-sm text-foreground tracking-tight truncate">
+                                {pipeline.name}
+                            </span>
+                        </div>
+                        <div className="text-[10px] text-muted-foreground truncate max-w-[90%] font-medium">
+                            {pipeline.description || <span className="italic opacity-50 text-[9px]">No description</span>}
                         </div>
                     </div>
                 </div>
 
-                {/* --- Column 2: Status Badge --- */}
-                <div className="col-span-6 md:col-span-2 flex items-center mt-1 md:mt-0">
+                {/* --- Column 2: Status --- */}
+                <div className="col-span-6 md:col-span-2 flex items-center pl-2">
                     <PipelineStatusBadge status={pipeline.status} />
                 </div>
 
-                {/* --- Column 3: Stats --- */}
-                <div className="col-span-6 md:col-span-3 flex flex-col justify-center mt-1 md:mt-0">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="font-semibold">Runs:</span>
-                        <span className="font-mono">{pipeline.stats?.total_runs ?? 'N/A'}</span>
+                {/* --- Column 3: Performance/Stats --- */}
+                <div className="col-span-6 md:col-span-2 flex flex-col justify-center">
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-foreground">
+                        <span className="text-muted-foreground font-black text-[9px] uppercase">{pipeline.stats?.total_runs ?? '0'}</span>
+                        <span className="text-muted-foreground/40 font-medium lowercase">runs</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="font-semibold">Avg. Duration:</span>
-                        <span className="font-mono">{formatDuration(pipeline.stats?.average_duration_seconds)}</span>
+                    <div className="text-[9px] font-mono text-muted-foreground font-bold">
+                        {formatDuration(pipeline.stats?.average_duration_seconds)} avg
                     </div>
                 </div>
 
-                {/* --- Column 4: Last Run Info --- */}
-                <div className="col-span-6 md:col-span-2 flex flex-col justify-center mt-1 md:mt-0">
+                {/* --- Column 4: Last Activity --- */}
+                <div className="col-span-6 md:col-span-2 flex flex-col justify-center">
                     {pipeline.stats?.last_run_at ? (
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-0.5">
                             <div className={cn(
-                                "flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide",
-                                isSuccess ? "text-success" :
-                                    isFailed ? "text-destructive" :
-                                        isRunning ? "text-info" : "text-muted-foreground"
+                                "flex items-center gap-1.5 text-[10px] font-black uppercase tracking-tighter",
+                                isSuccess ? "text-emerald-500" :
+                                isFailed ? "text-destructive" :
+                                isRunning ? "text-blue-500" : "text-muted-foreground"
                             )}>
-                                {isSuccess ? <CheckCircle2 className="h-3.5 w-3.5" /> :
-                                    isFailed ? <AlertCircle className="h-3.5 w-3.5" /> :
-                                        isRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                                <span>{lastJob?.status || 'N/A'}</span>
+                                {isSuccess ? <CheckCircle2 className="h-3 w-3" /> :
+                                 isFailed ? <XCircle className="h-3 w-3" /> :
+                                 isRunning ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                                <span>{lastJob?.status || 'done'}</span>
                             </div>
-                            <span className="text-[10px] text-muted-foreground font-mono flex items-center gap-1">
+                            <span className="text-[9px] text-muted-foreground/60 font-black uppercase tracking-widest">
                                 {formatDistanceToNow(new Date(pipeline.stats.last_run_at), { addSuffix: true })}
                             </span>
                         </div>
                     ) : (
-                        <span className="text-xs text-muted-foreground/50 italic flex items-center gap-1">
-                            <div className="h-1.5 w-1.5 rounded-full bg-border" />
-                            No runs yet
-                        </span>
+                        <span className="text-[10px] text-muted-foreground/40 font-black uppercase tracking-widest">Idle</span>
                     )}
                 </div>
 
-
                 {/* --- Column 5: Actions --- */}
-                <div className="col-span-12 md:col-span-1 flex items-center justify-end gap-2 mt-1 md:mt-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200">
+                <div className="col-span-12 md:col-span-2 flex items-center justify-end gap-2 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all pr-4">
                     <Button
-                        variant="outline"
+                        variant="default"
                         size="sm"
-                        className="h-8 rounded-full border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary hover:border-primary/40 text-xs font-medium px-4 hidden sm:flex"
-                        onClick={() => onRun(pipeline.id)}
+                        className="h-8 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/10 bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5 transition-all active:scale-95 shrink-0"
+                        onClick={(e) => { e.stopPropagation(); onRun(pipeline.id); }}
                         disabled={isRunningMutation}
                     >
-                        {isRunningMutation ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3 mr-1.5 fill-current" />}
+                        {isRunningMutation ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5 fill-current" />}
                         Run
                     </Button>
 
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
                                 <MoreVertical className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/40 bg-background/80 backdrop-blur-xl shadow-xl">
-                            <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate(`/pipelines/${pipeline.id}`)}>
-                                <Settings className="h-3.5 w-3.5 opacity-70" /> Configure
+                        <DropdownMenuContent align="end" className="w-52 rounded-xl border-border/60 shadow-xl p-1" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem className="cursor-pointer gap-2 rounded-lg font-medium text-xs py-2" onClick={() => setIsRunDialogOpen(true)}>
+                                <Play className="h-3.5 w-3.5 opacity-70" /> Run with Options...
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => onViewVersions(pipeline)}>
-                                <HistoryIcon className="h-3.5 w-3.5 opacity-70" /> Versions
+                            <DropdownMenuItem className="cursor-pointer gap-2 rounded-lg font-medium text-xs py-2" onClick={() => onViewVersions(pipeline)}>
+                                <History className="h-3.5 w-3.5 opacity-70" /> View History
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => navigate(`/pipelines/${pipeline.id}?tab=runs`)}>
-                                <HistoryIcon className="h-3.5 w-3.5 opacity-70" /> Run History
+                            <DropdownMenuSeparator className="bg-border/40 my-1" />
+                            <DropdownMenuItem className="cursor-pointer gap-2 rounded-lg font-medium text-xs py-2" onClick={() => navigate(`/pipelines/${pipeline.id}`)}>
+                                <Settings className="h-3.5 w-3.5 opacity-70" /> Configure Logic
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-border/40" />
+                            <DropdownMenuItem className="cursor-pointer gap-2 rounded-lg font-medium text-xs py-2" onClick={() => onOpenSettings(pipeline)}>
+                                <Workflow className="h-3.5 w-3.5 opacity-70" /> Pipeline Settings
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-border/40 my-1" />
                             <DropdownMenuItem 
-                                className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10" 
+                                className="cursor-pointer gap-2 rounded-lg font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10" 
                                 onClick={() => setIsDeleteDialogOpen(true)}
                             >
                                 <Trash2 className="h-3.5 w-3.5 opacity-70" /> Delete
@@ -190,24 +192,28 @@ export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, on
                 </div>
             </div>
 
+            <RunPipelineDialog 
+                pipeline={pipeline} 
+                open={isRunDialogOpen} 
+                onOpenChange={setIsRunDialogOpen} 
+                onRun={onRun} 
+            />
+
             <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                <AlertDialogContent className="rounded-[2rem] border-border/40 bg-background/95 backdrop-blur-xl">
+                <AlertDialogContent className="rounded-[2rem]">
                     <AlertDialogHeader>
-                        <AlertDialogTitle className="text-2xl font-black">Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogTitle className="text-2xl font-black">Confirm Deletion</AlertDialogTitle>
                         <AlertDialogDescription className="text-base font-medium">
-                            This action cannot be undone. This will permanently delete the pipeline 
-                            <span className="font-bold text-foreground"> "{pipeline.name}" </span>
-                            and all its run history.
+                            Are you sure you want to permanently delete <span className="font-bold text-foreground">"{pipeline.name}"</span>?
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="mt-6">
-                        <AlertDialogCancel className="rounded-xl font-bold uppercase tracking-widest text-[10px]">Cancel</AlertDialogCancel>
+                        <AlertDialogCancel className="rounded-xl font-bold">Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                            onClick={() => deleteMutation.mutate()}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold uppercase tracking-widest text-[10px]"
+                            onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(); }}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold"
                         >
-                            {deleteMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                            Delete Forever
+                            Delete Pipeline
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

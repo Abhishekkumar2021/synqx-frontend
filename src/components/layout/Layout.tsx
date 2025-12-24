@@ -88,10 +88,13 @@ export const Layout: React.FC<LayoutProps> = () => {
                 {/* Inner Content Wrapper (Glass & Clipped) */}
                 <div className="absolute inset-0 rounded-[2rem] overflow-hidden flex flex-col border border-border/60 bg-card/40 backdrop-blur-3xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] dark:shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)]">
                     {/* Brand Header */}
-                    <div className={cn(
-                        "flex h-24 items-center transition-all duration-500 overflow-hidden shrink-0",
-                        isSidebarCollapsed ? "justify-center px-0" : "px-8 gap-4"
-                    )}>
+                    <Link
+                        to="/"
+                        className={cn(
+                            "flex h-24 items-center transition-all duration-500 overflow-hidden shrink-0 hover:opacity-80 transition-opacity",
+                            isSidebarCollapsed ? "justify-center px-0" : "px-8 gap-4"
+                        )}
+                    >
                         <div className="shrink-0 flex items-center justify-center h-12 w-12 rounded-2xl bg-linear-to-br from-primary to-blue-600 text-primary-foreground shadow-xl ring-1 ring-white/20 dark:ring-primary/30 rotate-3 hover:rotate-0 transition-transform duration-300">
                             <Workflow className="h-7 w-7" />
                         </div>
@@ -104,7 +107,7 @@ export const Layout: React.FC<LayoutProps> = () => {
                                 SynqX
                             </span>
                         </motion.div>
-                    </div>
+                    </Link>
 
                     {/* Navigation Items */}
                     <div className="flex-1 overflow-y-auto py-6 px-3 scrollbar-none space-y-6">
@@ -272,12 +275,12 @@ export const Layout: React.FC<LayoutProps> = () => {
                             className="relative w-[85%] max-w-[320px] glass-panel h-full p-6 shadow-2xl"
                         >
                             <div className="flex items-center justify-between mb-10">
-                                <div className="flex items-center gap-2.5 font-bold text-xl">
+                                <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2.5 font-bold text-xl hover:opacity-80 transition-opacity">
                                     <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20">
                                         <Workflow className="h-5 w-5" />
                                     </div>
                                     <span>SynqX</span>
-                                </div>
+                                </Link>
                                 {/* Theme-aware close button */}
                                 <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(false)} className="rounded-full hover:bg-muted/10">
                                     <X className="h-5 w-5" />

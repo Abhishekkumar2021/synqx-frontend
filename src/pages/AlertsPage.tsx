@@ -35,13 +35,17 @@ export const AlertsPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'acknowledged'>('all');
     const [page, setPage] = useState(0);
-    const limit = 50;
+    const [limit, setLimit] = useState(50); // Pagination limit state
 
-    const { data: alerts, isLoading } = useQuery({
+    const { data, isLoading } = useQuery({
         queryKey: ['alerts-history', page, limit],
         queryFn: () => getAlertHistory(page * limit, limit),
         refetchInterval: 10000,
     });
+
+    const alerts = data?.items || [];
+    const total = data?.total || 0;
+    const totalPages = Math.ceil(total / limit);
 
     const acknowledgeMutation = useMutation({
         mutationFn: (id: number) => acknowledgeAlert(id),
@@ -73,7 +77,6 @@ export const AlertsPage: React.FC = () => {
     };
 
     const filteredAlerts = useMemo(() => {
-        if (!alerts) return [];
         return alerts.filter(alert => {
             const matchesSearch = alert.message.toLowerCase().includes(searchQuery.toLowerCase());
             const matchesStatus = statusFilter === 'all' || alert.status === statusFilter;
@@ -120,7 +123,7 @@ export const AlertsPage: React.FC = () => {
                         </h1>
                     </div>
                     <p className="text-muted-foreground text-sm pl-1">
-                        Monitoring {alerts?.length || 0} system events across your infrastructure.
+                        Monitoring {total} system events across your infrastructure.
                     </p>
                 </div>
 
@@ -307,12 +310,25 @@ export const AlertsPage: React.FC = () => {
                     ))
                 )}
 
-                {/* Pagination Bar */}
-                {filteredAlerts.length > 0 && (
-                    <div className="flex items-center justify-between p-4 rounded-3xl bg-muted/20 border border-border/40 backdrop-blur-md">
-                        <p className="text-xs text-muted-foreground font-medium pl-2">
-                            Showing <span className="text-foreground">{filteredAlerts.length}</span> alerts on this page
-                        </p>
+                {/* Enhanced Pagination Bar */}
+                {total > 0 && (
+                    <div className="sticky bottom-4 mx-4 flex items-center justify-between p-4 rounded-3xl bg-muted/80 border border-border/40 backdrop-blur-xl shadow-2xl animate-in slide-in-from-bottom-2">
+                        <div className="flex items-center gap-4">
+                            <p className="text-xs text-muted-foreground font-medium pl-2">
+                                Showing <span className="text-foreground">{Math.min((page + 1) * limit, total)}</span> of <span className="text-foreground">{total}</span>
+                            </p>
+                            
+                            <select 
+                                value={limit}
+                                onChange={(e) => { setLimit(Number(e.target.value)); setPage(0); }}
+                                className="h-8 rounded-lg border-border/40 bg-background/50 text-xs font-bold px-2 focus:ring-primary/20"
+                            >
+                                <option value={20}>20 per page</option>
+                                <option value={50}>50 per page</option>
+                                <option value={100}>100 per page</option>
+                            </select>
+                        </div>
+
                         <div className="flex items-center gap-2">
                             <Button 
                                 variant="ghost" 
@@ -323,11 +339,17 @@ export const AlertsPage: React.FC = () => {
                             >
                                 Previous
                             </Button>
-                            <div className="h-8 w-px bg-border/40 mx-1" />
+                            
+                            <div className="flex items-center gap-1 px-2">
+                                <span className="text-xs font-bold text-muted-foreground">Page {page + 1}</span>
+                                <span className="text-xs text-muted-foreground/50">/</span>
+                                <span className="text-xs font-bold text-muted-foreground">{totalPages}</span>
+                            </div>
+
                             <Button 
                                 variant="ghost" 
                                 size="sm"
-                                disabled={!alerts || alerts.length < limit}
+                                disabled={page >= totalPages - 1}
                                 onClick={() => { setPage(p => p + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
                                 className="rounded-xl h-9 hover:bg-background shadow-sm group"
                             >

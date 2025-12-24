@@ -10,9 +10,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { type AssetBulkCreate, bulkCreateAssets } from '@/lib/api';
 import { toast } from 'sonner';
-import { Plus, X, Database, Layers, ArrowRightLeft, Sparkles, Loader2, Code } from 'lucide-react';
+import { Plus, X, Database, Layers, ArrowRightLeft, Sparkles, Loader2, Code, TrendingUp } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,6 +31,8 @@ type FormValues = {
         asset_type: string;
         usageType: 'source' | 'destination';
         query?: string;
+        is_incremental_capable: boolean;
+        watermark_column?: string;
     }[];
 };
 
@@ -36,7 +40,7 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
     const queryClient = useQueryClient();
     const { register, control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormValues>({
         defaultValues: {
-            assets: [{ name: '', asset_type: 'table', usageType: 'source', query: '' }]
+            assets: [{ name: '', asset_type: 'table', usageType: 'source', query: '', is_incremental_capable: false, watermark_column: 'timestamp' }]
         }
     });
 
@@ -49,7 +53,7 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
     
     useEffect(() => {
         if (open) {
-            reset({ assets: [{ name: '', asset_type: 'table', usageType: 'source', query: '' }] });
+            reset({ assets: [{ name: '', asset_type: 'table', usageType: 'source', query: '', is_incremental_capable: false, watermark_column: 'timestamp' }] });
         }
     }, [open, reset]);
 
@@ -79,19 +83,32 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
     const onSubmit = (data: FormValues) => {
         const payload: AssetBulkCreate = {
             assets: data.assets.filter(a => a.name.trim() !== '').map(asset => {
-                let config = undefined;
+                let config: Record<string, any> = {};
+                
+                // Query Config
                 if (['sql_query', 'nosql_query'].includes(asset.asset_type)) {
-                    config = { query: asset.query };
+                    config.query = asset.query;
                 } else if (['python', 'shell'].includes(asset.asset_type)) {
-                    config = { code: asset.query, language: asset.asset_type };
+                    config.code = asset.query;
+                    config.language = asset.asset_type;
                 }
+
+                // Incremental Config
+                if (asset.is_incremental_capable && asset.watermark_column) {
+                    config.watermark_column = asset.watermark_column;
+                }
+
+                // If config is empty object, set to undefined to avoid sending empty dict if not needed, 
+                // but API handles empty dict fine.
+                const finalConfig = Object.keys(config).length > 0 ? config : undefined;
 
                 return {
                     name: asset.name,
                     asset_type: asset.asset_type,
                     is_source: asset.usageType === 'source',
                     is_destination: asset.usageType === 'destination',
-                    config
+                    is_incremental_capable: asset.is_incremental_capable,
+                    config: finalConfig
                 };
             }),
         };
@@ -104,7 +121,7 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-4xl h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-[2rem] border-border/60 glass-panel shadow-2xl backdrop-blur-3xl">
+            <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-[2rem] border-border/60 glass-panel shadow-2xl backdrop-blur-3xl">
                 <DialogHeader className="p-8 pb-6 border-b border-border/40 bg-muted/20 shrink-0">
                     <div className="flex items-center gap-4">
                         <div className="p-3 rounded-2xl bg-primary/10 text-primary ring-1 ring-border/50 shadow-sm">
@@ -123,9 +140,10 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                     <ScrollArea className="flex-1">
                         <div className="p-8 pt-6 space-y-4">
                             <div className="grid grid-cols-12 gap-4 px-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                                <div className="col-span-6">Asset Name / Identifier</div>
+                                <div className="col-span-4">Asset Name / Identifier</div>
                                 <div className="col-span-3">Type</div>
                                 <div className="col-span-2">Sync Usage</div>
+                                <div className="col-span-2">Strategy</div>
                                 <div className="col-span-1"></div>
                             </div>
 
@@ -133,6 +151,7 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                                 {fields.map((field, index) => {
                                     const assetType = watchedAssets?.[index]?.asset_type;
                                     const isQuery = ['sql_query', 'nosql_query', 'python', 'shell'].includes(assetType);
+                                    const isIncremental = watchedAssets?.[index]?.is_incremental_capable;
 
                                     return (
                                         <motion.div
@@ -144,7 +163,7 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                                             className="flex flex-col gap-3 bg-muted/5 hover:bg-muted/20 p-3 rounded-2xl border border-border/20 transition-all"
                                         >
                                             <div className="grid grid-cols-12 gap-3 items-center w-full">
-                                                <div className="col-span-6 relative">
+                                                <div className="col-span-4 relative">
                                                     <Database className="z-20 absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 group-focus-within:text-primary transition-colors" />
                                                     <Input
                                                         {...register(`assets.${index}.name`, { required: true })}
@@ -178,7 +197,10 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                                                                 <SelectContent className="rounded-xl">
                                                                     <SelectItem value="table">Table</SelectItem>
                                                                     <SelectItem value="view">View</SelectItem>
+                                                                    <SelectItem value="collection">Collection (NoSQL)</SelectItem>
                                                                     <SelectItem value="file">File</SelectItem>
+                                                                    <SelectItem value="key_pattern">Key Pattern (Redis)</SelectItem>
+                                                                    <SelectItem value="endpoint">API Endpoint</SelectItem>
                                                                     <SelectItem value="stream">Stream</SelectItem>
                                                                     <SelectItem value="sql_query">SQL Query</SelectItem>
                                                                     <SelectItem value="nosql_query">NoSQL Query</SelectItem>
@@ -213,6 +235,26 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                                                         )}
                                                     />
                                                 </div>
+                                                
+                                                <div className="col-span-2 flex items-center gap-2">
+                                                     <Controller
+                                                        control={control}
+                                                        name={`assets.${index}.is_incremental_capable`}
+                                                        render={({ field }) => (
+                                                            <div className="flex items-center gap-2 bg-background/50 border border-border/40 rounded-xl px-3 h-10 w-full">
+                                                                <Switch 
+                                                                    checked={field.value} 
+                                                                    onCheckedChange={field.onChange} 
+                                                                    className="scale-75 data-[state=checked]:bg-primary"
+                                                                />
+                                                                <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                                                                    {field.value ? 'Incr.' : 'Full'}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    />
+                                                </div>
+
                                                 <div className="col-span-1 flex justify-center">
                                                     <Button
                                                         type="button"
@@ -227,6 +269,26 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                                                 </div>
                                             </div>
 
+                                            {/* Incremental Settings */}
+                                            {isIncremental && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    className="w-full pb-2 px-1"
+                                                >
+                                                    <div className="flex items-center gap-3 bg-primary/5 border border-primary/10 rounded-xl p-3">
+                                                        <TrendingUp className="h-4 w-4 text-primary" />
+                                                        <Label className="text-xs font-semibold whitespace-nowrap">Watermark Column:</Label>
+                                                        <Input 
+                                                            {...register(`assets.${index}.watermark_column`, { required: isIncremental })}
+                                                            placeholder="e.g. updated_at, id, timestamp"
+                                                            className="h-8 text-xs bg-background/80 border-border/50"
+                                                        />
+                                                    </div>
+                                                </motion.div>
+                                            )}
+
+                                            {/* Query Editor */}
                                             {isQuery && (
                                                 <motion.div
                                                     initial={{ opacity: 0, height: 0 }}
@@ -263,7 +325,7 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                                 type="button"
                                 variant="outline"
                                 className="w-full h-12 rounded-2xl border-dashed border-border/60 bg-background/20 hover:bg-background/50 hover:border-primary/40 transition-all font-bold text-muted-foreground gap-2 mt-2"
-                                onClick={() => append({ name: '', asset_type: 'table', usageType: 'source', query: '' })}
+                                onClick={() => append({ name: '', asset_type: 'table', usageType: 'source', query: '', is_incremental_capable: false, watermark_column: 'timestamp' })}
                             >
                                 <Plus className="h-4 w-4" /> Add Row
                             </Button>

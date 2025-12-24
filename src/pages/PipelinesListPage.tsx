@@ -45,7 +45,7 @@ export const PipelinesListPage: React.FC = () => {
 
     // Mutations
     const runMutation = useMutation({
-        mutationFn: (id: number) => triggerPipeline(id),
+        mutationFn: ({ id, versionId }: { id: number; versionId?: number }) => triggerPipeline(id, versionId),
         onSuccess: (data) => {
             toast.success("Pipeline Triggered", {
                 description: `Execution started successfully. Job ID: ${data.job_id}`
@@ -169,7 +169,7 @@ export const PipelinesListPage: React.FC = () => {
                                     <PipelineGridItem
                                         key={pipeline.id}
                                         pipeline={pipeline}
-                                        onRun={(id) => runMutation.mutate(id)}
+                                        onRun={(id, versionId) => runMutation.mutate({ id, versionId })}
                                         onOpenSettings={openSettings}
                                         onViewVersions={openVersions}
                                     />
@@ -183,12 +183,12 @@ export const PipelinesListPage: React.FC = () => {
                 {viewMode === 'list' && (
                     <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-thumb-border/50 hover:scrollbar-thumb-border/80 scrollbar-track-transparent">
                         {/* Sticky Header */}
-                        <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border/40 bg-muted text-xs font-bold text-muted-foreground uppercase tracking-widest shrink-0 sticky top-0 z-20 shadow-sm">
+                        <div className="grid grid-cols-12 gap-4 px-6 py-3 border-b border-border/40 bg-muted text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 shrink-0 sticky top-0 z-20 shadow-sm">
                             <div className="col-span-12 md:col-span-4">Pipeline</div>
-                            <div className="col-span-2 hidden md:block">Status</div>
-                            <div className="col-span-2 hidden md:block">Runs</div>
-                            <div className="col-span-2 hidden md:block">Avg. Duration</div>
-                            <div className="col-span-2 hidden md:block text-right">Actions</div>
+                            <div className="col-span-2 hidden md:block pl-2">Status</div>
+                            <div className="col-span-2 hidden md:block">Performance</div>
+                            <div className="col-span-2 hidden md:block">Last Activity</div>
+                            <div className="col-span-2 hidden md:block text-right pr-4">Operations</div>
                         </div>
 
                         {enrichedPipelines.length === 0 ? <EmptyState /> : (
@@ -197,7 +197,8 @@ export const PipelinesListPage: React.FC = () => {
                                     <PipelineListItem
                                         key={pipeline.id}
                                         pipeline={pipeline}
-                                        onRun={(id) => runMutation.mutate(id)}
+                                        onRun={(id, versionId) => runMutation.mutate({ id, versionId })}
+                                        onOpenSettings={openSettings}
                                         onViewVersions={openVersions}
                                         isRunningMutation={runMutation.isPending}
                                     />

@@ -813,6 +813,7 @@ export function ApiReference() {
                                                                                   )}
                                                                                   language={lang === 'curl' ? 'bash' : lang}
                                                                                   className="max-h-[300px]"
+                                                                                  wrap={true}
                                                                                 />                                                  </TabsContent>
                                                 ))}                        </Tabs>
                       </section>
@@ -862,6 +863,7 @@ export function ApiReference() {
                                                     onChange={(value) => setRequestBody(value)}
                                                     placeholder='{ "key": "value" }'
                                                     className="min-h-[120px]"
+                                                    wrap={true}
                                                   />
                                                 </div>
                                               )}
@@ -918,6 +920,7 @@ export function ApiReference() {
                                 code={JSON.stringify(requestState.response, null, 2)}
                                 language="json"
                                 className="max-h-[300px]"
+                                wrap={true}
                               />
                             )}
                           </div>

@@ -220,39 +220,22 @@ export const PipelineHealthChart: React.FC<PipelineHealthChartProps> = ({ data, 
 
 
                         {/* Status Breakdown Legend - Grid Style */}
-
-                        <div className="grid grid-cols-2 gap-3 w-full mt-2">
-
+                        <div className="grid grid-cols-2 gap-3 w-full mt-4 px-2">
                             {dataWithTotal.map((item) => (
-
                                 <div 
-
                                     key={item.name} 
-
-                                    className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-colors"
-
+                                    className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/40 hover:bg-muted/40 transition-colors"
                                 >
-
                                     <div className="flex items-center gap-2.5">
-
                                         <div 
-
-                                            className="h-2 w-2 rounded-full" 
-
-                                            style={{ backgroundColor: item.fill, boxShadow: `0 0 8px ${item.fill}60` }} 
-
+                                            className="h-2 w-2 rounded-full ring-2 ring-background" 
+                                            style={{ backgroundColor: item.fill }} 
                                         />
-
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/80">{item.name}</span>
-
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{item.name}</span>
                                     </div>
-
                                     <span className="text-xs font-black text-foreground">{item.value}</span>
-
                                 </div>
-
                             ))}
-
                         </div>
 
                     </>

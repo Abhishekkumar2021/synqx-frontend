@@ -32,23 +32,23 @@ export const RecentActivityTable: React.FC<RecentActivityTableProps> = ({ jobs }
 
     return (
         <Card className="col-span-full border border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl rounded-[2.5rem] overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between py-6 px-8 bg-muted/10 shrink-0">
+            <CardHeader className="flex flex-row items-center justify-between py-6 px-8 border-b border-border/40 bg-muted/5 shrink-0">
                 <div className="space-y-1">
                     <CardTitle className="text-xl font-black tracking-tight flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-xl ring-1 ring-primary/20">
-                            <Clock className="h-5 w-5 text-primary" />
+                        <div className="p-2 bg-blue-500/10 rounded-xl text-blue-500 ring-1 ring-blue-500/20">
+                            <Clock className="h-5 w-5" />
                         </div>
                         Recent Activity
                     </CardTitle>
                 </div>
 
                 <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => navigate('/jobs')}
-                    className="text-[10px] font-black uppercase tracking-[0.2em] h-10 gap-2 rounded-xl px-6 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all group"
+                    className="text-[10px] font-bold uppercase tracking-widest h-9 gap-2 rounded-xl px-4 border-border/60 hover:bg-muted/50 transition-all group shadow-sm"
                 >
-                    Registry Archive <ArrowUpRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    Full History <ArrowUpRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 </Button>
             </CardHeader>
 

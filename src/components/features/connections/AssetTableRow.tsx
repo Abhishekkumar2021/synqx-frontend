@@ -42,6 +42,7 @@ import {
     getAssetSampleData,
     type Asset
 } from '@/lib/api';
+import { EditAssetDialog } from './EditAssetDialog';
 
 interface AssetTableRowProps {
     asset: Asset;
@@ -59,6 +60,7 @@ const getAssetIcon = (type: string) => {
 export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionId }) => {
     const [isSchemaDialogOpen, setIsSchemaDialogOpen] = useState(false);
     const [isSampleDialogOpen, setIsSampleDialogOpen] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false);
     const [isMaximized, setIsMaximized] = useState(false);
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
     const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
@@ -275,6 +277,9 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                         <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/60 shadow-xl backdrop-blur-md">
                             <DropdownMenuLabel>Asset Actions</DropdownMenuLabel>
                             <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => setIsEditOpen(true)}>
+                                <MoreHorizontal className="mr-2 h-3.5 w-3.5" /> Edit Configuration
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => setIsSampleDialogOpen(true)}>
                                 <TableIcon className="mr-2 h-3.5 w-3.5" /> View Sample Data
                             </DropdownMenuItem>
@@ -445,7 +450,7 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                             </div>
                             <div className="flex items-center gap-3 pr-8">
                                 <div className="relative group">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-emerald-500 transition-colors" />
+                                    <Search className="z-20 absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-emerald-500 transition-colors" />
                                     <Input 
                                         placeholder="Global search..."
                                         className="h-9 w-64 pl-9 rounded-xl bg-background/50 border-border/40 focus:ring-4 focus:ring-emerald-500/5 transition-all text-xs font-medium shadow-sm"
@@ -609,6 +614,12 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                         </div>
                     </DialogContent>
                 </Dialog>
+                <EditAssetDialog 
+                    connectionId={connectionId} 
+                    asset={asset} 
+                    open={isEditOpen} 
+                    onOpenChange={setIsEditOpen} 
+                />
             </TableCell>
         </TableRow>
     );

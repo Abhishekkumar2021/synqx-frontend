@@ -22,13 +22,14 @@ export const NotificationsBell: React.FC = () => {
     // Enable real-time notifications via WebSocket
     useNotifications();
 
-    const { data: alerts, isLoading } = useQuery({
+    const { data, isLoading } = useQuery({
         queryKey: ['alerts-history'],
         queryFn: () => getAlertHistory(0, 5),
         refetchInterval: 10000,
     });
 
-    const unreadCount = alerts?.filter(a => a.status === 'pending').length || 0;
+    const alerts = data?.items || [];
+    const unreadCount = alerts.filter(a => a.status === 'pending').length || 0;
 
     const acknowledgeMutation = useMutation({
         mutationFn: (id: number) => acknowledgeAlert(id),

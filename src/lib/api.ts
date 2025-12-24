@@ -643,7 +643,7 @@ export const cancelJob = async (id: number) => {
 };
 
 export const retryJob = async (id: number) => {
-    const { data } = await api.post<Job>(`/jobs/${id}/retry`);
+    const { data } = await api.post<Job>(`/jobs/${id}/retry`, { force: true });
     return data;
 };
 
@@ -679,6 +679,13 @@ export interface AlertConfigUpdate {
     recipient?: string;
 }
 
+export interface AlertListResponse {
+    items: Alert[];
+    total: number;
+    limit: number;
+    offset: number;
+}
+
 export const getAlertConfigs = async () => {
     const { data } = await api.get<AlertConfig[]>('/alerts');
     return data;
@@ -690,7 +697,7 @@ export const updateAlertConfig = async (id: number, payload: AlertConfigUpdate) 
 };
 
 export const getAlertHistory = async (skip: number = 0, limit: number = 100) => {
-    const { data } = await api.get<Alert[]>('/alerts/history', { params: { skip, limit } });
+    const { data } = await api.get<AlertListResponse>('/alerts/history', { params: { skip, limit } });
     return data;
 };
 

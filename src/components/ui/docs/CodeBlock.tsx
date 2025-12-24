@@ -18,6 +18,8 @@ interface CodeBlockProps {
   placeholder?: string;
   title?: string;
   maxHeight?: string;
+  rounded?: boolean;
+  wrap?: boolean;
 }
 
 export const CodeBlock = ({
@@ -28,7 +30,9 @@ export const CodeBlock = ({
   className,
   placeholder,
   title,
-  maxHeight = '300px'
+  maxHeight = '400px',
+  rounded = false,
+  wrap = false
 }: CodeBlockProps) => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [highlightedCode, setHighlightedCode] = useState('');
@@ -96,6 +100,7 @@ export const CodeBlock = ({
             "font-mono bg-transparent border-0 focus-visible:ring-0 resize-none w-full relative z-10",
             "overflow-y-auto custom-scrollbar flex-1",
             "selection:bg-primary/30 selection:text-foreground",
+            wrap ? "whitespace-pre-wrap" : "whitespace-pre",
             isExpanded ? "text-sm leading-relaxed p-8" : "text-xs leading-relaxed p-5"
           )}
           spellCheck={false}
@@ -106,6 +111,7 @@ export const CodeBlock = ({
             "w-full h-full overflow-y-auto relative z-20 select-text cursor-text custom-scrollbar flex-1",
             "dark:[&_.shiki_span]:filter dark:[&_.shiki_span]:brightness-125",
             "selection:bg-primary/20 dark:selection:bg-primary/40 selection:text-foreground",
+            wrap ? "[&>pre]:whitespace-pre-wrap" : "[&>pre]:whitespace-pre",
             isExpanded ? "text-[13px]" : "text-[11px]",
             "[&>pre]:bg-transparent! [&>pre]:m-0 [&>pre]:w-full [&>pre]:h-full",
             isExpanded ? "[&>pre]:p-8 [&>pre]:leading-7" : "[&>pre]:p-5 [&>pre]:leading-6"
@@ -124,7 +130,8 @@ export const CodeBlock = ({
       <div
         className={cn(
           "relative group transition-all duration-500 w-full flex flex-col overflow-hidden",
-          "glass rounded-none border-0 shadow-none flex flex-col",
+          "glass border-0 shadow-none flex flex-col",
+          rounded ? "rounded-xl border border-border/40" : "rounded-none",
           "hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-primary/5",
           className
         )}
@@ -135,8 +142,8 @@ export const CodeBlock = ({
         <div className="absolute inset-0 ring-1 ring-inset ring-black/5 dark:ring-white/10 pointer-events-none" />
 
         <div className={cn(
-          "flex items-center justify-between px-5 py-2.5 shrink-0",
-          "bg-white/40 dark:bg-black/20 backdrop-blur-xl border-b border-black/3 dark:border-white/5"
+          "flex items-center justify-between px-4 py-2 shrink-0",
+          "bg-muted/30 border-b border-border/40 backdrop-blur-xl"
         )}>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5 opacity-60">
@@ -144,27 +151,34 @@ export const CodeBlock = ({
               <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/40" />
               <div className="w-2.5 h-2.5 rounded-full bg-green-500/40" />
             </div>
-            <div className="flex items-center gap-2 px-2 py-0.5 rounded bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10">
-              <FileCode size={10} className="text-muted-foreground/70" />
-              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{language}</span>
-            </div>
+            {title && (
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest truncate max-w-[200px]">
+                {title}
+              </span>
+            )}
+            {!title && (
+              <div className="flex items-center gap-2 px-2 py-0.5 rounded bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10">
+                <FileCode size={10} className="text-muted-foreground/70" />
+                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{language}</span>
+              </div>
+            )}
           </div>
 
           <div className={cn(
             "flex gap-1 transition-all duration-300",
             isHovering ? "opacity-100 scale-100" : "opacity-0 scale-95"
           )}>
-            <Button size="icon" variant="ghost" onClick={handleCopy} className="h-7 w-7 rounded hover:bg-black/5 dark:hover:bg-white/10">
-              {copied ? <Check size={14} className="text-success" /> : <Copy size={14} className="text-muted-foreground" />}
+            <Button size="icon" variant="ghost" onClick={handleCopy} className="h-6 w-6 rounded hover:bg-black/5 dark:hover:bg-white/10">
+              {copied ? <Check size={12} className="text-success" /> : <Copy size={12} className="text-muted-foreground" />}
             </Button>
-            <Button size="icon" variant="ghost" onClick={() => setIsMaximized(true)} className="h-7 w-7 rounded hover:bg-black/5 dark:hover:bg-white/10">
-              <Maximize2 size={14} className="text-muted-foreground" />
+            <Button size="icon" variant="ghost" onClick={() => setIsMaximized(true)} className="h-6 w-6 rounded hover:bg-black/5 dark:hover:bg-white/10">
+              <Maximize2 size={12} className="text-muted-foreground" />
             </Button>
           </div>
         </div>
 
         {/* This container allows the internal scroll to happen */}
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 bg-background/50">
           {renderContent(false)}
         </div>
       </div>
@@ -176,22 +190,25 @@ export const CodeBlock = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-9999 flex items-center justify-center p-4 md:p-12 pointer-events-none"
+              className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-12"
             >
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-white/60 dark:bg-black/40 backdrop-blur-2xl pointer-events-auto"
-                onClick={() => setIsMaximized(false)}
+                className="absolute inset-0 bg-white/60 dark:bg-black/40 backdrop-blur-2xl"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsMaximized(false);
+                }}
               />
 
               <motion.div
                 layoutId={`code-block-${title}`}
                 className={cn(
                   "relative w-full max-w-5xl h-full max-h-[85vh]",
-                  "rounded-3xl overflow-hidden flex flex-col z-10000",
-                  "glass-panel border-0 shadow-2xl pointer-events-auto",
+                  "rounded-3xl overflow-hidden flex flex-col z-[10000]",
+                  "glass-panel border-0 shadow-2xl",
                   "ring-1 ring-black/10 dark:ring-white/20"
                 )}
                 onClick={(e) => e.stopPropagation()}

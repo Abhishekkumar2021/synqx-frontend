@@ -74,53 +74,34 @@ export const ExecutionThroughputChart: React.FC<ExecutionThroughputChartProps> =
 
     return (
         <Card className="flex flex-col h-full border border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden rounded-[2.5rem]">
-            <CardHeader className="px-8 pt-8 pb-4 relative z-10">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                            <CardTitle className="text-xl font-black tracking-tight text-foreground">Performance Metrics</CardTitle>
-                            <Badge variant="outline" className="font-mono text-[9px] uppercase tracking-widest text-primary border-primary/20 bg-primary/5 animate-pulse">
-                                Live
-                            </Badge>
-                        </div>
-                        <CardDescription className="text-sm font-medium text-muted-foreground/60">
-                            Real-time pipeline efficiency analysis
-                        </CardDescription>
+            <CardHeader className="px-8 pt-8 pb-4 relative z-10 flex flex-row items-center justify-between space-y-0">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                        <CardTitle className="text-xl font-black tracking-tight text-foreground">Performance Metrics</CardTitle>
+                        <Badge variant="outline" className="font-mono text-[9px] uppercase tracking-widest text-emerald-500 border-emerald-500/20 bg-emerald-500/5 animate-pulse px-2 py-0.5 rounded-full">
+                            Live
+                        </Badge>
                     </div>
+                    <CardDescription className="text-sm font-medium text-muted-foreground/60">
+                        Real-time system throughput & latency analysis
+                    </CardDescription>
+                </div>
 
-                    <div className={cn(
-                        "flex gap-1.5 items-center p-1.5 rounded-2xl",
-                        "glass border border-border/60 shadow-sm",
-                        "transition-all duration-300"
-                    )}>
-                        {(['jobs', 'rows', 'bytes'] as ViewType[]).map((v) => (
-                            <Button
-                                key={v}
-                                variant="ghost"
-                                size="sm"
-                                className={cn(
-                                    "rounded-xl h-9 px-5 text-[10px] font-extrabold uppercase tracking-widest",
-                                    "transition-all duration-300 ease-out",
-                                    "relative overflow-hidden",
-                                    view === v
-                                        ? cn(
-                                            "bg-primary text-primary-foreground shadow-lg scale-[1.02]",
-                                            "dark:bg-primary/90 dark:shadow-primary/20",
-                                            "before:absolute before:inset-0 before:bg-linear-to-b before:from-white/10 before:to-transparent",
-                                            "ring-1 ring-primary/20 dark:ring-primary/30"
-                                        )
-                                        : cn(
-                                            "text-muted-foreground hover:text-foreground",
-                                            "hover:bg-muted/50 dark:hover:bg-muted/30",
-                                            "active:scale-95"
-                                        )
-                                )}
-                                onClick={() => setView(v)}
-                            >
-                                <span className="relative z-10">{v}</span>
-                            </Button>
-                        ))}
-                    </div>
+                <div className="flex bg-muted/30 p-1 rounded-xl border border-border/40">
+                    {(['jobs', 'rows', 'bytes'] as ViewType[]).map((v) => (
+                        <button
+                            key={v}
+                            onClick={() => setView(v)}
+                            className={cn(
+                                "px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all duration-300",
+                                view === v
+                                    ? "bg-background text-foreground shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                            )}
+                        >
+                            {v}
+                        </button>
+                    ))}
                 </div>
             </CardHeader>
 

@@ -62,136 +62,92 @@ const ConnectionCard = ({
         >
             <div
                 className={cn(
-                    "relative p-6 rounded-2xl transition-all duration-300 cursor-pointer",
-                    "glass-card border border-border/40",
-                    "hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5",
-                    "before:absolute before:inset-0 before:rounded-2xl before:opacity-0",
-                    "before:bg-linear-to-br before:from-primary/5 before:to-transparent",
-                    "before:transition-opacity before:duration-300",
-                    "hover:before:opacity-100"
+                    "relative flex flex-col rounded-3xl border border-border/60 bg-card/60 backdrop-blur-md p-5 overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:border-primary/20 cursor-pointer h-full"
                 )}
                 onClick={() => navigate(`/connections/${connection.id}`)}
             >
                 {/* Header Section */}
                 <div className="flex items-start justify-between mb-4 relative z-10">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 rounded-xl bg-primary/10 text-primary group-hover:scale-110 transition-transform duration-300 shadow-sm">
-                            <Database className="h-5 w-5" />
+                    <div className="flex items-center gap-3.5">
+                        <div className={cn(
+                            "h-12 w-12 rounded-xl flex items-center justify-center border shadow-sm transition-all duration-300",
+                            "bg-primary/10 border-primary/20 text-primary group-hover:scale-105"
+                        )}>
+                            <Database className="h-6 w-6" />
                         </div>
-                        <div>
-                            <h3 className="font-bold text-base text-foreground group-hover:text-primary transition-colors">
+                        <div className="flex flex-col gap-0.5">
+                            <h3 className="font-bold text-base text-foreground group-hover:text-primary transition-colors line-clamp-1 tracking-tight">
                                 {connection.name}
                             </h3>
-                            <p className="text-xs text-muted-foreground capitalize mt-0.5">
-                                {connection.connector_type}
-                            </p>
+                            <div className="flex items-center gap-2">
+                                <Badge
+                                    variant="outline"
+                                    className={cn(
+                                        "text-[9px] font-black uppercase tracking-wider px-1.5 py-0 rounded-md border",
+                                        connection.health_status === 'healthy'
+                                            ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                            : connection.health_status === 'unhealthy' 
+                                                ? "bg-destructive/10 text-destructive border-destructive/20"
+                                                : "bg-muted/50 text-muted-foreground border-border/50"
+                                    )}
+                                >
+                                    {connection.health_status || 'Unknown'}
+                                </Badge>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Actions Menu - Always visible on hover */}
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onTest(connection.id);
-                            }}
-                            disabled={isTesting}
-                            className="h-8 w-8 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-500 transition-all"
-                        >
-                            {isTesting ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                                <Activity className="h-4 w-4" />
-                            )}
-                        </Button>
+                    <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuTrigger asChild>
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 rounded-lg hover:bg-muted/50 transition-all"
+                                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                                 >
                                     <MoreVertical className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                align="end"
-                                className="w-48 rounded-xl border-border/60 glass-panel shadow-2xl"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <DropdownMenuItem
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        navigate(`/connections/${connection.id}`);
-                                    }}
-                                    className="rounded-lg cursor-pointer gap-2"
-                                >
-                                    <ArrowRight className="h-3.5 w-3.5" />
-                                    View Details
+                            <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/60 shadow-lg p-1">
+                                <DropdownMenuItem onClick={() => navigate(`/connections/${connection.id}`)} className="rounded-lg font-medium text-xs py-2 cursor-pointer">
+                                    <ArrowRight className="mr-2 h-3.5 w-3.5 opacity-70" /> View Details
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onTest(connection.id);
-                                    }}
-                                    className="rounded-lg cursor-pointer gap-2"
-                                    disabled={isTesting}
-                                >
-                                    {isTesting ? (
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                    ) : (
-                                        <Play className="h-3.5 w-3.5" />
-                                    )}
+                                <DropdownMenuItem onClick={() => onTest(connection.id)} disabled={isTesting} className="rounded-lg font-medium text-xs py-2 cursor-pointer">
+                                    {isTesting ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Play className="mr-2 h-3.5 w-3.5 opacity-70" />}
                                     Test Connection
                                 </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onEdit(connection);
-                                    }}
-                                    className="rounded-lg cursor-pointer gap-2"
-                                >
-                                    <Pencil className="h-3.5 w-3.5" />
-                                    Edit
+                                <DropdownMenuSeparator className="bg-border/40 my-1" />
+                                <DropdownMenuItem onClick={() => onEdit(connection)} className="rounded-lg font-medium text-xs py-2 cursor-pointer">
+                                    <Pencil className="mr-2 h-3.5 w-3.5 opacity-70" /> Edit Configuration
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-border/50" />
-                                <DropdownMenuItem
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDelete(connection);
-                                    }}
-                                    className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer rounded-lg gap-2"
-                                >
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                    Delete
+                                <DropdownMenuSeparator className="bg-border/40 my-1" />
+                                <DropdownMenuItem onClick={() => onDelete(connection)} className="rounded-lg font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer">
+                                    <Trash2 className="mr-2 h-3.5 w-3.5 opacity-70" /> Delete
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
                 </div>
 
-                    <p className="text-xs text-muted-foreground leading-relaxed mb-4 line-clamp-2 relative z-10">
+                {/* Body */}
+                <div className="flex-1 flex flex-col gap-4">
+                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2 font-medium min-h-[2.5em]">
                         {connection.description || 'No description provided.'}
                     </p>
-
-                {/* Footer */}
-                <div className="flex items-center justify-between pt-4 border-t border-border/40 relative z-10">
-                    <Badge
-                        variant="outline"
-                        className={cn(
-                            "text-[10px] font-semibold uppercase tracking-wider",
-                            connection.health_status === 'active'
-                                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border-emerald-500/30"
-                                : "bg-muted/50 text-muted-foreground border-border/50"
-                        )}
-                    >
-                        {connection.health_status || 'Unknown'}
-                    </Badge>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span>View Details</span>
-                        <ArrowRight className="h-3 w-3" />
+                    
+                    <div className="mt-auto pt-4 border-t border-border/40 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground bg-muted/40 px-2.5 py-1 rounded-lg border border-border/20">
+                            <span className="uppercase tracking-wider">{connection.connector_type}</span>
+                        </div>
+                        
+                        <Button
+                            variant="ghost" 
+                            size="sm"
+                            className="h-7 text-xs font-bold text-primary hover:text-primary hover:bg-primary/5 -mr-2"
+                            onClick={(e) => { e.stopPropagation(); navigate(`/connections/${connection.id}`); }}
+                        >
+                            Details <ArrowRight className="ml-1 h-3 w-3" />
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -225,130 +181,94 @@ const ConnectionRow = ({
         >
             <div
                 className={cn(
-                    "relative px-6 py-4 transition-all duration-200 cursor-pointer",
-                    "hover:bg-muted/30",
+                    "relative grid grid-cols-12 gap-4 items-center px-6 py-3.5 transition-all duration-200 cursor-pointer",
+                    "border-b border-border/30 last:border-0 hover:bg-muted/40",
                     "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1",
                     "before:bg-primary before:scale-y-0 before:transition-transform before:duration-200",
                     "hover:before:scale-y-100"
                 )}
                 onClick={() => navigate(`/connections/${connection.id}`)}
             >
-                <div className="grid grid-cols-12 gap-4 items-center">
-                    <div className="col-span-12 md:col-span-6 flex items-center gap-4 min-w-0">
-                        <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:scale-110 transition-transform duration-200 shrink-0">
-                            <Database className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate">
-                                {connection.name}
-                            </h3>
-                            
-                            <p className="text-xs text-muted-foreground truncate mt-0.5">
-                                {connection.description || 'No description provided.'}
-                            </p>
-                        </div>
+                {/* Identity */}
+                <div className="col-span-12 md:col-span-6 flex items-center gap-4 min-w-0">
+                    <div className={cn(
+                        "h-10 w-10 rounded-xl border flex items-center justify-center transition-all duration-300 shadow-xs shrink-0",
+                        "bg-muted/40 border-border/40 text-muted-foreground group-hover:text-primary group-hover:border-primary/20 group-hover:bg-primary/5"
+                    )}>
+                        <Database className="h-5 w-5" />
                     </div>
-
-                    <div className="col-span-3 hidden md:block">
-                        <Badge variant="outline" className="bg-muted/50 text-[10px] uppercase font-bold tracking-widest border-border/50">
-                            {connection.connector_type}
-                        </Badge>
+                    <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-sm text-foreground tracking-tight truncate mb-0.5">
+                            {connection.name}
+                        </h3>
+                        <p className="text-[11px] text-muted-foreground truncate font-medium">
+                            {connection.description || <span className="italic opacity-50">No description</span>}
+                        </p>
                     </div>
+                </div>
 
-                    <div className="col-span-3 hidden md:flex items-center justify-end gap-3">
-                        <Badge
-                            variant="outline"
-                            className={cn(
-                                "text-[10px] font-semibold uppercase tracking-wider",
-                                connection.health_status === 'active'
-                                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border-emerald-500/30"
+                {/* Type */}
+                <div className="col-span-3 hidden md:block">
+                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground bg-muted/40 px-2.5 py-1 rounded-lg border border-border/20 w-fit">
+                        <span className="uppercase tracking-wider">{connection.connector_type}</span>
+                    </div>
+                </div>
+
+                {/* Status / Actions */}
+                <div className="col-span-3 hidden md:flex items-center justify-end gap-4 pr-2">
+                    <Badge
+                        variant="outline"
+                        className={cn(
+                            "text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border",
+                            connection.health_status === 'healthy'
+                                ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                : connection.health_status === 'unhealthy' 
+                                    ? "bg-destructive/10 text-destructive border-destructive/20"
                                     : "bg-muted/50 text-muted-foreground border-border/50"
-                            )}
-                        >
-                            {connection.health_status || 'Unknown'}
-                        </Badge>
+                        )}
+                    >
+                        {connection.health_status || 'Unknown'}
+                    </Badge>
 
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onTest(connection.id);
-                                }}
-                                disabled={isTesting}
-                                className="h-8 w-8 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-500"
-                            >
-                                {isTesting ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                    <Activity className="h-3.5 w-3.5" />
-                                )}
-                            </Button>
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 rounded-lg hover:bg-muted/50"
-                                    >
-                                        <MoreVertical className="h-3.5 w-3.5" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent
-                                    align="end"
-                                    className="w-48 rounded-xl border-border/60 glass-panel shadow-2xl"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <DropdownMenuItem
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            navigate(`/connections/${connection.id}`);
-                                        }}
-                                        className="rounded-lg cursor-pointer gap-2"
-                                    >
-                                        <ArrowRight className="h-3.5 w-3.5" />
-                                        View Details
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onTest(connection.id);
-                                        }}
-                                        className="rounded-lg cursor-pointer gap-2"
-                                        disabled={isTesting}
-                                    >
-                                        {isTesting ? (
-                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                        ) : (
-                                            <Play className="h-3.5 w-3.5" />
-                                        )}
-                                        Test Connection
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onEdit(connection);
-                                        }}
-                                        className="rounded-lg cursor-pointer gap-2"
-                                    >
-                                        <Pencil className="h-3.5 w-3.5" />
-                                        Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator className="bg-border/50" />
-                                    <DropdownMenuItem
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onDelete(connection);
-                                        }}
-                                        className="text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer rounded-lg gap-2"
-                                    >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                        Delete
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onTest(connection.id);
+                            }}
+                            disabled={isTesting}
+                            className="h-8 w-8 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-600 transition-all"
+                            title="Test Connection"
+                        >
+                            {isTesting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Activity className="h-3.5 w-3.5" />}
+                        </Button>
+                        
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                                    <MoreVertical className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/60 shadow-lg p-1">
+                                <DropdownMenuItem onClick={() => navigate(`/connections/${connection.id}`)} className="rounded-lg font-medium text-xs py-2 cursor-pointer">
+                                    <ArrowRight className="mr-2 h-3.5 w-3.5 opacity-70" /> View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => onTest(connection.id)} disabled={isTesting} className="rounded-lg font-medium text-xs py-2 cursor-pointer">
+                                    {isTesting ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Play className="mr-2 h-3.5 w-3.5 opacity-70" />}
+                                    Test Connection
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="bg-border/40 my-1" />
+                                <DropdownMenuItem onClick={() => onEdit(connection)} className="rounded-lg font-medium text-xs py-2 cursor-pointer">
+                                    <Pencil className="mr-2 h-3.5 w-3.5 opacity-70" /> Edit Configuration
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator className="bg-border/40 my-1" />
+                                <DropdownMenuItem onClick={() => onDelete(connection)} className="rounded-lg font-medium text-xs py-2 text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer">
+                                    <Trash2 className="mr-2 h-3.5 w-3.5 opacity-70" /> Delete
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
             </div>
