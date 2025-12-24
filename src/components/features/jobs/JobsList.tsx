@@ -5,7 +5,10 @@ import { Search, GitBranch, Timer, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { type Job, type Pipeline } from '@/lib/api';
+import { type Job, type Pipeline, cancelJob } from '@/lib/api';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { StopCircle } from 'lucide-react';
 
 interface JobsListProps {
     jobs: Job[];
@@ -27,6 +30,16 @@ export const JobsList: React.FC<JobsListProps> = ({
     onFilterChange
 }) => {
     const [statusFilter, setStatusFilter] = React.useState<string | null>(null);
+    const queryClient = useQueryClient();
+
+    const cancelMutation = useMutation({
+        mutationFn: cancelJob,
+        onSuccess: () => {
+            toast.success("Cancellation Requested");
+            queryClient.invalidateQueries({ queryKey: ['jobs'] });
+        },
+        onError: () => toast.error("Failed to cancel job")
+    });
 
     const filteredJobs = React.useMemo(() => {
         let result = jobs;
@@ -59,7 +72,7 @@ export const JobsList: React.FC<JobsListProps> = ({
                                     "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all whitespace-nowrap",
                                     statusFilter === status 
                                         ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20" 
-                                        : "bg-background/50 border-border/40 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                        : "bg-background/50 border-border/40 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:text-foreground"
                                 )}
                             >
                                 {status}
@@ -113,8 +126,8 @@ export const JobsList: React.FC<JobsListProps> = ({
                                         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-10 bg-primary rounded-r-full shadow-[0_0_10px_rgba(var(--primary),0.5)]" />
                                     )}
 
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex flex-col gap-1">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex flex-col gap-1 min-w-0 flex-1">
                                             <div className="flex items-center gap-2">
                                                 <span className={cn(
                                                     "text-sm font-black font-mono tracking-tight",
@@ -123,9 +136,9 @@ export const JobsList: React.FC<JobsListProps> = ({
                                                     #{job.id}
                                                 </span>
                                                 <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
-                                                <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground group-hover:text-foreground transition-colors">
-                                                    <GitBranch className="h-3 w-3 opacity-50" />
-                                                    <span className="truncate max-w-[120px]">{pipelineName}</span>
+                                                <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground group-hover:text-foreground transition-colors min-w-0">
+                                                    <GitBranch className="h-3 w-3 opacity-50 shrink-0" />
+                                                    <span className="truncate">{pipelineName}</span>
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-3 mt-1 opacity-60">
@@ -133,17 +146,32 @@ export const JobsList: React.FC<JobsListProps> = ({
                                                     <Calendar className="h-3 w-3" />
                                                     {job.started_at ? formatDistanceToNow(new Date(job.started_at), { addSuffix: true }) : 'Pending'}
                                                 </div>
-                                                {job.execution_time_ms && (
+                                                {job.execution_time_ms ? (
                                                     <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground border-l border-border pl-3">
                                                         <Timer className="h-3 w-3" />
                                                         {(job.execution_time_ms / 1000).toFixed(1)}s
                                                     </div>
-                                                )}
+                                                ) : null}
                                             </div>
                                         </div>
-                                        <StatusBadge status={job.status} className="scale-90 origin-top-right shadow-sm" />
+                                        
+                                        <div className="flex flex-col items-end gap-2 shrink-0">
+                                            <StatusBadge status={job.status} className="scale-90 origin-top-right shadow-sm" />
+                                            {job.status === 'running' && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        cancelMutation.mutate(job.id);
+                                                    }}
+                                                    disabled={cancelMutation.isPending}
+                                                    className="p-1.5 rounded-lg bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive hover:text-white transition-all scale-0 group-hover:scale-100 disabled:opacity-50"
+                                                    title="Stop execution"
+                                                >
+                                                    <StopCircle size={14} />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                    
                                 </div>
                             );
                         })}

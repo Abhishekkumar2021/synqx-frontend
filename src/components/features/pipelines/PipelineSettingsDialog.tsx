@@ -91,29 +91,33 @@ export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ 
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-3xl h-[600px] flex flex-col p-0 gap-0 overflow-hidden rounded-[2rem] border-border/60 bg-background/95 backdrop-blur-xl shadow-2xl ring-1 ring-white/5 dark:ring-white/10">
+            <DialogContent className="max-w-4xl h-[700px] flex flex-col p-0 gap-0 overflow-hidden rounded-[2.5rem] border-border/60 bg-background/95 backdrop-blur-3xl shadow-[0_0_100px_-20px_rgba(0,0,0,0.5)] ring-1 ring-white/10">
                 
-                <DialogHeader className="p-6 pb-4 border-b border-border/40 shrink-0 bg-muted/20">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-primary/10 rounded-xl text-primary ring-1 ring-primary/20">
-                            <Settings2 className="h-5 w-5" />
+                <DialogHeader className="p-8 pb-6 border-b border-border/40 shrink-0 bg-muted/20 relative overflow-hidden">
+                    {/* Background Decor */}
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                    
+                    <div className="flex items-center gap-4 relative z-10">
+                        <div className="p-3 bg-primary/10 rounded-2xl text-primary ring-1 ring-primary/20 shadow-xl shadow-primary/5">
+                            <Settings2 className="h-6 w-6" />
                         </div>
                         <div>
-                            <DialogTitle className="text-xl font-bold tracking-tight text-foreground">Pipeline Configuration</DialogTitle>
-                            <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
-                                Entity: {pipeline?.name}
+                            <DialogTitle className="text-2xl font-black tracking-tight text-foreground">Sequence Configuration</DialogTitle>
+                            <DialogDescription className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mt-1 flex items-center gap-2">
+                                <span className="px-2 py-0.5 rounded-md bg-muted/50 border border-border/40">Entity</span>
+                                <span className="text-foreground">{pipeline?.name}</span>
                             </DialogDescription>
                         </div>
                     </div>
                 </DialogHeader>
 
                 <div className="flex-1 flex min-h-0">
-                    {/* Compact Sidebar */}
-                    <div className="w-[180px] border-r border-border/40 bg-muted/10 p-4 flex flex-col gap-1 shrink-0 relative z-10">
+                    {/* Modern Sidebar */}
+                    <div className="w-[220px] border-r border-border/40 bg-muted/10 p-6 flex flex-col gap-2 shrink-0 relative z-10">
                         {[
-                            { id: "general", label: "General", icon: FileText },
-                            { id: "automation", label: "Automation", icon: Activity },
-                            { id: "performance", label: "Performance", icon: Zap },
+                            { id: "general", label: "General Info", icon: FileText },
+                            { id: "automation", label: "Scheduling", icon: Activity },
+                            { id: "performance", label: "Compute & Scale", icon: Zap },
                             { id: "governance", label: "Governance", icon: ShieldAlert },
                         ].map((item) => (
                             <button
@@ -121,50 +125,50 @@ export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ 
                                 type="button"
                                 onClick={() => setActiveTab(item.id)}
                                 className={cn(
-                                    "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[11px] font-bold transition-all duration-200 group",
+                                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-300 group",
                                     activeTab === item.id 
-                                        ? "bg-primary text-primary-foreground shadow-md" 
-                                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
+                                        : "text-muted-foreground/60 hover:text-foreground hover:bg-muted/50"
                                 )}
                             >
-                                <item.icon className={cn("h-4 w-4", activeTab === item.id ? "text-primary-foreground" : "text-primary/60")} />
+                                <item.icon className={cn("h-4 w-4 transition-transform group-hover:scale-110", activeTab === item.id ? "text-primary-foreground" : "text-primary/40")} />
                                 {item.label}
                             </button>
                         ))}
                     </div>
 
                     {/* Main Content */}
-                    <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
-                        <div className="flex-1 overflow-y-auto px-8 py-6 custom-scrollbar">
-                            <form id="settings-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                    <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background/50">
+                        <div className="flex-1 overflow-y-auto px-10 py-8 custom-scrollbar">
+                            <form id="settings-form" onSubmit={handleSubmit(onSubmit)} className="space-y-10">
                                 {activeTab === "general" && (
-                                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-5">
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Identifier</Label>
+                                    <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-8">
+                                        <div className="space-y-3">
+                                            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 ml-1">Identity Manifest</Label>
                                             <Input 
                                                 {...register('name', { required: true })} 
-                                                className="h-11 rounded-xl bg-background border-border/60 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 transition-all font-bold"
+                                                className="h-14 rounded-2xl bg-background/50 border-border/60 focus:border-primary/40 focus:ring-8 focus:ring-primary/5 transition-all font-black text-base shadow-inner"
                                                 placeholder="Pipeline name"
                                             />
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Description</Label>
+                                        <div className="space-y-3">
+                                            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 ml-1">Logical Description</Label>
                                             <Textarea 
                                                 {...register('description')} 
-                                                className="min-h-[120px] rounded-xl bg-background border-border/60 focus:border-primary/40 focus:ring-4 focus:ring-primary/5 transition-all text-sm p-4 resize-none leading-relaxed"
-                                                placeholder="Enter purpose of this pipeline..."
+                                                className="min-h-[180px] rounded-2xl bg-background/50 border-border/60 focus:border-primary/40 focus:ring-8 focus:ring-primary/5 transition-all text-sm p-5 resize-none leading-relaxed shadow-inner"
+                                                placeholder="Explain the purpose and data flow of this pipeline..."
                                             />
                                         </div>
                                     </div>
                                 )}
 
                                 {activeTab === "automation" && (
-                                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
-                                        <div className="grid grid-cols-3 gap-3">
+                                    <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-8">
+                                        <div className="grid grid-cols-3 gap-4">
                                             {[
-                                                { label: "Hourly", value: "0 * * * *", icon: <Clock className="h-4 w-4" /> },
-                                                { label: "Daily", value: "0 0 * * *", icon: <CalendarClock className="h-4 w-4" /> },
-                                                { label: "Weekly", value: "0 0 * * 0", icon: <Activity className="h-4 w-4" /> },
+                                                { label: "Hourly", value: "0 * * * *", icon: <Clock className="h-5 w-5" /> },
+                                                { label: "Daily", value: "0 0 * * *", icon: <CalendarClock className="h-5 w-5" /> },
+                                                { label: "Weekly", value: "0 0 * * 0", icon: <Activity className="h-5 w-5" /> },
                                             ].map((preset) => (
                                                 <button
                                                     key={preset.value}
@@ -172,40 +176,42 @@ export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ 
                                                     onClick={() => {
                                                         setValue('schedule_cron', preset.value);
                                                         setValue('schedule_enabled', true);
-                                                        toast.success(`Set to ${preset.label}`);
+                                                        toast.success(`Schedule: ${preset.label}`);
                                                     }}
                                                     className={cn(
-                                                        "flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all active:scale-95",
+                                                        "flex flex-col items-center gap-3 p-5 rounded-[1.5rem] border transition-all active:scale-95 group",
                                                         scheduleCron === preset.value && scheduleEnabled 
-                                                            ? "bg-primary/10 border-primary/40 ring-1 ring-primary/20 text-primary" 
-                                                            : "bg-muted/30 border-border/40 text-muted-foreground hover:border-primary/30"
+                                                            ? "bg-primary/10 border-primary/40 ring-1 ring-primary/20 text-primary shadow-lg shadow-primary/5" 
+                                                            : "bg-muted/20 border-border/40 text-muted-foreground/60 hover:border-primary/30 hover:bg-muted/40"
                                                     )}
                                                 >
-                                                    {preset.icon}
-                                                    <span className="text-[9px] font-bold uppercase">{preset.label}</span>
+                                                    <div className={cn("p-2 rounded-xl transition-colors", scheduleCron === preset.value && scheduleEnabled ? "bg-primary/20" : "bg-muted/50")}>
+                                                        {preset.icon}
+                                                    </div>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">{preset.label}</span>
                                                 </button>
                                             ))}
                                         </div>
 
                                         <div className={cn(
-                                            "rounded-2xl border transition-all duration-300 overflow-hidden",
-                                            scheduleEnabled ? "border-primary/20 bg-primary/5" : "border-border/40 bg-muted/10"
+                                            "rounded-[2rem] border transition-all duration-500 overflow-hidden shadow-sm",
+                                            scheduleEnabled ? "border-primary/30 bg-primary/[0.02]" : "border-border/40 bg-muted/10"
                                         )}>
-                                            <div className="p-4 flex items-center justify-between">
-                                                <div className="space-y-0.5">
-                                                    <Label className="text-sm font-bold">Enabled</Label>
-                                                    <p className="text-[10px] text-muted-foreground font-medium">Automatic execution</p>
+                                            <div className="p-6 flex items-center justify-between">
+                                                <div className="space-y-1">
+                                                    <Label className="text-base font-black tracking-tight">Active Schedule</Label>
+                                                    <p className="text-[11px] text-muted-foreground font-bold opacity-70">Automate sequence execution using cron syntax.</p>
                                                 </div>
                                                 <Switch 
                                                     checked={scheduleEnabled}
                                                     onCheckedChange={(c) => setValue('schedule_enabled', c)}
-                                                    className="data-[state=checked]:bg-primary"
+                                                    className="scale-110 data-[state=checked]:bg-primary shadow-xl shadow-primary/20"
                                                 />
                                             </div>
                                             
                                             {scheduleEnabled && (
-                                                <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                    <div className="p-4 bg-background rounded-xl border border-border/40 shadow-inner">
+                                                <div className="px-6 pb-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                                                    <div className="p-6 bg-background rounded-[1.5rem] border border-border/40 shadow-inner ring-1 ring-black/5">
                                                         <CronBuilder 
                                                             value={scheduleCron} 
                                                             onChange={(val) => setValue('schedule_cron', val)} 
@@ -218,79 +224,85 @@ export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ 
                                 )}
 
                                 {activeTab === "performance" && (
-                                    <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-6">
+                                    <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-10">
                                         <div className="space-y-4">
-                                            <div className="flex items-center justify-between">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Priority</Label>
-                                                <Badge className="bg-primary/10 text-primary border-none font-bold px-3 py-0.5 rounded-full">{priority} / 10</Badge>
+                                            <div className="flex items-center justify-between px-1">
+                                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">Execution Priority</Label>
+                                                <Badge className="bg-primary/10 text-primary border-none font-black px-4 py-1 rounded-full text-xs">{priority} / 10</Badge>
                                             </div>
                                             <Input 
                                                 type="number" min={1} max={10}
                                                 {...register('priority', { valueAsNumber: true })}
-                                                className="h-11 rounded-xl bg-background border-border/60 font-bold"
+                                                className="h-14 rounded-2xl bg-background/50 border-border/60 font-black text-lg shadow-inner text-center"
                                             />
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Parallel Runs</Label>
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div className="space-y-3">
+                                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 ml-1">Max Parallel Units</Label>
                                                 <Input 
                                                     type="number"
                                                     {...register('max_parallel_runs', { valueAsNumber: true })}
-                                                    className="h-11 rounded-xl bg-background border-border/60 font-bold"
+                                                    className="h-14 rounded-2xl bg-background/50 border-border/60 font-black text-base shadow-inner px-6"
                                                 />
                                             </div>
-                                            <div className="space-y-2">
-                                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Retries</Label>
+                                            <div className="space-y-3">
+                                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 ml-1">Auto-Retry Threshold</Label>
                                                 <Input 
                                                     type="number"
                                                     {...register('max_retries', { valueAsNumber: true })}
-                                                    className="h-11 rounded-xl bg-background border-border/60 font-bold"
+                                                    className="h-14 rounded-2xl bg-background/50 border-border/60 font-black text-base shadow-inner px-6"
                                                 />
                                             </div>
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Timeout (Seconds)</Label>
+                                        <div className="space-y-3">
+                                            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 ml-1">Execution Timeout (Seconds)</Label>
                                             <Input 
                                                 type="number"
                                                 {...register('execution_timeout_seconds', { valueAsNumber: true })}
-                                                className="h-11 rounded-xl bg-background border-border/60 font-bold"
+                                                className="h-14 rounded-2xl bg-background/50 border-border/60 font-black text-base shadow-inner px-6"
                                             />
                                         </div>
                                     </div>
                                 )}
 
                                 {activeTab === "governance" && (
-                                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                                        <div className="p-6 bg-muted/30 rounded-3xl border border-border/40 mb-4 text-muted-foreground">
-                                            <ShieldAlert className="h-8 w-8 opacity-40" />
+                                    <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in scale-in-95 duration-500">
+                                        <div className="relative mb-8">
+                                            <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full" />
+                                            <div className="relative p-8 bg-muted/20 rounded-[2.5rem] border border-border/40 text-muted-foreground shadow-2xl">
+                                                <ShieldAlert className="h-12 w-12 opacity-40" />
+                                            </div>
                                         </div>
-                                        <h3 className="font-bold text-sm">Access Control</h3>
-                                        <p className="text-[10px] text-muted-foreground max-w-[200px] mt-1 font-medium">
-                                            Inherited from global security context.
+                                        <h3 className="font-black text-xl tracking-tight">System Governance</h3>
+                                        <p className="text-xs text-muted-foreground max-w-[280px] mt-2 font-bold leading-relaxed opacity-60">
+                                            Role-based access controls and audit logging are managed at the organization level.
                                         </p>
                                     </div>
                                 )}
                             </form>
                         </div>
 
-                        <div className="p-4 px-8 border-t border-border/40 bg-muted/10 shrink-0 flex items-center justify-between">
-                            <span className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">ID: {pipeline?.id}</span>
-                            <div className="flex gap-2">
+                        <div className="p-6 px-10 border-t border-border/40 bg-muted/20 shrink-0 flex items-center justify-between relative z-10 backdrop-blur-md">
+                            <div className="flex flex-col">
+                                <span className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Sequence ID</span>
+                                <span className="text-[10px] font-mono font-bold text-muted-foreground/60">{pipeline?.id}</span>
+                            </div>
+                            <div className="flex gap-3">
                                 <Button 
                                     variant="ghost" 
                                     onClick={() => onOpenChange(false)}
-                                    className="rounded-xl h-9 px-4 text-xs font-bold"
+                                    className="rounded-xl h-11 px-6 text-xs font-black uppercase tracking-widest hover:bg-destructive/10 hover:text-destructive transition-colors"
                                 >
-                                    Cancel
+                                    Discard
                                 </Button>
                                 <Button 
                                     form="settings-form"
                                     type="submit" 
                                     disabled={mutation.isPending}
-                                    className="rounded-xl h-9 px-6 text-xs font-bold shadow-sm"
+                                    className="rounded-xl h-11 px-8 text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95"
                                 >
-                                    {mutation.isPending ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : "Save Changes"}
+                                    {mutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Commit Changes"}
                                 </Button>
                             </div>
                         </div>

@@ -43,10 +43,13 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group-[.toast]:text-[11px] group-[.toast]:font-medium group-[.toast]:leading-relaxed !text-muted-foreground group-[.toast]:mt-1",
 
           actionButton:
-            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground group-[.toast]:font-black group-[.toast]:uppercase group-[.toast]:text-[10px] group-[.toast]:rounded-xl group-[.toast]:h-8 group-[.toast]:px-4 group-[.toast]:hover:scale-105 transition-transform",
+            "group-[.toast]:!bg-primary group-[.toast]:!text-primary-foreground group-[.toast]:font-black group-[.toast]:uppercase group-[.toast]:text-[10px] group-[.toast]:rounded-xl group-[.toast]:h-8 group-[.toast]:px-4 group-[.toast]:hover:scale-105 group-[.toast]:transition-transform group-[.toast]:shadow-lg group-[.toast]:shadow-primary/20 group-[.toast]:border-none",
 
           cancelButton:
-            "group-[.toast]:bg-muted/50 group-[.toast]:text-muted-foreground group-[.toast]:font-bold group-[.toast]:uppercase group-[.toast]:text-[10px] group-[.toast]:rounded-xl group-[.toast]:h-8 group-[.toast]:px-4 group-[.toast]:hover:bg-muted transition-colors",
+            "group-[.toast]:!bg-muted/50 group-[.toast]:!text-muted-foreground group-[.toast]:font-bold group-[.toast]:uppercase group-[.toast]:text-[10px] group-[.toast]:rounded-xl group-[.toast]:h-8 group-[.toast]:px-4 group-[.toast]:hover:bg-muted group-[.toast]:transition-colors group-[.toast]:border-none",
+
+          closeButton:
+            "group-[.toast]:!bg-background/20 group-[.toast]:backdrop-blur-md group-[.toast]:!text-muted-foreground group-[.toast]:!border-border/40 group-[.toast]:hover:!bg-background/40 group-[.toast]:transition-all !opacity-100 group-[.toast]:ring-1 group-[.toast]:ring-white/10",
         },
       }}
       style={
@@ -58,6 +61,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--description-color": "var(--muted-foreground)",
           "--normal-border": "var(--border)",
           "--border-radius": "1.5rem",
+          "--action-button-bg": "var(--primary)",
+          "--action-button-foreground": "var(--primary-foreground)",
+          "--close-button-bg": "transparent",
+          "--close-button-border": "var(--border)",
         } as React.CSSProperties
       }
       icons={{

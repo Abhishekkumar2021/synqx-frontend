@@ -1,3 +1,4 @@
+/* eslint-disable no-empty */
 /* eslint-disable react-hooks/incompatible-library */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -340,7 +341,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
             {/* --- Header --- */}
             <div className="flex items-center justify-between p-8 border-b border-border/10 bg-muted/20 shrink-0 relative overflow-hidden">
                 {/* Header Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-linear-to-br from-primary/5 to-transparent pointer-events-none" />
                 
                 <div className="flex items-center gap-5 relative z-10">
                     <div className={cn(
@@ -915,11 +916,11 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                     {/* --- Footer Actions --- */}
                     <div className="p-8 border-t border-border/10 bg-muted/40 backdrop-blur-2xl shrink-0 flex gap-4 relative z-10">
                         {/* Footer Glow */}
-                        <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent pointer-events-none" />
+                        <div className="absolute inset-0 bg-linear-to-tr from-primary/5 to-transparent pointer-events-none" />
                         
                         <Button 
                             type="submit" 
-                            className="flex-1 rounded-[1.25rem] h-14 font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95 bg-primary text-primary-foreground"
+                            className="flex-1 rounded-3xl h-14 font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-primary/30 transition-all active:scale-95 bg-primary text-primary-foreground"
                         >
                             <Save className="mr-2.5 h-4 w-4" /> Update Operator
                         </Button>
@@ -930,7 +931,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    className="h-14 w-14 rounded-[1.25rem] border border-border/10 bg-foreground/5 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-all group"
+                                    className="h-14 w-14 rounded-3xl border border-border/10 bg-foreground/5 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-all group"
                                 >
                                     <Trash2 className="h-5 w-5 opacity-40 group-hover:opacity-100 transition-opacity" />
                                 </Button>
