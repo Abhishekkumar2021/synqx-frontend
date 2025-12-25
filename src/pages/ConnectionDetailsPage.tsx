@@ -12,6 +12,8 @@ import {
     type ConnectionTestResult,
     getConnectionImpact,
     getConnectionUsageStats,
+    getConnectionEnvironment,
+    type ConnectionEnvironmentInfo,
 } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,7 +27,8 @@ import {
     Key, Server, Settings2, 
     MoreVertical, Trash2, Pencil, 
     CheckCircle2, Download, Plus,
-    Sparkles} from 'lucide-react';
+    Sparkles, Terminal, Cpu, FileCode
+} from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -60,6 +63,151 @@ import { useMemo, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConfigField } from '@/components/features/connections/ConfigField';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
+    const { data: envInfo, isLoading, isError } = useQuery({
+        queryKey: ['connectionEnvironment', connectionId],
+        queryFn: () => getConnectionEnvironment(connectionId),
+    });
+
+    const [activeTab, setActiveTab] = useState<'general' | 'python' | 'shell'>('general');
+
+    if (isLoading) return <Skeleton className="h-32 w-full rounded-2xl" />;
+    if (isError || !envInfo) return null;
+
+    if (!envInfo.python_version && (!envInfo.available_tools || Object.keys(envInfo.available_tools).length === 0)) {
+        return null;
+    }
+
+    const installedPackages = envInfo.installed_packages || {};
+    const availableTools = envInfo.available_tools || {};
+
+    return (
+        <div className="rounded-2xl border border-border/40 bg-background/40 backdrop-blur-xl shadow-sm overflow-hidden flex flex-col md:flex-row h-[500px]">
+            {/* Sidebar */}
+            <div className="w-full md:w-48 border-b md:border-b-0 md:border-r border-border/40 bg-muted/10 p-2 flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-visible">
+                <button
+                    onClick={() => setActiveTab('general')}
+                    className={cn(
+                        "flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-lg transition-all w-full text-left",
+                        activeTab === 'general' ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/20"
+                    )}
+                >
+                    <Terminal className="h-3.5 w-3.5" />
+                    General Info
+                </button>
+                <button
+                    onClick={() => setActiveTab('python')}
+                    className={cn(
+                        "flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-lg transition-all w-full text-left",
+                        activeTab === 'python' ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/20"
+                    )}
+                >
+                    <FileCode className="h-3.5 w-3.5" />
+                    Python
+                    <Badge variant="secondary" className="ml-auto text-[9px] h-4 px-1">{Object.keys(installedPackages).length}</Badge>
+                </button>
+                <button
+                    onClick={() => setActiveTab('shell')}
+                    className={cn(
+                        "flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-lg transition-all w-full text-left",
+                        activeTab === 'shell' ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/20"
+                    )}
+                >
+                    <Cpu className="h-3.5 w-3.5" />
+                    Shell
+                    <Badge variant="secondary" className="ml-auto text-[9px] h-4 px-1">{Object.keys(availableTools).length}</Badge>
+                </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-border/50 hover:scrollbar-thumb-border/80 scrollbar-track-transparent">
+                {activeTab === 'general' && (
+                    <div className="space-y-6">
+                        <div>
+                            <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                                <Terminal className="h-4 w-4 text-primary" />
+                                Environment Overview
+                            </h3>
+                            <div className="grid gap-6 md:grid-cols-2">
+                                {envInfo.python_version && (
+                                    <ConfigField 
+                                        label="Python Runtime" 
+                                        value={envInfo.python_version.split(' ')[0]} 
+                                        icon={<FileCode className="h-3.5 w-3.5" />}
+                                    />
+                                )}
+                                {envInfo.platform && (
+                                    <ConfigField 
+                                        label="OS Platform" 
+                                        value={envInfo.platform} 
+                                        icon={<Cpu className="h-3.5 w-3.5" />}
+                                    />
+                                )}
+                                {envInfo.base_path && (
+                                    <ConfigField label="Script Base Path" value={envInfo.base_path} copyable />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'python' && (
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                                <FileCode className="h-4 w-4 text-primary" />
+                                Installed Packages
+                            </h3>
+                            <Input 
+                                placeholder="Search packages..." 
+                                className="h-7 w-48 text-xs bg-background/50"
+                                onChange={(e) => {
+                                    // Simple client-side search logic could go here or handled by component state
+                                    // For now just layout
+                                }}
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {Object.entries(installedPackages).sort((a, b) => a[0].localeCompare(b[0])).map(([pkg, ver]) => (
+                                <div key={pkg} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-muted/5 border border-border/20 hover:bg-muted/10 transition-colors group">
+                                    <span className="font-medium truncate mr-2 text-foreground/80 group-hover:text-foreground" title={pkg}>{pkg}</span>
+                                    <Badge variant="outline" className="text-[10px] font-mono bg-background/50 text-muted-foreground h-5 border-border/30">
+                                        {String(ver)}
+                                    </Badge>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'shell' && (
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                            <Cpu className="h-4 w-4 text-primary" />
+                            Available Shell Tools
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {Object.entries(availableTools).map(([tool, path]) => (
+                                <div key={tool} className="flex flex-col text-xs px-3 py-2 rounded-lg bg-muted/5 border border-border/20 hover:bg-muted/10 transition-colors">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="font-bold text-foreground uppercase tracking-wider">{tool}</span>
+                                        <Badge variant="outline" className="text-[9px] bg-emerald-500/5 text-emerald-600 border-emerald-500/20 h-4 px-1.5">
+                                            Available
+                                        </Badge>
+                                    </div>
+                                    <code className="text-[10px] text-muted-foreground font-mono bg-background/30 px-1.5 py-0.5 rounded truncate" title={String(path)}>
+                                        {String(path)}
+                                    </code>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
 
 const AssetsTabContent = ({
     connectionId,
@@ -511,6 +659,8 @@ const ConfigurationTabContent = ({
                         </div>
                     </div>
                 </div>
+
+                <EnvironmentInfo connectionId={connection.id} />
             </div>
 
             {/* Side Panel Info */}

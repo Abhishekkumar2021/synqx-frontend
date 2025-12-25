@@ -472,6 +472,22 @@ export const getConnectionUsageStats = async (connectionId: number) => {
     return data;
 };
 
+export interface ConnectionEnvironmentInfo {
+    python_version?: string;
+    platform?: string;
+    pandas_version?: string;
+    numpy_version?: string;
+    base_path?: string;
+    available_tools?: Record<string, string>;
+    installed_packages?: Record<string, string>;
+    details?: Record<string, any>;
+}
+
+export const getConnectionEnvironment = async (connectionId: number) => {
+    const { data } = await api.get<ConnectionEnvironmentInfo>(`/connections/${connectionId}/environment`);
+    return data;
+};
+
 // Pipelines
 export interface PipelineNode {
     id?: number;
