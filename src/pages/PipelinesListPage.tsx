@@ -17,8 +17,12 @@ import { PipelineGridItem } from '@/components/features/pipelines/PipelineGridIt
 import { PipelineListItem } from '@/components/features/pipelines/PipelineListItem';
 import { LoadingSkeleton, EmptyState } from '@/components/features/pipelines/PipelineStates';
 import { PageMeta } from '@/components/common/PageMeta';
+import { useJobsListTelemetry } from '@/hooks/useJobsListTelemetry';
 
 export const PipelinesListPage: React.FC = () => {
+    // Enable real-time updates for pipeline status via global jobs telemetry
+    useJobsListTelemetry();
+
     const queryClient = useQueryClient();
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [versionsOpen, setVersionsOpen] = useState(false);
@@ -31,7 +35,6 @@ export const PipelinesListPage: React.FC = () => {
     const { data: recentJobs } = useQuery({
         queryKey: ['jobs', 'recent'],
         queryFn: () => getJobs(),
-        refetchInterval: 5000
     });
 
     // Fetch stats for all pipelines
@@ -187,7 +190,7 @@ export const PipelinesListPage: React.FC = () => {
                             <div className="col-span-12 md:col-span-4">Pipeline</div>
                             <div className="col-span-2 hidden md:block pl-2">Status</div>
                             <div className="col-span-2 hidden md:block">Performance</div>
-                            <div className="col-span-2 hidden md:block">Last Activity</div>
+                            <div className="col-span-2 hidden md:block">Activity / Schedule</div>
                             <div className="col-span-2 hidden md:block text-right pr-4">Operations</div>
                         </div>
 

@@ -72,9 +72,10 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
             case 'paused':
             case 'suspended':
             case 'warning':
+            case 'cancelled':
                 return {
                     variant: "warning",
-                    icon: PauseCircle,
+                    icon: AlertCircle,
                     animate: false
                 };
 

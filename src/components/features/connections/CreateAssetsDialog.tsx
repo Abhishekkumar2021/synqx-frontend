@@ -33,6 +33,7 @@ type FormValues = {
         query?: string;
         is_incremental_capable: boolean;
         watermark_column?: string;
+        write_mode: 'append' | 'replace' | 'upsert';
     }[];
 };
 
@@ -40,7 +41,15 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
     const queryClient = useQueryClient();
     const { register, control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<FormValues>({
         defaultValues: {
-            assets: [{ name: '', asset_type: 'table', usageType: 'source', query: '', is_incremental_capable: false, watermark_column: 'timestamp' }]
+            assets: [{ 
+                name: '', 
+                asset_type: 'table', 
+                usageType: 'source', 
+                query: '', 
+                is_incremental_capable: false, 
+                watermark_column: 'timestamp',
+                write_mode: 'append'
+            }]
         }
     });
 
@@ -53,7 +62,15 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
     
     useEffect(() => {
         if (open) {
-            reset({ assets: [{ name: '', asset_type: 'table', usageType: 'source', query: '', is_incremental_capable: false, watermark_column: 'timestamp' }] });
+            reset({ assets: [{ 
+                name: '', 
+                asset_type: 'table', 
+                usageType: 'source', 
+                query: '', 
+                is_incremental_capable: false, 
+                watermark_column: 'timestamp',
+                write_mode: 'append'
+            }] });
         }
     }, [open, reset]);
 
@@ -96,6 +113,11 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                 // Incremental Config
                 if (asset.is_incremental_capable && asset.watermark_column) {
                     config.watermark_column = asset.watermark_column;
+                }
+
+                // Writing Strategy for destinations
+                if (asset.usageType === 'destination') {
+                    config.write_mode = asset.write_mode;
                 }
 
                 // If config is empty object, set to undefined to avoid sending empty dict if not needed, 
@@ -237,22 +259,41 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                                                 </div>
                                                 
                                                 <div className="col-span-2 flex items-center gap-2">
-                                                     <Controller
-                                                        control={control}
-                                                        name={`assets.${index}.is_incremental_capable`}
-                                                        render={({ field }) => (
-                                                            <div className="flex items-center gap-2 bg-background/50 border border-border/40 rounded-xl px-3 h-10 w-full">
-                                                                <Switch 
-                                                                    checked={field.value} 
-                                                                    onCheckedChange={field.onChange} 
-                                                                    className="scale-75 data-[state=checked]:bg-primary"
-                                                                />
-                                                                <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
-                                                                    {field.value ? 'Incr.' : 'Full'}
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                    />
+                                                     {watchedAssets?.[index]?.usageType === 'source' ? (
+                                                         <Controller
+                                                            control={control}
+                                                            name={`assets.${index}.is_incremental_capable`}
+                                                            render={({ field }) => (
+                                                                <div className="flex items-center gap-2 bg-background/50 border border-border/40 rounded-xl px-3 h-10 w-full">
+                                                                    <Switch 
+                                                                        checked={field.value} 
+                                                                        onCheckedChange={field.onChange} 
+                                                                        className="scale-75 data-[state=checked]:bg-primary"
+                                                                    />
+                                                                    <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                                                                        {field.value ? 'Incr.' : 'Full'}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                        />
+                                                     ) : (
+                                                        <Controller
+                                                            control={control}
+                                                            name={`assets.${index}.write_mode`}
+                                                            render={({ field }) => (
+                                                                <Select onValueChange={field.onChange} value={field.value}>
+                                                                    <SelectTrigger className="h-10 rounded-xl bg-background/50 border-border/40 text-[10px] font-bold uppercase">
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent className="rounded-xl">
+                                                                        <SelectItem value="append">Append</SelectItem>
+                                                                        <SelectItem value="replace">Replace</SelectItem>
+                                                                        <SelectItem value="upsert">Upsert</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+                                                            )}
+                                                        />
+                                                     )}
                                                 </div>
 
                                                 <div className="col-span-1 flex justify-center">

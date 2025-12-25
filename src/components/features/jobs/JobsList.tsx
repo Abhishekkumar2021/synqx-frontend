@@ -64,7 +64,7 @@ export const JobsList: React.FC<JobsListProps> = ({
                 </div>
                 <div className="flex items-center justify-between">
                     <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                        {['success', 'failed', 'running', 'pending'].map((status) => (
+                        {['success', 'failed', 'running', 'pending', 'queued', 'cancelled'].map((status) => (
                             <button
                                 key={status}
                                 onClick={() => setStatusFilter(statusFilter === status ? null : status)}
@@ -157,7 +157,7 @@ export const JobsList: React.FC<JobsListProps> = ({
                                         
                                         <div className="flex flex-col items-end gap-2 shrink-0">
                                             <StatusBadge status={job.status} className="scale-90 origin-top-right shadow-sm" />
-                                            {job.status === 'running' && (
+                                            {(['running', 'pending', 'queued'].includes(job.status)) && (
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -165,7 +165,7 @@ export const JobsList: React.FC<JobsListProps> = ({
                                                     }}
                                                     disabled={cancelMutation.isPending}
                                                     className="p-1.5 rounded-lg bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive hover:text-white transition-all scale-0 group-hover:scale-100 disabled:opacity-50"
-                                                    title="Stop execution"
+                                                    title="Cancel job"
                                                 >
                                                     <StopCircle size={14} />
                                                 </button>

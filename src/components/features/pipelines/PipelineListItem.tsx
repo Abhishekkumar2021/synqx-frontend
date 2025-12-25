@@ -124,7 +124,8 @@ export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, on
                 </div>
 
                 {/* --- Column 4: Last Activity --- */}
-                <div className="col-span-6 md:col-span-2 flex flex-col justify-center">
+                <div className="col-span-6 md:col-span-2 flex flex-col justify-center gap-2">
+                    {/* Last Run Info */}
                     {pipeline.stats?.last_run_at ? (
                         <div className="flex flex-col gap-0.5">
                             <div className={cn(
@@ -133,17 +134,27 @@ export const PipelineListItem: React.FC<PipelineListItemProps> = ({ pipeline, on
                                 isFailed ? "text-destructive" :
                                 isRunning ? "text-blue-500" : "text-muted-foreground"
                             )}>
-                                {isSuccess ? <CheckCircle2 className="h-3 w-3" /> :
-                                 isFailed ? <XCircle className="h-3 w-3" /> :
-                                 isRunning ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                                {isSuccess ? <CheckCircle2 className="h-2.5 w-2.5" /> :
+                                 isFailed ? <XCircle className="h-2.5 w-2.5" /> :
+                                 isRunning ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : null}
                                 <span>{lastJob?.status || 'done'}</span>
                             </div>
-                            <span className="text-[9px] text-muted-foreground/60 font-black uppercase tracking-widest">
+                            <span className="text-[9px] text-muted-foreground/60 font-black uppercase tracking-widest whitespace-nowrap">
                                 {formatDistanceToNow(new Date(pipeline.stats.last_run_at), { addSuffix: true })}
                             </span>
                         </div>
                     ) : (
-                        <span className="text-[10px] text-muted-foreground/40 font-black uppercase tracking-widest">Idle</span>
+                        <span className="text-[10px] text-muted-foreground/40 font-black uppercase tracking-widest">Never Run</span>
+                    )}
+
+                    {/* Next Run Info (Subtle) */}
+                    {pipeline.schedule_enabled && pipeline.stats?.next_scheduled_run && (
+                        <div className="flex items-center gap-1.5 pt-1.5 border-t border-border/20">
+                            <Zap className="h-2.5 w-2.5 text-primary fill-current" />
+                            <span className="text-[9px] font-black text-primary/80 uppercase tracking-tighter">
+                                Next {formatDistanceToNow(new Date(pipeline.stats.next_scheduled_run), { addSuffix: true })}
+                            </span>
+                        </div>
                     )}
                 </div>
 

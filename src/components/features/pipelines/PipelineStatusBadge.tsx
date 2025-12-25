@@ -33,6 +33,8 @@ export const PipelineStatusBadge: React.FC<PipelineStatusBadgeProps> = ({ status
 
             case 'running':
             case 'processing':
+            case 'queued':
+            case 'pending':
                 return {
                     color: "text-info",
                     bg: "bg-info/10",
@@ -43,6 +45,7 @@ export const PipelineStatusBadge: React.FC<PipelineStatusBadgeProps> = ({ status
 
             case 'paused':
             case 'warning':
+            case 'cancelled':
                 return {
                     color: "text-warning",
                     bg: "bg-warning/10",

@@ -10,6 +10,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { updateAsset, type Asset, type AssetUpdate } from '@/lib/api';
 import { toast } from 'sonner';
 import { Sparkles, Loader2, Code, TrendingUp, Settings } from 'lucide-react';
@@ -27,6 +34,7 @@ type FormValues = {
     description?: string;
     is_incremental_capable: boolean;
     watermark_column?: string;
+    write_mode?: 'append' | 'replace' | 'upsert';
     query?: string;
 };
 
@@ -40,17 +48,20 @@ export const EditAssetDialog: React.FC<EditAssetDialogProps> = ({ connectionId, 
         if (open && asset) {
             let query = '';
             let watermark_column = 'timestamp';
+            let write_mode: any = 'append';
 
             if (asset.config) {
                 if (asset.config.query) query = asset.config.query;
                 if (asset.config.code) query = asset.config.code;
                 if (asset.config.watermark_column) watermark_column = asset.config.watermark_column;
+                if (asset.config.write_mode) write_mode = asset.config.write_mode;
             }
 
             reset({
                 description: asset.description || '',
                 is_incremental_capable: asset.is_incremental_capable,
                 watermark_column: watermark_column,
+                write_mode: write_mode,
                 query: query
             });
         }
@@ -87,10 +98,11 @@ export const EditAssetDialog: React.FC<EditAssetDialogProps> = ({ connectionId, 
         // Update Incremental Config
         if (data.is_incremental_capable) {
             config.watermark_column = data.watermark_column;
-        } else {
-            // Remove watermark column if disabled? Or keep it dormant. 
-            // Better to keep it clean if we can, but merging is safer.
-            // Let's just update the key if provided.
+        }
+
+        // Update Writing Strategy
+        if (asset.is_destination) {
+            config.write_mode = data.write_mode;
         }
 
         const payload: AssetUpdate = {
@@ -136,44 +148,74 @@ export const EditAssetDialog: React.FC<EditAssetDialogProps> = ({ connectionId, 
                             />
                         </div>
 
-                        {/* Incremental Toggle */}
-                        <div className="p-4 rounded-2xl border border-border/40 bg-muted/5 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="space-y-0.5">
-                                    <Label className="text-sm font-bold">Incremental Loading</Label>
-                                    <p className="text-[10px] text-muted-foreground">Track state to only process new data.</p>
-                                </div>
-                                <Controller
-                                    control={control}
-                                    name="is_incremental_capable"
-                                    render={({ field }) => (
-                                        <Switch 
-                                            checked={field.value} 
-                                            onCheckedChange={field.onChange} 
-                                            className="data-[state=checked]:bg-primary"
-                                        />
-                                    )}
-                                />
-                            </div>
-
-                            {isIncremental && (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    className="pt-2"
-                                >
-                                    <div className="flex items-center gap-3 bg-background/50 border border-border/40 rounded-xl p-3">
-                                        <TrendingUp className="h-4 w-4 text-primary" />
-                                        <Label className="text-xs font-semibold whitespace-nowrap">Watermark Column:</Label>
-                                        <Input 
-                                            {...register('watermark_column', { required: isIncremental })}
-                                            placeholder="e.g. updated_at"
-                                            className="h-8 text-xs bg-transparent border-none shadow-none focus-visible:ring-0 px-2"
-                                        />
+                        {/* Incremental Toggle (Source Only) */}
+                        {asset.is_source && (
+                            <div className="p-4 rounded-2xl border border-border/40 bg-muted/5 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label className="text-sm font-bold">Incremental Loading</Label>
+                                        <p className="text-[10px] text-muted-foreground">Track state to only process new data.</p>
                                     </div>
-                                </motion.div>
-                            )}
-                        </div>
+                                    <Controller
+                                        control={control}
+                                        name="is_incremental_capable"
+                                        render={({ field }) => (
+                                            <Switch 
+                                                checked={field.value} 
+                                                onCheckedChange={field.onChange} 
+                                                className="data-[state=checked]:bg-primary"
+                                            />
+                                        )}
+                                    />
+                                </div>
+
+                                {isIncremental && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        className="pt-2"
+                                    >
+                                        <div className="flex items-center gap-3 bg-background/50 border border-border/40 rounded-xl p-3">
+                                            <TrendingUp className="h-4 w-4 text-primary" />
+                                            <Label className="text-xs font-semibold whitespace-nowrap">Watermark Column:</Label>
+                                            <Input 
+                                                {...register('watermark_column', { required: isIncremental })}
+                                                placeholder="e.g. updated_at"
+                                                className="h-8 text-xs bg-transparent border-none shadow-none focus-visible:ring-0 px-2"
+                                            />
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Writing Strategy (Destination Only) */}
+                        {asset.is_destination && (
+                            <div className="p-4 rounded-2xl border border-border/40 bg-muted/5 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label className="text-sm font-bold">Writing Strategy</Label>
+                                        <p className="text-[10px] text-muted-foreground">Define how data is ingested into this asset.</p>
+                                    </div>
+                                    <Controller
+                                        control={control}
+                                        name="write_mode"
+                                        render={({ field }) => (
+                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                <SelectTrigger className="w-[120px] h-9 rounded-xl bg-background border-border/40 text-xs font-bold uppercase">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent className="rounded-xl">
+                                                    <SelectItem value="append">Append</SelectItem>
+                                                    <SelectItem value="replace">Replace</SelectItem>
+                                                    <SelectItem value="upsert">Upsert</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         {/* Query Editor (if applicable) */}
                         {isQuery && (

@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { JobsList } from '@/components/features/jobs/JobsList';
 import { JobDetails } from '@/components/features/jobs/JobDetails';
 import { PageMeta } from '@/components/common/PageMeta';
+import { useJobsListTelemetry } from '@/hooks/useJobsListTelemetry';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -21,6 +22,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 export const JobsPage: React.FC = () => {
+    // Enable real-time list updates via WebSockets
+    useJobsListTelemetry();
+
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [selectedJobId, setSelectedJobId] = useState<number | null>(id ? parseInt(id) : null);
@@ -45,7 +49,6 @@ export const JobsPage: React.FC = () => {
     const { data: jobs, isLoading, refetch, isRefetching } = useQuery({
         queryKey: ['jobs'],
         queryFn: () => getJobs(),
-        refetchInterval: 3000,
     });
 
     const { data: pipelines } = useQuery({

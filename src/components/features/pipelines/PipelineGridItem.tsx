@@ -140,28 +140,57 @@ export const PipelineGridItem: React.FC<PipelineGridItemProps> = ({ pipeline, on
                         {pipeline.description || "No description provided."}
                     </p>
                     
-                    <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-muted/30 border border-border/20">
-                        <div className="flex flex-col gap-0.5">
-                            <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Success Rate</span>
-                            <div className="flex items-center gap-1.5">
-                                {successRate !== null ? (
-                                    <>
-                                        <div className={cn("h-1.5 w-1.5 rounded-full", 
-                                            successRate > 90 ? "bg-emerald-500" : successRate > 70 ? "bg-amber-500" : "bg-destructive"
-                                        )} />
-                                        <span className="text-xs font-bold tabular-nums">{successRate}%</span>
-                                    </>
-                                ) : (
-                                    <span className="text-xs text-muted-foreground/60 font-medium">—</span>
-                                )}
+                    <div className="flex flex-col gap-3 p-3.5 rounded-2xl bg-muted/30 border border-border/20">
+                        {/* Row 1: Success Rate & Last Run */}
+                        <div className="grid grid-cols-2 gap-2">
+                            <div className="flex flex-col gap-0.5">
+                                <span className="text-[9px] text-muted-foreground font-black uppercase tracking-wider">Success Rate</span>
+                                <div className="flex items-center gap-1.5">
+                                    {successRate !== null ? (
+                                        <>
+                                            <div className={cn("h-1.5 w-1.5 rounded-full", 
+                                                successRate > 90 ? "bg-emerald-500" : successRate > 70 ? "bg-amber-500" : "bg-destructive"
+                                            )} />
+                                            <span className="text-xs font-bold tabular-nums">{successRate}%</span>
+                                        </>
+                                    ) : (
+                                        <span className="text-xs text-muted-foreground/60 font-medium">—</span>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-0.5 border-l border-border/20 pl-3">
+                                <span className="text-[9px] text-muted-foreground font-black uppercase tracking-wider">Last Run</span>
+                                <div className="flex items-center gap-1.5 truncate">
+                                    {lastJob ? (
+                                        <>
+                                            {isSuccess && <CheckCircle2 className="h-3 w-3 text-emerald-500" />}
+                                            {isFailed && <XCircle className="h-3 w-3 text-destructive" />}
+                                            {isRunning && <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />}
+                                            <span className="text-xs font-medium truncate">
+                                                {formatDistanceToNow(new Date(lastJob.started_at!), { addSuffix: true })}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <span className="text-xs text-muted-foreground/60 font-medium">Never</span>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-0.5 border-l border-border/20 pl-3">
-                            <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Last Run</span>
-                            <span className="text-xs font-medium truncate">
-                                {lastJob ? formatDistanceToNow(new Date(lastJob.started_at!), { addSuffix: true }) : 'Never'}
-                            </span>
-                        </div>
+
+                        {/* Row 2: Next Scheduled Run (if enabled) */}
+                        {pipeline.schedule_enabled && stats?.next_scheduled_run && (
+                            <div className="pt-2.5 border-t border-border/10 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-1 rounded-md bg-primary/10 text-primary">
+                                        <Calendar className="h-3 w-3" />
+                                    </div>
+                                    <span className="text-[9px] text-muted-foreground font-black uppercase tracking-wider">Next Sync</span>
+                                </div>
+                                <span className="text-xs font-black text-primary animate-pulse-slow">
+                                    {formatDistanceToNow(new Date(stats.next_scheduled_run), { addSuffix: true })}
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
 

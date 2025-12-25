@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/incompatible-library */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import {
     Dialog,
     DialogContent
@@ -11,6 +11,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { CronBuilder } from '@/components/common/CronBuilder';
 import { type Pipeline, updatePipeline } from '@/lib/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -23,6 +30,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface PipelineSettingsDialogProps {
     pipeline: Pipeline | null;
@@ -37,6 +45,8 @@ interface SettingsFormData {
     schedule_cron: string;
     max_parallel_runs: number;
     max_retries: number;
+    retry_strategy: string;
+    retry_delay_seconds: number;
     execution_timeout_seconds: number | null;
     priority: number;
 }
@@ -44,7 +54,7 @@ interface SettingsFormData {
 export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ pipeline, open, onOpenChange }) => {
     const queryClient = useQueryClient();
 
-    const { register, handleSubmit, setValue, watch, reset } = useForm<SettingsFormData>();
+    const { register, handleSubmit, setValue, watch, reset, control } = useForm<SettingsFormData>();
 
     const scheduleEnabled = watch('schedule_enabled');
     const scheduleCron = watch('schedule_cron');
@@ -59,6 +69,8 @@ export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ 
                 schedule_cron: pipeline.schedule_cron || '0 0 * * *',
                 max_parallel_runs: pipeline.max_parallel_runs || 1,
                 max_retries: pipeline.max_retries || 3,
+                retry_strategy: (pipeline as any).retry_strategy || 'fixed',
+                retry_delay_seconds: (pipeline as any).retry_delay_seconds || 60,
                 execution_timeout_seconds: pipeline.execution_timeout_seconds || 3600,
                 priority: pipeline.priority || 5
             });
@@ -137,6 +149,7 @@ export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ 
 
                             <Button
                                 type="submit"
+                                form="settings-form"
                                 disabled={mutation.isPending}
                                 className="rounded-xl h-11 px-8 text-xs font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95"
                             >
@@ -239,32 +252,74 @@ export const PipelineSettingsDialog: React.FC<PipelineSettingsDialogProps> = ({ 
                                             />
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-6">
-                                            <div className="space-y-3">
-                                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Max Parallel Units</Label>
-                                                <Input
-                                                    type="number"
-                                                    {...register('max_parallel_runs', { valueAsNumber: true })}
-                                                    className="h-14 rounded-2xl bg-background/50 border-border/60 font-black text-base shadow-inner px-6"
-                                                />
-                                            </div>
-                                            <div className="space-y-3">
-                                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Auto-Retry Threshold</Label>
-                                                <Input
-                                                    type="number"
-                                                    {...register('max_retries', { valueAsNumber: true })}
-                                                    className="h-14 rounded-2xl bg-background/50 border-border/60 font-black text-base shadow-inner px-6"
-                                                />
-                                            </div>
-                                        </div>
                                         <div className="space-y-3">
-                                            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Execution Timeout (Seconds)</Label>
+                                            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Max Parallel Units</Label>
                                             <Input
                                                 type="number"
-                                                {...register('execution_timeout_seconds', { valueAsNumber: true })}
+                                                {...register('max_parallel_runs', { valueAsNumber: true })}
                                                 className="h-14 rounded-2xl bg-background/50 border-border/60 font-black text-base shadow-inner px-6"
                                             />
                                         </div>
+
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div className="space-y-3">
+                                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Execution Timeout (Seconds)</Label>
+                                                <Input
+                                                    type="number"
+                                                    {...register('execution_timeout_seconds', { valueAsNumber: true })}
+                                                    className="h-14 rounded-2xl bg-background/50 border-border/60 font-black text-base shadow-inner px-6"
+                                                />
+                                            </div>
+                                            <div className="space-y-3">
+                                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Retry Strategy</Label>
+                                                <Controller
+                                                    control={control}
+                                                    name="retry_strategy"
+                                                    render={({ field }) => (
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <SelectTrigger className="h-14 rounded-2xl bg-background/50 border-border/60 font-black text-sm shadow-inner px-6">
+                                                                <SelectValue />
+                                                            </SelectTrigger>
+                                                            <SelectContent className="rounded-xl">
+                                                                <SelectItem value="none">None</SelectItem>
+                                                                <SelectItem value="fixed">Fixed Delay</SelectItem>
+                                                                <SelectItem value="linear_backoff">Linear Backoff</SelectItem>
+                                                                <SelectItem value="exponential_backoff">Exponential Backoff</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    )}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <AnimatePresence mode="wait">
+                                            {watch('retry_strategy') !== 'none' && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, height: 0, y: -10 }}
+                                                    animate={{ opacity: 1, height: 'auto', y: 0 }}
+                                                    exit={{ opacity: 0, height: 0, y: -10 }}
+                                                    transition={{ duration: 0.3, ease: "easeOut" }}
+                                                    className="grid grid-cols-2 gap-6 overflow-hidden"
+                                                >
+                                                    <div className="space-y-3">
+                                                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Auto-Retry Threshold</Label>
+                                                        <Input
+                                                            type="number"
+                                                            {...register('max_retries', { valueAsNumber: true })}
+                                                            className="h-14 rounded-2xl bg-background/50 border-border/60 font-black text-base shadow-inner px-6"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ml-1">Base Delay (Seconds)</Label>
+                                                        <Input
+                                                            type="number"
+                                                            {...register('retry_delay_seconds', { valueAsNumber: true })}
+                                                            className="h-14 rounded-2xl bg-background/50 border-border/60 font-black text-base shadow-inner px-6"
+                                                        />
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </TabsContent>
 
                                     <TabsContent value="governance" className="m-0 p-10 animate-in fade-in slide-in-from-right-4 duration-500">

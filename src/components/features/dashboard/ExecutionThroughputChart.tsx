@@ -108,7 +108,7 @@ export const ExecutionThroughputChart: React.FC<ExecutionThroughputChartProps> =
             <CardContent className="flex-1 px-6 pt-4 pb-8 min-h-[350px]">
                 <ResponsiveContainer width="100%" height="100%" key={`${theme}-${view}`}>
                     {view === 'jobs' ? (
-                        <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <AreaChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="gradSuccess" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor={colors.SUCCESS} stopOpacity={0.4} />
@@ -121,13 +121,20 @@ export const ExecutionThroughputChart: React.FC<ExecutionThroughputChartProps> =
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke={colors.GRID} vertical={false} />
                             <XAxis dataKey="name" stroke={colors.TEXT} fontSize={10} fontWeight={800} tickLine={false} axisLine={false} dy={10} />
-                            <YAxis stroke={colors.TEXT} fontSize={10} fontWeight={800} tickLine={false} axisLine={false} />
+                            <YAxis 
+                                stroke={colors.TEXT} 
+                                fontSize={10} 
+                                fontWeight={800} 
+                                tickLine={false} 
+                                axisLine={false}
+                                width={40}
+                            />
                             <Tooltip content={<CustomTooltip viewType="jobs" colors={colors} />} cursor={{ stroke: colors.SUCCESS, strokeWidth: 2, strokeDasharray: '6 6', opacity: 0.4 }} />
                             <Area type="monotone" dataKey="success" name="Completed" stroke={colors.SUCCESS} strokeWidth={4} fill="url(#gradSuccess)" animationDuration={1500} />
                             <Area type="monotone" dataKey="failed" name="Failed" stroke={colors.FAILED} strokeWidth={4} fill="url(#gradFailed)" animationDuration={1500} />
                         </AreaChart>
                     ) : (
-                        <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke={colors.GRID} vertical={false} />
                             <XAxis dataKey="name" stroke={colors.TEXT} fontSize={10} fontWeight={800} tickLine={false} axisLine={false} dy={10} />
                             <YAxis
@@ -136,6 +143,7 @@ export const ExecutionThroughputChart: React.FC<ExecutionThroughputChartProps> =
                                 fontWeight={800}
                                 tickLine={false}
                                 axisLine={false}
+                                width={60}
                                 tickFormatter={(val) => view === 'bytes' ? formatBytes(val) : val.toLocaleString()}
                             />
                             <Tooltip content={<CustomTooltip viewType={view} colors={colors} />} cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }} />

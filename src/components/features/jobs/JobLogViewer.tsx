@@ -1,10 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useJobLogs } from '@/hooks/useJobLogs';
 import {
-    Terminal, Play, Pause, Download,
-    ArrowDown, Wifi, WifiOff, Search, WrapText, CalendarCheck,
-    ListFilter, ChevronUp, ChevronDown, Copy, Check
+    Terminal, Play, Pause, 
+    ArrowDown, Search, WrapText, CalendarCheck,
+    ListFilter, Activity,
+    Settings2, MoreVertical, FileDown, ClipboardCopy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -17,27 +19,18 @@ import {
     DropdownMenuCheckboxItem,
     DropdownMenuTrigger,
     DropdownMenuLabel,
-    DropdownMenuSeparator,
+    DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface JobLogViewerProps {
     jobId: number | null;
 }
-
-const ActionIcon = ({ onClick, title, children, active, className }: { onClick: () => void, title: string, children: React.ReactNode, active?: boolean, className?: string }) => (
-    <button
-        onClick={onClick}
-        className={cn(
-            "p-2 rounded-lg transition-all duration-200",
-            "text-muted-foreground hover:text-foreground hover:bg-muted/30",
-            active && "bg-primary/20 text-primary hover:bg-primary/30 hover:text-primary-foreground",
-            className
-        )}
-        title={title}
-    >
-        {children}
-    </button>
-);
 
 export const JobLogViewer: React.FC<JobLogViewerProps> = ({ jobId }) => {
     const [isAutoScroll, setIsAutoScroll] = useState(true);
@@ -45,12 +38,12 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ jobId }) => {
     const [showTimestamps, setShowTimestamps] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [levelFilter, setLevelFilter] = useState<string[]>(['INFO', 'ERROR', 'WARNING', 'DEBUG', 'SUCCESS']);
-    const [copied, setCopied] = useState(false);
+    const [, setCopied] = useState(false);
 
     const { logs, isConnected } = useJobLogs(jobId);
     const scrollViewportRef = useRef<HTMLDivElement>(null);
 
-    // Filtered logs based on search and level
+    // Filtered logs
     const filteredLogs = useMemo(() => {
         return logs.filter((log: any) => {
             const levelMatch = levelFilter.includes(log.level || 'INFO');
@@ -71,25 +64,22 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ jobId }) => {
         const target = e.currentTarget;
         const { scrollTop, scrollHeight, clientHeight } = target;
         const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;
-
-        if (isAtBottom !== isAutoScroll) {
-            setIsAutoScroll(isAtBottom);
-        }
+        if (isAtBottom !== isAutoScroll) setIsAutoScroll(isAtBottom);
     };
 
     const handleDownload = () => {
+        if (filteredLogs.length === 0) return;
         const content = filteredLogs.map((log: any) => {
             const timestamp = log.timestamp ? format(new Date(log.timestamp), 'yyyy-MM-dd HH:mm:ss.SSS') : '';
             return `${showTimestamps ? `${timestamp} ` : ''}[${log.level || 'INFO'}] ${log.message}`;
         }).join('\n');
-
         const blob = new Blob([content], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `job-${jobId || 'latest'}-logs.txt`;
+        a.download = `logs-job-${jobId}.txt`;
         a.click();
-        toast.success("Logs downloaded");
+        toast.success("Logs exported");
     };
 
     const handleCopy = () => {
@@ -97,205 +87,239 @@ export const JobLogViewer: React.FC<JobLogViewerProps> = ({ jobId }) => {
         navigator.clipboard.writeText(content);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
-        toast.success("Logs copied to clipboard");
+        toast.success("Copied to clipboard");
     };
 
-    const getLevelColor = (level: string) => {
-        switch (level) {
-            case 'ERROR': return "text-destructive font-bold";
-            case 'WARNING': return "text-warning font-bold";
-            case 'SUCCESS': return "text-success font-bold";
-            case 'DEBUG': return "text-muted-foreground opacity-70";
-            default: return "text-primary font-medium";
+    const getLevelConfig = (level: string) => {
+        switch (level?.toUpperCase()) {
+            case 'ERROR': return { 
+                badge: "text-destructive bg-destructive/10 border-destructive/20", 
+                line: "bg-destructive/5", 
+                accent: "bg-destructive",
+                text: "text-destructive/90 dark:text-red-400/90"
+            };
+            case 'WARNING': return { 
+                badge: "text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20", 
+                line: "bg-amber-500/5", 
+                accent: "bg-amber-500",
+                text: "text-amber-700 dark:text-amber-200/80"
+            };
+            case 'SUCCESS': return { 
+                badge: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20", 
+                line: "bg-emerald-500/5", 
+                accent: "bg-emerald-500",
+                text: "text-emerald-700 dark:text-emerald-200/80"
+            };
+            default: return { 
+                badge: "text-primary bg-primary/10 border-primary/20", 
+                line: "", 
+                accent: "bg-primary",
+                text: "text-foreground/80 dark:text-blue-50/70"
+            };
         }
     };
 
-    const highlightText = (text: string, query: string) => {
-        if (!query) return text;
-        const parts = text.split(new RegExp(`(${query})`, 'gi'));
-        return (
-            <>
-                {parts.map((part, i) => 
-                    part.toLowerCase() === query.toLowerCase() ? 
-                    <mark key={i} className="bg-primary/20 text-primary rounded-sm px-0.5 border-b border-primary/50">{part}</mark> : 
-                    part
-                )}
-            </>
-        );
-    };
-
     return (
-        <div className="flex flex-col h-full bg-transparent text-foreground font-mono text-sm overflow-hidden">
-            {/* Terminal Header */}
-            <div className="flex items-center justify-between px-4 py-2 bg-muted/10 border-b border-border/20 backdrop-blur-sm shrink-0">
-                <div className="flex items-center gap-4">
-                    <div className="flex gap-1.5 opacity-60">
-                        <div className="w-2.5 h-2.5 rounded-full bg-destructive/80" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-warning/80" />
-                        <div className="w-2.5 h-2.5 rounded-full bg-success/80" />
-                    </div>
-                    <div className={cn(
-                        "flex items-center gap-2 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border",
-                        isConnected 
-                            ? "bg-success/10 text-success border-success/20" 
-                            : "bg-destructive/10 text-destructive border-destructive/20"
-                    )}>
-                        {isConnected ? <Wifi className="h-2.5 w-2.5" /> : <WifiOff className="h-2.5 w-2.5" />}
-                        {isConnected ? 'Connected' : 'Disconnected'}
-                    </div>
-                </div>
+        <TooltipProvider>
+            <div className="flex flex-col h-full bg-background text-foreground font-mono text-xs overflow-hidden transition-colors duration-300">
+                {/* --- Optimized Production Toolbar --- */}
+                <div className="flex items-center justify-between px-5 py-2.5 bg-muted/30 border-b border-border/40 backdrop-blur-md shrink-0">
+                    <div className="flex items-center gap-5">
+                        <div className={cn(
+                            "flex items-center gap-2 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.1em] border transition-all duration-500",
+                            isConnected ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-500 border-emerald-500/20" : "bg-destructive/10 text-destructive border-destructive/20"
+                        )}>
+                            {isConnected && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                            {isConnected ? 'Live' : 'Offline'}
+                        </div>
 
-                <div className="flex items-center gap-1">
-                    <div className="relative group mr-2">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground group-focus-within:text-primary transition-colors z-10" />
-                        <Input
-                            type="text"
-                            placeholder="Search logs..."
-                            className="bg-background/30 border border-border/30 rounded-lg pl-7 pr-3 h-7 text-[11px] w-32 focus:w-48 transition-all duration-300"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
+                        <div className="relative group">
+                            <Search className="z-20 absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                            <Input
+                                placeholder="Grep patterns..."
+                                className="bg-muted/20 border-border/40 rounded-lg pl-8 pr-3 h-8 text-[11px] w-44 focus:w-64 transition-all duration-500 focus:bg-background shadow-inner"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
                     </div>
 
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:bg-muted/30 hover:text-foreground">
-                                <ListFilter className="h-3.5 w-3.5" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 glass-card border-border/40">
-                            <DropdownMenuLabel className="text-[10px] uppercase tracking-widest opacity-50">Filter Levels</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            {['INFO', 'SUCCESS', 'WARNING', 'ERROR', 'DEBUG'].map((level) => (
-                                <DropdownMenuCheckboxItem
-                                    key={level}
-                                    checked={levelFilter.includes(level)}
-                                    onCheckedChange={(checked) => {
-                                        setLevelFilter(prev => checked ? [...prev, level] : prev.filter(l => l !== level));
-                                    }}
-                                    className="text-xs"
-                                >
-                                    {level}
+                    <div className="flex items-center gap-1.5">
+                        {/* Primary Interaction Group */}
+                        <div className="flex items-center bg-muted/20 rounded-lg p-0.5 border border-border/40">
+                            <DropdownMenu>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-muted-foreground/60 hover:text-primary hover:bg-background">
+                                                <ListFilter className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="text-[10px] font-black uppercase tracking-widest">Severities</TooltipContent>
+                                </Tooltip>
+                                <DropdownMenuContent align="end" className="w-48 glass-card border-border/40 rounded-xl p-1 shadow-2xl">
+                                    {['INFO', 'SUCCESS', 'WARNING', 'ERROR', 'DEBUG'].map(level => (
+                                        <DropdownMenuCheckboxItem
+                                            key={level}
+                                            checked={levelFilter.includes(level)}
+                                            onCheckedChange={(checked) => setLevelFilter(prev => checked ? [...prev, level] : prev.filter(l => l !== level))}
+                                            className="text-[10px] font-bold uppercase rounded-lg"
+                                        >
+                                            {level}
+                                        </DropdownMenuCheckboxItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
+                            <div className="w-px h-3 bg-border/40 mx-0.5" />
+
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        onClick={() => setIsAutoScroll(!isAutoScroll)} 
+                                        className={cn("h-7 w-7 rounded-md transition-all", isAutoScroll ? "text-primary bg-primary/10" : "text-muted-foreground/60")}
+                                    >
+                                        {isAutoScroll ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-[10px] font-black uppercase tracking-widest">{isAutoScroll ? 'Lock Scroll' : 'Follow'}</TooltipContent>
+                            </Tooltip>
+                        </div>
+
+                        {/* Display Settings */}
+                        <DropdownMenu>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground/60 hover:text-foreground">
+                                            <Settings2 className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-[10px] font-black uppercase tracking-widest">Display</TooltipContent>
+                            </Tooltip>
+                            <DropdownMenuContent align="end" className="w-56 glass-card border-border/40 rounded-xl p-1 shadow-2xl">
+                                <DropdownMenuLabel className="text-[9px] font-black uppercase opacity-40 px-3 py-2">Terminal Config</DropdownMenuLabel>
+                                <DropdownMenuCheckboxItem checked={wordWrap} onCheckedChange={setWordWrap} className="text-[10px] font-bold uppercase rounded-lg cursor-pointer">
+                                    <WrapText className="h-3.5 w-3.5 mr-2 opacity-60" /> Word Wrap
                                 </DropdownMenuCheckboxItem>
-                            ))}
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                                <DropdownMenuCheckboxItem checked={showTimestamps} onCheckedChange={setShowTimestamps} className="text-[10px] font-bold uppercase rounded-lg cursor-pointer">
+                                    <CalendarCheck className="h-3.5 w-3.5 mr-2 opacity-60" /> Timestamps
+                                </DropdownMenuCheckboxItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
 
-                    <div className="w-px h-3 bg-border/20 mx-1" />
-
-                    <ActionIcon onClick={handleCopy} title="Copy Logs" className="h-7 w-7">
-                        {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
-                    </ActionIcon>
-                    <ActionIcon onClick={handleDownload} title="Download Logs" className="h-7 w-7">
-                        <Download className="h-3.5 w-3.5" />
-                    </ActionIcon>
-                    <ActionIcon 
-                        onClick={() => setWordWrap(!wordWrap)} 
-                        title="Toggle Word Wrap"
-                        active={wordWrap}
-                        className="h-7 w-7"
-                    >
-                        <WrapText className="h-3.5 w-3.5" />
-                    </ActionIcon>
-                    <ActionIcon 
-                        onClick={() => setShowTimestamps(!showTimestamps)} 
-                        title="Toggle Timestamps"
-                        active={showTimestamps}
-                        className="h-7 w-7"
-                    >
-                        <CalendarCheck className="h-3.5 w-3.5" />
-                    </ActionIcon>
-                    <ActionIcon 
-                        onClick={() => setIsAutoScroll(!isAutoScroll)} 
-                        title={isAutoScroll ? "Disable Auto-scroll" : "Enable Auto-scroll"}
-                        active={!isAutoScroll}
-                        className="h-7 w-7"
-                    >
-                        {isAutoScroll ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
-                    </ActionIcon>
-                </div>
-            </div>
-
-            {/* Log Content */}
-            <div 
-                ref={scrollViewportRef}
-                onScroll={handleScroll}
-                className={cn(
-                    "flex-1 overflow-auto p-4 custom-scrollbar",
-                    wordWrap ? "whitespace-pre-wrap" : "whitespace-pre"
-                )}
-            >
-                {filteredLogs.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground/40 gap-4">
-                        <Terminal className="h-12 w-12 opacity-20" />
-                        <p className="text-sm font-medium">No logs matching filters.</p>
+                        {/* More Actions */}
+                        <DropdownMenu>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground/60 hover:text-foreground">
+                                            <MoreVertical className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent className="text-[10px] font-black uppercase tracking-widest">Actions</TooltipContent>
+                            </Tooltip>
+                            <DropdownMenuContent align="end" className="w-56 glass-card border-white/10 rounded-xl p-1 shadow-2xl">
+                                <DropdownMenuItem onClick={handleCopy} className="text-[10px] font-bold uppercase rounded-lg py-2 cursor-pointer">
+                                    <ClipboardCopy className="h-3.5 w-3.5 mr-2 opacity-60" /> Copy All Logs
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleDownload} className="text-[10px] font-bold uppercase rounded-lg py-2 cursor-pointer">
+                                    <FileDown className="h-3.5 w-3.5 mr-2 opacity-60" /> Export forensic.txt
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
-                ) : (
-                    <table className="w-full border-collapse">
-                        <tbody>
-                            {filteredLogs.map((log: any, idx: number) => (
-                                <tr key={log.id || idx} className="hover:bg-primary/5 group transition-all duration-200 border-l-2 border-transparent hover:border-primary/40 relative">
-                                    <td className="w-12 pr-4 text-right text-muted-foreground/60 select-none border-r border-border/20 text-[10px] align-top py-1.5 font-bold font-mono bg-muted/5 group-hover:text-foreground group-hover:bg-muted/10 transition-colors">
-                                        {idx + 1}
-                                    </td>
-                                    <td className="pl-4 py-1.5 align-top">
-                                        <div className="flex gap-3 items-start group-hover:translate-x-0.5 transition-transform duration-200">
+                </div>
+
+                {/* --- Log Stream with Enhanced Interaction --- */}
+                <div 
+                    ref={scrollViewportRef}
+                    onScroll={handleScroll}
+                    className={cn(
+                        "flex-1 overflow-auto custom-scrollbar select-text bg-card/10",
+                        wordWrap ? "whitespace-pre-wrap" : "whitespace-pre"
+                    )}
+                >
+                    {filteredLogs.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center opacity-20 gap-4">
+                            <Terminal size={40} />
+                            <span className="font-black uppercase tracking-[0.3em]">Awaiting Buffers...</span>
+                        </div>
+                    ) : (
+                        <div className="min-w-full py-3">
+                            {filteredLogs.map((log: any, idx: number) => {
+                                const cfg = getLevelConfig(log.level);
+                                return (
+                                    <div 
+                                        key={log.id || idx} 
+                                        className={cn(
+                                            "flex group relative min-h-[22px] transition-all duration-75 border-l-2 border-transparent hover:border-primary/50 hover:bg-muted/30",
+                                            cfg.line
+                                        )}
+                                    >
+                                        {/* Row Accent */}
+                                        <div className={cn("absolute left-0 top-0 bottom-0 w-[2px] opacity-0 group-hover:opacity-100 transition-opacity", cfg.accent)} />
+                                        
+                                        {/* Gutter */}
+                                        <div className="w-12 shrink-0 text-right pr-4 text-[9px] font-bold text-muted-foreground/20 select-none border-r border-border/40 pt-1 group-hover:text-primary/40">
+                                            {idx + 1}
+                                        </div>
+                                        
+                                        <div className="flex gap-4 items-start flex-1 min-w-0 pl-4 py-0.5 group-hover:translate-x-0.5 transition-transform">
                                             {showTimestamps && (
-                                                <span className="text-muted-foreground/50 shrink-0 select-none text-[10px] font-mono mt-0.5 group-hover:text-muted-foreground transition-colors">
-                                                    {log.timestamp ? format(new Date(log.timestamp), 'HH:mm:ss.SSS') : '--:--:--.---'}
+                                                <span className="text-[9px] font-black text-muted-foreground/30 shrink-0 select-none uppercase tracking-tighter w-24 pt-0.5">
+                                                    {log.timestamp ? format(new Date(log.timestamp), 'HH:mm:ss.SSS') : '00:00:00.000'}
                                                 </span>
                                             )}
-                                            <span className={cn("shrink-0 uppercase text-[9px] w-12 select-none font-bold mt-0.5 group-hover:brightness-110 transition-all", getLevelColor(log.level))}>
-                                                [{log.level || 'INFO'}]
+                                            
+                                            <span className={cn(
+                                                "shrink-0 uppercase text-[8px] px-1.5 py-0.5 rounded-sm font-black border tracking-widest transition-all w-16 text-center select-none mt-0.5",
+                                                cfg.badge
+                                            )}>
+                                                {log.level || 'INFO'}
                                             </span>
-                                            <span className="text-foreground/80 break-all leading-relaxed tracking-tight font-medium group-hover:text-foreground transition-colors">
-                                                {highlightText(log.message || '', searchQuery)}
+                                            
+                                            <span className={cn(
+                                                "leading-relaxed font-medium selection:bg-primary/30 transition-colors",
+                                                cfg.text
+                                            )}>
+                                                {log.message}
                                             </span>
                                         </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                )}
-            </div>
-
-            {/* Footer / Status */}
-            <div className="px-4 py-1 bg-muted/5 border-t border-border/10 flex items-center justify-between text-[9px] text-muted-foreground/60">
-                <div className="flex items-center gap-4">
-                    <span>Showing {filteredLogs.length} of {logs.length} lines</span>
-                    {searchQuery && (
-                        <span className="text-primary font-bold px-1.5 bg-primary/5 rounded border border-primary/10">
-                            Search: "{searchQuery}"
-                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     )}
                 </div>
-                <div className="flex items-center gap-3">
-                    <button 
-                        onClick={() => scrollViewportRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
-                        className="hover:text-foreground transition-colors flex items-center gap-1 font-bold uppercase tracking-tighter"
-                    >
-                        <ChevronUp className="h-3 w-3" /> Top
-                    </button>
-                    <button 
-                        onClick={() => setIsAutoScroll(true)}
-                        className="hover:text-foreground transition-colors flex items-center gap-1 font-bold uppercase tracking-tighter"
-                    >
-                        <ChevronDown className="h-3 w-3" /> Bottom
-                    </button>
-                </div>
-            </div>
 
-            {/* Resume Auto-Scroll Button */}
-            {!isAutoScroll && filteredLogs.length > 0 && (
-                <button
-                    onClick={() => setIsAutoScroll(true)}
-                    className="absolute bottom-12 left-1/2 -translate-x-1/2 px-4 py-2 bg-primary text-primary-foreground rounded-full text-xs font-bold shadow-lg animate-in fade-in slide-in-from-bottom-2 flex items-center gap-2 hover:scale-105 transition-transform"
-                >
-                    <ArrowDown className="h-3.5 w-3.5" />
-                    Resume Auto-scroll
-                </button>
-            )}
-        </div>
+                {/* --- Compact Footer --- */}
+                <div className="px-5 py-1.5 bg-muted/30 border-t border-border/40 flex items-center justify-between text-[9px] text-muted-foreground/40 backdrop-blur-md">
+                    <div className="flex items-center gap-4">
+                        <span className="font-black uppercase tracking-widest flex items-center gap-1.5">
+                            <Activity className="h-3 w-3" /> {filteredLogs.length} Events
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button onClick={() => scrollViewportRef.current?.scrollTo({ top: 0, behavior: 'smooth' })} className="hover:text-primary font-black uppercase tracking-tighter">Top</button>
+                        <button onClick={() => setIsAutoScroll(true)} className="hover:text-primary font-black uppercase tracking-tighter">Tail</button>
+                    </div>
+                </div>
+
+                {!isAutoScroll && filteredLogs.length > 0 && (
+                    <button
+                        onClick={() => setIsAutoScroll(true)}
+                        className="absolute bottom-12 left-1/2 -translate-x-1/2 px-5 py-2 bg-primary text-primary-foreground rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl animate-in fade-in slide-in-from-bottom-2 hover:scale-105 transition-all flex items-center gap-2"
+                    >
+                        <ArrowDown className="h-3 w-3 animate-bounce" /> Resume Tail
+                    </button>
+                )}
+            </div>
+        </TooltipProvider>
     );
 };

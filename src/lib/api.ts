@@ -632,6 +632,16 @@ export const getJob = async (id: number) => {
     return data;
 };
 
+export const getJobRun = async (jobId: number) => {
+    const { data } = await api.get<PipelineRunDetailRead>(`/jobs/${jobId}/run`);
+    return data;
+};
+
+export const getRunSteps = async (runId: number) => {
+    const { data } = await api.get<StepRun[]>(`/runs/${runId}/steps`);
+    return data;
+};
+
 export const getJobLogs = async (id: number) => {
     const { data } = await api.get<any[]>(`/jobs/${id}/logs`);
     return data;

@@ -15,6 +15,7 @@ import { RecentActivityTable } from '@/components/features/dashboard/RecentActiv
 import { RunPipelineDialog } from '@/components/features/dashboard/RunPipelineDialog';
 import { PageMeta } from '@/components/common/PageMeta';
 import { StatsCard } from '@/components/ui/StatsCard';
+import { useDashboardTelemetry } from '@/hooks/useDashboardTelemetry';
 
 const formatBytes = (bytes: number, decimals = 2) => {
     if (!+bytes) return '0 Bytes'
@@ -26,13 +27,15 @@ const formatBytes = (bytes: number, decimals = 2) => {
 }
 
 export const DashboardPage: React.FC = () => {
+    // Enable real-time dashboard updates via WebSockets
+    useDashboardTelemetry();
+
     const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
 
     // 1. Single API Call
     const { data: stats, isLoading } = useQuery({ 
         queryKey: ['dashboard'], 
         queryFn: getDashboardStats,
-        refetchInterval: 30000 // Refresh every 30s
     });
 
     // 2. Chart Data Transformation
