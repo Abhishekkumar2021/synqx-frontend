@@ -15,7 +15,8 @@ import {
     CheckCircle2,
     Layers,
     ShieldCheck,
-    Square
+    Square,
+    XCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -33,9 +34,10 @@ import {
 interface PipelineNodeData extends Record<string, unknown> {
     label: string;
     type?: string;
-    status?: 'idle' | 'running' | 'success' | 'error';
+    status?: 'idle' | 'pending' | 'running' | 'success' | 'completed' | 'failed' | 'error' | 'skipped' | 'warning';
     rowsProcessed?: number;
     error?: string;
+    readOnly?: boolean;
 }
 
 // --- Visual Configuration ---
@@ -105,35 +107,44 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
 
     const status = nodeData.status || 'idle';
     const isRunning = status === 'running';
-    const isError = status === 'error';
-    const isSuccess = status === 'success';
+    const isError = status === 'failed' || status === 'error';
+    const isSuccess = status === 'success' || status === 'completed';
+    const isPending = status === 'pending' || status === 'idle';
+    const isSkipped = status === 'skipped';
+    const isWarning = status === 'warning';
 
     // Theme Styles Helper
     const getThemeStyles = (color: string) => {
         switch (color) {
             case 'chart-1': return {
                 bg: "bg-chart-1/10", text: "text-chart-1", border: "border-chart-1/20", ring: "ring-chart-1/30",
-                handle: "hover:border-chart-1 hover:bg-chart-1/10 hover:shadow-[0_0_8px_rgba(var(--chart-1),0.4)]"
+                glow: "shadow-[0_0_20px_rgba(59,130,246,0.15)]", // Blue
+                handle: "hover:border-chart-1 hover:bg-chart-1/10"
             };
             case 'chart-2': return {
                 bg: "bg-chart-2/10", text: "text-chart-2", border: "border-chart-2/20", ring: "ring-chart-2/30",
-                handle: "hover:border-chart-2 hover:bg-chart-2/10 hover:shadow-[0_0_8px_rgba(var(--chart-2),0.4)]"
+                glow: "shadow-[0_0_20px_rgba(16,185,129,0.15)]", // Green
+                handle: "hover:border-chart-2 hover:bg-chart-2/10"
             };
             case 'chart-3': return {
                 bg: "bg-chart-3/10", text: "text-chart-3", border: "border-chart-3/20", ring: "ring-chart-3/30",
-                handle: "hover:border-chart-3 hover:bg-chart-3/10 hover:shadow-[0_0_8px_rgba(var(--chart-3),0.4)]"
+                glow: "shadow-[0_0_20px_rgba(139,92,246,0.15)]", // Purple
+                handle: "hover:border-chart-3 hover:bg-chart-3/10"
             };
             case 'chart-4': return {
                 bg: "bg-chart-4/10", text: "text-chart-4", border: "border-chart-4/20", ring: "ring-chart-4/30",
-                handle: "hover:border-chart-4 hover:bg-chart-4/10 hover:shadow-[0_0_8px_rgba(var(--chart-4),0.4)]"
+                glow: "shadow-[0_0_20px_rgba(245,158,11,0.15)]", // Orange
+                handle: "hover:border-chart-4 hover:bg-chart-4/10"
             };
             case 'chart-5': return {
                 bg: "bg-chart-5/10", text: "text-chart-5", border: "border-chart-5/20", ring: "ring-chart-5/30",
-                handle: "hover:border-chart-5 hover:bg-chart-5/10 hover:shadow-[0_0_8px_rgba(var(--chart-5),0.4)]"
+                glow: "shadow-[0_0_20px_rgba(239,68,68,0.15)]", // Red
+                handle: "hover:border-chart-5 hover:bg-chart-5/10"
             };
             default: return {
                 bg: "bg-primary/10", text: "text-primary", border: "border-primary/20", ring: "ring-primary/30",
-                handle: "hover:border-primary hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(var(--primary),0.4)]"
+                glow: "shadow-[0_0_20px_rgba(var(--primary),0.15)]",
+                handle: "hover:border-primary hover:bg-primary/10"
             };
         }
     };
@@ -143,19 +154,27 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
     return (
         <div
             className={cn(
-                "group relative flex min-w-[280px] flex-col rounded-3xl glass-card transition-all duration-500 ease-out border",
+                "group relative flex min-w-[280px] flex-col rounded-3xl glass-card transition-all duration-700 ease-out border",
                 // Base Border & Glass
                 "border-border/60 bg-background/40 backdrop-blur-xl",
 
+                // Status States
+                isError && "border-destructive/50 ring-destructive/20 shadow-destructive/10 bg-destructive/5",
+                isRunning && "border-primary/50 shadow-2xl shadow-primary/20 scale-[1.02] z-50",
+                isSuccess && cn("border-emerald-500/30", themeStyles.glow),
+                isPending && "opacity-40 grayscale-[0.5] scale-[0.98]",
+
                 // Selection State (Subtle scale + Shadow bloom)
                 selected
-                    ? cn("ring-1 ring-offset-0 scale-[1.01] shadow-2xl", themeStyles.ring, themeStyles.border)
-                    : "hover:border-primary/30 hover:shadow-xl hover:shadow-black/5 hover:-translate-y-0.5",
-
-                // Error State
-                isError && "border-destructive/50 ring-destructive/20 shadow-destructive/10 bg-destructive/5"
+                    ? cn("ring-1 ring-offset-0 scale-[1.01] shadow-2xl z-50", themeStyles.ring, themeStyles.border)
+                    : "hover:border-primary/30 hover:shadow-xl hover:shadow-black/5 hover:-translate-y-0.5"
             )}
         >
+            {/* Ambient pulse for running nodes */}
+            {isRunning && (
+                <div className="absolute -inset-1 rounded-3xl bg-primary/10 animate-pulse -z-10 blur-md" />
+            )}
+
             {/* --- Header --- */}
             <div className="flex items-start justify-between p-4 pb-3">
                 <div className="flex items-center gap-3.5 min-w-0">
@@ -165,7 +184,7 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
                         themeStyles.bg,
                         themeStyles.border,
                         selected ? "border-current/40 shadow-inner" : "",
-                        isRunning && "animate-pulse"
+                        isRunning && "animate-pulse ring-4 ring-primary/10"
                     )}>
                         {isRunning ? (
                             <Loader2 className={cn("h-5 w-5 animate-spin", themeStyles.text)} />
@@ -185,35 +204,37 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
                     </div>
                 </div>
 
-                {/* Action Menu */}
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 -mr-1.5 rounded-full text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 data-[state=open]:bg-muted/50 data-[state=open]:text-foreground transition-colors"
-                        >
-                            <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/40 bg-background/80 backdrop-blur-2xl shadow-xl">
-                        <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-widest px-3 py-2">Node Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator className="bg-border/40" />
-                        <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-accent focus:text-accent-foreground rounded-lg mx-1">
-                            <Settings2 className="h-3.5 w-3.5 opacity-70" /> Configure
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-accent focus:text-accent-foreground rounded-lg mx-1">
-                            <Play className="h-3.5 w-3.5 opacity-70" /> Run Node
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className="bg-border/40" />
-                        <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-accent focus:text-accent-foreground rounded-lg mx-1">
-                            <Copy className="h-3.5 w-3.5 opacity-70" /> Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10 rounded-lg mx-1">
-                            <Trash2 className="h-3.5 w-3.5 opacity-70" /> Delete
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                {/* Action Menu - Hidden in readOnly mode */}
+                {!nodeData.readOnly && (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 -mr-1.5 rounded-full text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 data-[state=open]:bg-muted/50 data-[state=open]:text-foreground transition-colors"
+                            >
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/40 bg-background/80 backdrop-blur-2xl shadow-xl">
+                            <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-widest px-3 py-2">Node Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator className="bg-border/40" />
+                            <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-accent focus:text-accent-foreground rounded-lg mx-1">
+                                <Settings2 className="h-3.5 w-3.5 opacity-70" /> Configure
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-accent focus:text-accent-foreground rounded-lg mx-1">
+                                <Play className="h-3.5 w-3.5 opacity-70" /> Run Node
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-border/40" />
+                            <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-accent focus:text-accent-foreground rounded-lg mx-1">
+                                <Copy className="h-3.5 w-3.5 opacity-70" /> Duplicate
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10 rounded-lg mx-1">
+                                <Trash2 className="h-3.5 w-3.5 opacity-70" /> Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                )}
             </div>
 
             {/* --- Body / Metrics --- */}
@@ -223,17 +244,22 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
 
                         {/* Status Badge */}
                         <div className="flex items-center gap-1.5">
-                            {isRunning && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                            {isRunning && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
                             {isSuccess && <CheckCircle2 className="h-3 w-3 text-emerald-500" />}
                             {isError && <AlertCircle className="h-3 w-3 text-destructive" />}
+                            {isSkipped && <XCircle className="h-3 w-3 text-muted-foreground/40" />}
+                            {isWarning && <AlertCircle className="h-3 w-3 text-amber-500" />}
 
                             <span className={cn(
                                 "text-[10px] font-semibold uppercase tracking-wide",
-                                isRunning && "text-muted-foreground",
+                                isRunning && "text-primary animate-pulse",
                                 isSuccess && "text-emerald-500",
-                                isError && "text-destructive"
+                                isError && "text-destructive",
+                                isSkipped && "text-muted-foreground/40",
+                                isWarning && "text-amber-500",
+                                isPending && "text-muted-foreground/60"
                             )}>
-                                {isRunning ? "Processing..." : status}
+                                {isRunning ? "Processing..." : isPending ? "Waiting..." : status}
                             </span>
                         </div>
 

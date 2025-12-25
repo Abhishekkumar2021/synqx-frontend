@@ -2,8 +2,8 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
     Terminal, ChevronRight, Copy, Calendar, Timer, 
-    Layout, RotateCw, Share2, MoreHorizontal, ExternalLink,
-    StopCircle, RefreshCw
+    RotateCw, Share2, MoreHorizontal, ExternalLink,
+    StopCircle, RefreshCw, ClipboardList, GitBranch
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StatusBadge } from '@/components/ui/StatusBadge';
@@ -18,7 +18,6 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-    DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { type Job, type Pipeline } from '@/lib/api';
 
@@ -26,8 +25,8 @@ interface JobDetailsHeaderProps {
     job: Job;
     pipeline?: Pipeline;
     elapsed: string;
-    view: 'summary' | 'logs';
-    setView: (view: 'summary' | 'logs') => void;
+    view: 'summary' | 'logs' | 'graph';
+    setView: (view: 'summary' | 'logs' | 'graph') => void;
     isRefetchingRun: boolean;
     onRefetch: () => void;
     onCancel: () => void;
@@ -96,28 +95,52 @@ export const JobDetailsHeader: React.FC<JobDetailsHeaderProps> = ({
 
             {/* --- Right: Integrated Toolbar --- */}
             <div className="flex items-center justify-between xl:justify-end gap-3 w-full xl:w-auto bg-muted/20 md:bg-transparent p-1 md:p-0 rounded-2xl md:rounded-none border border-border/20 md:border-0 shadow-inner md:shadow-none">
-                {/* View Switcher (Segmented) */}
+                {/* View Switcher (Icons Only with Tooltips) */}
                 <div className="flex bg-background/40 md:bg-muted/30 p-1 rounded-xl border border-border/40 gap-1 shadow-sm">
-                    <button
-                        onClick={() => setView('summary')}
-                        className={cn(
-                            "px-3 md:px-4 h-8 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
-                            view === 'summary' ? "bg-background text-primary shadow-sm ring-1 ring-black/5" : "text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <Layout className="h-3 w-3 md:h-3.5 md:w-3.5" /> 
-                        <span className="hidden sm:inline">Summary</span>
-                    </button>
-                    <button
-                        onClick={() => setView('logs')}
-                        className={cn(
-                            "px-3 md:px-4 h-8 rounded-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2",
-                            view === 'logs' ? "bg-background text-primary shadow-sm ring-1 ring-black/5" : "text-muted-foreground hover:text-foreground"
-                        )}
-                    >
-                        <Terminal className="h-3 w-3 md:h-3.5 md:w-3.5" /> 
-                        <span className="hidden sm:inline">Logs</span>
-                    </button>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() => setView('summary')}
+                                className={cn(
+                                    "w-9 h-8 rounded-lg transition-all flex items-center justify-center",
+                                    view === 'summary' ? "bg-background text-primary shadow-sm ring-1 ring-black/5" : "text-muted-foreground/60 hover:text-foreground"
+                                )}
+                            >
+                                <ClipboardList className="h-4 w-4" /> 
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-[10px] font-black uppercase tracking-widest">Execution Summary</TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() => setView('logs')}
+                                className={cn(
+                                    "w-9 h-8 rounded-lg transition-all flex items-center justify-center",
+                                    view === 'logs' ? "bg-background text-primary shadow-sm ring-1 ring-black/5" : "text-muted-foreground/60 hover:text-foreground"
+                                )}
+                            >
+                                <Terminal className="h-4 w-4" /> 
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-[10px] font-black uppercase tracking-widest">System Logs</TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <button
+                                onClick={() => setView('graph')}
+                                className={cn(
+                                    "w-9 h-8 rounded-lg transition-all flex items-center justify-center",
+                                    view === 'graph' ? "bg-background text-primary shadow-sm ring-1 ring-black/5" : "text-muted-foreground/60 hover:text-foreground"
+                                )}
+                            >
+                                <GitBranch className="h-4 w-4" /> 
+                            </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="text-[10px] font-black uppercase tracking-widest">Visual Trace (Graph)</TooltipContent>
+                    </Tooltip>
                 </div>
 
                 <div className="hidden md:block h-6 w-px bg-border/40 mx-1" />

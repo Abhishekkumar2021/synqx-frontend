@@ -40,7 +40,7 @@ const TabsTrigger = React.forwardRef<
       "data-[state=active]:ring-1 data-[state=active]:ring-primary/20 dark:data-[state=active]:ring-primary/30",
 
       // Inactive/Hover State
-      "text-muted-foreground hover:text-foreground hover:bg-muted/50 dark:hover:bg-muted/30 active:scale-95",
+      "text-muted-foreground hover:text-foreground data-[state=inactive]:hover:bg-muted/50 dark:data-[state=inactive]:hover:bg-muted/30 active:scale-95",
 
       className
     )}

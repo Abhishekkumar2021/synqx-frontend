@@ -216,6 +216,46 @@ export interface Job {
   correlation_id?: string;
 }
 
+export interface StepRunRead {
+    id: number;
+    pipeline_run_id: number;
+    node_id: number; // The backend integer ID (pipeline_nodes.id)
+    operator_type: string;
+    status: 'pending' | 'running' | 'success' | 'failed' | 'skipped' | 'warning';
+    order_index: number;
+    retry_count: number;
+    records_in: number;
+    records_out: number;
+    records_filtered: number;
+    records_error: number;
+    bytes_processed: number;
+    duration_seconds?: number;
+    cpu_percent?: number;
+    memory_mb?: number;
+    sample_data?: any;
+    error_message?: string;
+    error_type?: string;
+    started_at?: string;
+    completed_at?: string;
+    created_at: string;
+}
+
+export interface PipelineRunDetailRead {
+    id: number;
+    job_id: number;
+    status: string;
+    version?: PipelineVersionRead;
+    step_runs: StepRunRead[];
+    total_nodes: number;
+    total_extracted: number;
+    total_loaded: number;
+    total_failed: number;
+    bytes_processed: number;
+    started_at?: string;
+    completed_at?: string;
+    duration_seconds?: number;
+}
+
 export interface StepRun {
     id: number;
     step_id: number;
@@ -638,7 +678,12 @@ export const getJobRun = async (jobId: number) => {
 };
 
 export const getRunSteps = async (runId: number) => {
-    const { data } = await api.get<StepRun[]>(`/runs/${runId}/steps`);
+    const { data } = await api.get<StepRunRead[]>(`/runs/${runId}/steps`);
+    return data;
+};
+
+export const getStepData = async (runId: number, stepId: number, direction: 'in' | 'out' = 'out', limit: number = 100, offset: number = 0) => {
+    const { data } = await api.get<any>(`/runs/${runId}/steps/${stepId}/data`, { params: { direction, limit, offset } });
     return data;
 };
 

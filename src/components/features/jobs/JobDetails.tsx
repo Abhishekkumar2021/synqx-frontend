@@ -9,6 +9,9 @@ import { JobSummary } from './JobSummary';
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { JobDetailsHeader } from './JobDetailsHeader';
 import { JobDetailsEmpty } from './JobDetailsEmpty';
+import { JobGraph } from './JobGraph';
+import { ReactFlowProvider } from '@xyflow/react';
+import { useJobTelemetry } from '@/hooks/useJobTelemetry';
 
 interface JobDetailsProps {
     job: Job | undefined;
@@ -17,8 +20,11 @@ interface JobDetailsProps {
 
 export const JobDetails: React.FC<JobDetailsProps> = ({ job }) => {
     const queryClient = useQueryClient();
-    const [view, setView] = React.useState<'summary' | 'logs'>('summary');
+    const [view, setView] = React.useState<'summary' | 'logs' | 'graph'>('summary');
     const [elapsed, setElapsed] = React.useState<string>('-');
+
+    // Enable real-time telemetry for this specific job across all tabs
+    useJobTelemetry(job?.id);
 
     // Fetch pipeline details for breadcrumbs
     const { data: pipeline } = useQuery({
@@ -64,9 +70,13 @@ export const JobDetails: React.FC<JobDetailsProps> = ({ job }) => {
 
     const retryMutation = useMutation({
         mutationFn: retryJob,
-        onSuccess: () => {
+        onSuccess: (newJob) => {
             toast.success("Job retry initiated");
             queryClient.invalidateQueries({ queryKey: ['jobs'] });
+            // Automatically navigate to the new job ID
+            if (newJob?.id) {
+                navigate(`/jobs/${newJob.id}`);
+            }
         },
         onError: () => toast.error("Failed to retry job")
     });
@@ -106,8 +116,14 @@ export const JobDetails: React.FC<JobDetailsProps> = ({ job }) => {
                             ) : (
                                 <JobSummary job={job} run={run} />
                             )
-                        ) : (
+                        ) : view === 'logs' ? (
                             <JobLogViewer jobId={job.id} />
+                        ) : (
+                            run && (
+                                <ReactFlowProvider>
+                                    <JobGraph run={run} />
+                                </ReactFlowProvider>
+                            )
                         )}
                     </div>
                 </TooltipProvider>

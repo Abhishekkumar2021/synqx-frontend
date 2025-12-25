@@ -151,6 +151,19 @@ export const PipelineCanvas: React.FC = () => {
     default: PipelineNode
   }), []);
 
+  const [opSearch, setOpSearch] = useState("");
+
+  const filteredDefinitions = useMemo(() => {
+      if (!opSearch) return NODE_DEFINITIONS;
+      return NODE_DEFINITIONS.map(category => ({
+          ...category,
+          items: category.items.filter(item => 
+              item.label.toLowerCase().includes(opSearch.toLowerCase()) ||
+              item.desc.toLowerCase().includes(opSearch.toLowerCase())
+          )
+      })).filter(category => category.items.length > 0);
+  }, [opSearch]);
+
   // --- Mutations ---
   const deleteMutation = useMutation({
       mutationFn: () => deletePipeline(parseInt(id!)),
@@ -239,20 +252,7 @@ export const PipelineCanvas: React.FC = () => {
     [setEdges],
   );
 
-    const [opSearch, setOpSearch] = useState("");
-
-    const filteredDefinitions = useMemo(() => {
-        if (!opSearch) return NODE_DEFINITIONS;
-        return NODE_DEFINITIONS.map(category => ({
-            ...category,
-            items: category.items.filter(item => 
-                item.label.toLowerCase().includes(opSearch.toLowerCase()) ||
-                item.desc.toLowerCase().includes(opSearch.toLowerCase())
-            )
-        })).filter(category => category.items.length > 0);
-    }, [opSearch]);
-
-    const onAddNode = (type: string, operatorClass?: string, label?: string) => {
+  const onAddNode = (type: string, operatorClass?: string, label?: string) => {
       const newNodeId = `node_${Date.now()}`;
       // Center the node somewhat in the view or randomize slightly
       const offset = Math.random() * 50; 
@@ -641,12 +641,12 @@ export const PipelineCanvas: React.FC = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent 
                             align="center" 
-                            sideOffset={20}
+                            sideOffset={10}
                             className="w-72 bg-background/80 backdrop-blur-3xl border-border/20 shadow-2xl rounded-2xl p-2 ring-1 ring-white/5"
                         >
                             <div className="px-2 py-2 mb-2 border-b border-border/10">
                                 <div className="relative group">
-                                    <Plus className="z-20 absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                    <Plus className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                     <Input 
                                         placeholder="Search operators..." 
                                         value={opSearch}
