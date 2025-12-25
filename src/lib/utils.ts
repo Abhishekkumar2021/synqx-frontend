@@ -27,3 +27,18 @@ export const formatDurationMs = (ms: number | null | undefined) => {
     const remainingSeconds = (seconds % 60).toFixed(0);
     return `${minutes}m ${remainingSeconds}s`;
 };
+
+export const formatNumber = (num: number | null | undefined) => {
+    if (num === null || num === undefined) return '0';
+    
+    return new Intl.NumberFormat('en-US', {
+        notation: 'compact',
+        compactDisplay: 'short',
+        maximumFractionDigits: 1
+    }).format(num);
+};
+
+export const formatFullNumber = (num: number | null | undefined) => {
+    if (num === null || num === undefined) return '0';
+    return new Intl.NumberFormat('en-US').format(num);
+};

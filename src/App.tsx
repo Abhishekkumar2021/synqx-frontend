@@ -9,6 +9,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { Layout } from './components/layout/Layout';
 import { ThemeProvider } from './components/providers/ThemeProvider';
 import { AuthProvider } from './components/providers/AuthProvider';
+import { ZenProvider } from './context/ZenContext';
 import { useAuth } from './hooks/useAuth';
 import { Toaster } from './components/ui/sonner';
 
@@ -147,14 +148,16 @@ function App() {
   return (
     <HelmetProvider>
       <ThemeProvider defaultTheme="dark" storageKey="synqx-theme">
-        <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <BrowserRouter>
-              <AppRoutes />
-              <Toaster position='top-right' closeButton />
-            </BrowserRouter>
-          </AuthProvider>
-        </QueryClientProvider>
+        <ZenProvider>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider>
+              <BrowserRouter>
+                <AppRoutes />
+                <Toaster position='top-right' closeButton />
+              </BrowserRouter>
+            </AuthProvider>
+          </QueryClientProvider>
+        </ZenProvider>
       </ThemeProvider>
     </HelmetProvider>
   );

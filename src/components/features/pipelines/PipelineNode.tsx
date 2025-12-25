@@ -18,7 +18,7 @@ import {
     Square,
     XCircle
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatNumber } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -266,7 +266,7 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
                         {/* Data Metric */}
                         {typeof nodeData.rowsProcessed === 'number' && (
                             <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-mono tracking-tight bg-muted/50 text-muted-foreground border-transparent hover:bg-muted/70 shadow-none">
-                                {nodeData.rowsProcessed.toLocaleString()} rows
+                                {formatNumber(nodeData.rowsProcessed)} rows
                             </Badge>
                         )}
                     </div>

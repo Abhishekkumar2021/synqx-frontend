@@ -7,7 +7,7 @@ import {
     RefreshCw, Cpu, HardDrive, History, XCircle,
     ArrowDownToLine, ArrowUpFromLine
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatNumber } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
@@ -176,7 +176,7 @@ export const JobSummary: React.FC<JobSummaryProps> = ({ job, run }) => {
                     </div>
                     <div className="min-w-0">
                         <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Extracted</p>
-                        <p className="text-xl font-black tracking-tighter text-foreground truncate">{(run?.total_extracted || 0).toLocaleString()}</p>
+                        <p className="text-xl font-black tracking-tighter text-foreground truncate">{formatNumber(run?.total_extracted || 0)}</p>
                     </div>
                 </div>
                 <div className="p-6 rounded-[2rem] border border-border/40 bg-card/40 backdrop-blur-xl flex items-center gap-6">
@@ -185,7 +185,7 @@ export const JobSummary: React.FC<JobSummaryProps> = ({ job, run }) => {
                     </div>
                     <div className="min-w-0">
                         <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Loaded</p>
-                        <p className="text-xl font-black tracking-tighter text-foreground truncate">{(run?.total_loaded || 0).toLocaleString()}</p>
+                        <p className="text-xl font-black tracking-tighter text-foreground truncate">{formatNumber(run?.total_loaded || 0)}</p>
                     </div>
                 </div>
                 <div className="p-6 rounded-[2rem] border border-border/40 bg-card/40 backdrop-blur-xl flex items-center gap-6">
@@ -203,7 +203,7 @@ export const JobSummary: React.FC<JobSummaryProps> = ({ job, run }) => {
                     </div>
                     <div className="min-w-0">
                         <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-0.5">Faults</p>
-                        <p className="text-xl font-black tracking-tighter text-foreground truncate">{(run?.total_failed || 0).toLocaleString()}</p>
+                        <p className="text-xl font-black tracking-tighter text-foreground truncate">{formatNumber(run?.total_failed || 0)}</p>
                     </div>
                 </div>
             </div>
@@ -318,14 +318,14 @@ export const JobSummary: React.FC<JobSummaryProps> = ({ job, run }) => {
                                                     <div className="text-[8px] font-black uppercase text-muted-foreground/40 flex items-center gap-1">
                                                         <ArrowDownToLine size={10} /> In
                                                     </div>
-                                                    <div className="text-xs font-black">{(step.records_in || 0).toLocaleString()}</div>
+                                                    <div className="text-xs font-black">{formatNumber(step.records_in || 0)}</div>
                                                 </div>
                                                 <div className="h-6 w-px bg-border/20" />
                                                 <div className="space-y-1 min-w-[50px]">
                                                     <div className="text-[8px] font-black uppercase text-muted-foreground/40 flex items-center gap-1">
                                                         <ArrowUpFromLine size={10} /> Out
                                                     </div>
-                                                    <div className="text-xs font-black text-primary">{(step.records_out || 0).toLocaleString()}</div>
+                                                    <div className="text-xs font-black text-primary">{formatNumber(step.records_out || 0)}</div>
                                                 </div>
                                                 {(step.records_filtered > 0 || step.records_error > 0) && (
                                                     <>
@@ -333,13 +333,13 @@ export const JobSummary: React.FC<JobSummaryProps> = ({ job, run }) => {
                                                         {step.records_filtered > 0 && (
                                                             <div className="space-y-1 min-w-[50px]">
                                                                 <div className="text-[8px] font-black uppercase text-muted-foreground/40">Filtered</div>
-                                                                <div className="text-xs font-black text-amber-500/80">{(step.records_filtered || 0).toLocaleString()}</div>
+                                                                <div className="text-xs font-black text-amber-500/80">{formatNumber(step.records_filtered || 0)}</div>
                                                             </div>
                                                         )}
                                                         {step.records_error > 0 && (
                                                             <div className="space-y-1 min-w-[50px]">
                                                                 <div className="text-[8px] font-black uppercase text-muted-foreground/40">Errors</div>
-                                                                <div className="text-xs font-black text-destructive/80">{(step.records_error || 0).toLocaleString()}</div>
+                                                                <div className="text-xs font-black text-destructive/80">{formatNumber(step.records_error || 0)}</div>
                                                             </div>
                                                         )}
                                                     </>

@@ -10,7 +10,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from '@/lib/utils';
+import { cn, formatNumber } from '@/lib/utils';
 import { toast } from 'sonner';
 import { type HistoryItem } from './types';
 
@@ -152,7 +152,7 @@ export const ExecutionHistory: React.FC<ExecutionHistoryProps> = ({ history, onC
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground/50 uppercase tracking-wider">
                                         <ListFilter size={10} />
-                                        {item.rowCount?.toLocaleString() ?? 0} Rows
+                                        {formatNumber(item.rowCount ?? 0)} Rows
                                     </div>
 
                                     <div className="flex items-center gap-1 text-[10px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">

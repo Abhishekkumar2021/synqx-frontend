@@ -16,6 +16,9 @@ import { RunPipelineDialog } from '@/components/features/dashboard/RunPipelineDi
 import { PageMeta } from '@/components/common/PageMeta';
 import { StatsCard } from '@/components/ui/StatsCard';
 import { useDashboardTelemetry } from '@/hooks/useDashboardTelemetry';
+import { useZenMode } from '@/context/ZenContext';
+import { cn, formatNumber } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 const formatBytes = (bytes: number, decimals = 2) => {
     if (!+bytes) return '0 Bytes'
@@ -29,6 +32,7 @@ const formatBytes = (bytes: number, decimals = 2) => {
 export const DashboardPage: React.FC = () => {
     // Enable real-time dashboard updates via WebSockets
     useDashboardTelemetry();
+    const { isZenMode } = useZenMode();
 
     const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
 
@@ -77,7 +81,12 @@ export const DashboardPage: React.FC = () => {
     }, [stats]);
 
     return (
-        <div className="flex flex-col gap-8 pb-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
+        <motion.div 
+            className={cn(
+                "flex flex-col gap-8 pb-10",
+                isZenMode && "pt-2"
+            )}
+        >
             <PageMeta title="Dashboard" description="System overview and health metrics." />
 
             {/* --- Header & Navigation --- */}
@@ -121,7 +130,7 @@ export const DashboardPage: React.FC = () => {
                         />
                         <StatsCard
                             title="Rows Synced (24h)"
-                            value={stats?.total_rows_24h.toLocaleString() || 0}
+                            value={formatNumber(stats?.total_rows_24h)}
                             subtext="Records processed"
                             icon={Database}
                         />
@@ -164,6 +173,6 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             <RunPipelineDialog open={isRunDialogOpen} onOpenChange={setIsRunDialogOpen} />
-        </div>
+        </motion.div>
     );
 };

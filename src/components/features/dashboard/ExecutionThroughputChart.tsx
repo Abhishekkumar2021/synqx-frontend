@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/hooks/useTheme';
-import { cn } from '@/lib/utils';
+import { cn, formatNumber } from '@/lib/utils';
 
 interface ExecutionThroughputChartProps {
     data: any[];
@@ -55,7 +55,7 @@ const CustomTooltip = ({ active, payload, label, viewType }: any) => {
                                 <span className="text-muted-foreground/80">{entry.name}:</span>
                             </div>
                             <span className="font-mono text-foreground font-black">
-                                {viewType === 'bytes' ? formatBytes(entry.value) : entry.value.toLocaleString()}
+                                {viewType === 'bytes' ? formatBytes(entry.value) : formatNumber(entry.value)}
                             </span>
                         </div>
                     ))}
@@ -144,7 +144,7 @@ export const ExecutionThroughputChart: React.FC<ExecutionThroughputChartProps> =
                                 tickLine={false}
                                 axisLine={false}
                                 width={60}
-                                tickFormatter={(val) => view === 'bytes' ? formatBytes(val) : val.toLocaleString()}
+                                tickFormatter={(val) => view === 'bytes' ? formatBytes(val) : formatNumber(val)}
                             />
                             <Tooltip content={<CustomTooltip viewType={view} colors={colors} />} cursor={{ fill: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)' }} />
                             <Bar

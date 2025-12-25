@@ -60,6 +60,7 @@ import { AssetTableRow } from '@/components/features/connections/AssetTableRow';
 import { PageMeta } from '@/components/common/PageMeta';
 import { CreateAssetsDialog } from '@/components/features/connections/CreateAssetsDialog';
 import { useMemo, useState } from 'react';
+import { useZenMode } from '@/context/ZenContext';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConfigField } from '@/components/features/connections/ConfigField';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -935,6 +936,7 @@ const ConnectionConfigStats = ({ connection, connectionId }: { connection: any; 
 };
 
 export const ConnectionDetailsPage: React.FC = () => {
+    const { isZenMode } = useZenMode();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const connectionId = parseInt(id!);
@@ -1019,7 +1021,10 @@ export const ConnectionDetailsPage: React.FC = () => {
     );
 
     if (isConnectionError || !connection) return (
-        <div className="flex flex-col items-center justify-center h-[60vh] text-muted-foreground gap-8 animate-in fade-in duration-500">
+        <div className={cn(
+            "flex flex-col items-center justify-center text-muted-foreground gap-8 animate-in fade-in duration-500",
+            isZenMode ? "h-[calc(100vh-3rem)]" : "h-[60vh]"
+        )}>
             <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -1047,7 +1052,12 @@ export const ConnectionDetailsPage: React.FC = () => {
     );
 
     return (
-        <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 md:gap-8 animate-in fade-in duration-700 p-4 md:p-0">
+        <motion.div 
+            className={cn(
+                "flex flex-col gap-6 md:gap-8 p-4 md:p-0",
+                isZenMode ? "h-[calc(100vh-3rem)]" : "h-[calc(100vh-8rem)]"
+            )}
+        >
             <PageMeta title={connection.name} description={`Manage ${connection.name} connection details.`} />
 
             {/* --- Page Header --- */}
@@ -1231,7 +1241,7 @@ export const ConnectionDetailsPage: React.FC = () => {
                                     />
                                 </DialogContent>
                             </Dialog>
-                        </div>
+                        </motion.div>
                     );
                 };
                 

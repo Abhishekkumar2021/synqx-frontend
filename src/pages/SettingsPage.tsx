@@ -17,7 +17,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
+import { useZenMode } from '@/context/ZenContext';
 import { PageMeta } from '@/components/common/PageMeta';
 import { useTheme } from '@/hooks/useTheme';
 import { ApiKeysManager } from '@/components/settings/ApiKeysManager';
@@ -29,6 +31,7 @@ type SettingsTab = 'general' | 'security' | 'notifications';
 export const SettingsPage: React.FC = () => {
     const { user } = useAuth(); 
     const { theme, setTheme } = useTheme();
+    const { isZenMode } = useZenMode();
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<SettingsTab>('general');
     
@@ -100,7 +103,12 @@ export const SettingsPage: React.FC = () => {
     ];
 
     return (
-        <div className="relative flex flex-col gap-8 pb-10 animate-in fade-in slide-in-from-bottom-4 duration-500 min-h-[80vh]">
+        <motion.div 
+            className={cn(
+                "relative flex flex-col gap-8 pb-10",
+                isZenMode ? "min-h-[calc(100vh-4rem)]" : "min-h-[80vh]"
+            )}
+        >
             <PageMeta title="Settings" description="Manage workspace preferences and security." />
 
             {/* --- Ambient Background Effects (Subtle) --- */}
@@ -147,9 +155,16 @@ export const SettingsPage: React.FC = () => {
 
                 {/* --- Main Content Area --- */}
                 <div className="flex-1 space-y-8 max-w-3xl">
-
-                    {activeTab === 'general' && (
-                        <div className="space-y-6 animate-in slide-in-from-right-4 duration-500 fade-in">
+                    <AnimatePresence mode="wait">
+                        {activeTab === 'general' && (
+                            <motion.div 
+                                key="general"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.15 }}
+                                className="space-y-6"
+                            >
                             {/* Profile Card */}
                             <Card className="overflow-hidden shadow-sm border-border/60 bg-card/40 backdrop-blur-md">
                                 {/* Banner Background */}
@@ -250,11 +265,18 @@ export const SettingsPage: React.FC = () => {
                                     </div>
                                 </CardContent>
                             </Card>
-                        </div>
+                        </motion.div>
                     )}
 
                     {activeTab === 'security' && (
-                        <div className="space-y-6 animate-in slide-in-from-right-4 duration-500 fade-in">
+                        <motion.div 
+                            key="security"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.15 }}
+                                className="space-y-6"
+                            >
                             <ApiKeysManager />
 
                             <Card className="border-border/60 bg-card/40 backdrop-blur-md">
@@ -317,15 +339,23 @@ export const SettingsPage: React.FC = () => {
                                                 className={buttonVariants({ variant: "destructive" })}
                                             >
                                                 {deleteAccountMutation.isPending ? "Deleting..." : "Delete Account"}
-                                                                                    </AlertDialogAction>
-                                                                                </AlertDialogFooter>
-                                                                            </AlertDialogContent>
-                                                                        </AlertDialog>
-                                                                        </Card> {/* ADDED: Missing closing Card tag */}
-                                                                    </div>
-                                                                )}
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </Card>
+                        </motion.div>
+                    )}
+
                     {activeTab === 'notifications' && (
-                        <div className="space-y-6 animate-in slide-in-from-right-4 duration-500 fade-in">
+                        <motion.div 
+                            key="notifications"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="space-y-6"
+                        >
                             <Card className="border-border/60 bg-card/40 backdrop-blur-md">
                                 <CardHeader>
                                     <CardTitle className="text-base flex items-center gap-2">
@@ -369,10 +399,11 @@ export const SettingsPage: React.FC = () => {
                                     </div>
                                 </CardContent>
                             </Card>
-                        </div>
+                        </motion.div>
                     )}
+                    </AnimatePresence>
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 };

@@ -3,7 +3,8 @@ import { useLocation, Link, Outlet } from 'react-router-dom';
 import {
     LayoutDashboard, Cable, Workflow, Activity, Settings,
     Search, Menu, X, ChevronRight, Home, LogOut,
-    User, CreditCard, Users, PanelLeft, Command, Book, Sparkles
+    User, CreditCard, Users, PanelLeft, Command, Book, Sparkles,
+    Maximize2, Minimize2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ModeToggle } from './ModeToggle';
@@ -18,9 +19,16 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
+import { useZenMode } from '@/context/ZenContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NavGroup } from './navigation/NavGroup';
 import { NavItem } from './navigation/NavItem';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { SearchDialog } from './navigation/SearchDialog';
 import { NotificationsBell } from './navigation/NotificationsBell';
@@ -34,8 +42,9 @@ export const Layout: React.FC<LayoutProps> = () => {
     const location = useLocation();
     const { user, logout } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const { isZenMode, setIsZenMode } = useZenMode();
 
     // Global CMD+K Shortcut
     useEffect(() => {
@@ -65,12 +74,27 @@ export const Layout: React.FC<LayoutProps> = () => {
         <div className="flex h-screen w-full overflow-hidden font-sans antialiased bg-transparent">
 
             {/* --- Floating Glass Sidebar --- */}
-            <motion.aside
-                initial={false}
-                animate={{ width: isSidebarCollapsed ? 80 : 280 }}
-                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="relative hidden md:flex flex-col z-30 m-4 overflow-visible"
-            >
+            <AnimatePresence>
+                {!isZenMode && (
+                    <motion.aside
+                        initial={{ x: -300, opacity: 0, width: 0, marginLeft: 0, marginRight: 0 }}
+                        animate={{ 
+                            x: 0, 
+                            opacity: 1,
+                            width: isSidebarCollapsed ? 80 : 280,
+                            marginLeft: 16,
+                            marginRight: 16
+                        }}
+                        exit={{ 
+                            x: -300, 
+                            opacity: 0, 
+                            width: 0,
+                            marginLeft: 0,
+                            marginRight: 0
+                        }}
+                        transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                        className="relative hidden md:flex flex-col z-30 my-4 overflow-visible shrink-0"
+                    >
                 {/* Toggle Button (Absolute) */}
                 <Button
                     variant="ghost"
@@ -187,13 +211,37 @@ export const Layout: React.FC<LayoutProps> = () => {
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
-                </div>
-            </motion.aside>
-
+                                    </div>
+                                </motion.aside>
+                            )}
+                            </AnimatePresence>
             {/* --- Main Content Area --- */}
-            <div className="flex flex-1 flex-col overflow-hidden relative">
+            <motion.div 
+                layout
+                className="flex flex-1 flex-col overflow-hidden relative"
+            >
                 {/* Floating Header */}
-                <header className="flex h-16 items-center justify-between mx-4 mt-4 rounded-[2rem] px-6 z-20 sticky top-0 transition-all border border-border/60 bg-card/40 backdrop-blur-2xl shadow-[0_16px_32px_-8px_rgba(0,0,0,0.1)] dark:shadow-[0_16px_32px_-8px_rgba(0,0,0,0.4)]">
+                <AnimatePresence>
+                    {!isZenMode && (
+                        <motion.header
+                            initial={{ y: -100, opacity: 0, height: 0, marginTop: 0, marginBottom: 0 }}
+                            animate={{ 
+                                y: 0, 
+                                opacity: 1, 
+                                height: 64, // 16 * 4 (h-16)
+                                marginTop: 16, // mt-4
+                                marginBottom: 0 
+                            }}
+                            exit={{ 
+                                y: -100, 
+                                opacity: 0, 
+                                height: 0, 
+                                marginTop: 0, 
+                                marginBottom: 0 
+                            }}
+                            transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                            className="flex h-16 items-center justify-between mx-4 mt-4 rounded-[2rem] px-6 z-20 sticky top-0 transition-all border border-border/60 bg-card/40 backdrop-blur-2xl shadow-[0_16px_32px_-8px_rgba(0,0,0,0.1)] dark:shadow-[0_16px_32px_-8px_rgba(0,0,0,0.4)] overflow-hidden"
+                        >
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileMenuOpen(true)}>
                             <Menu className="h-5 w-5" />
@@ -228,31 +276,63 @@ export const Layout: React.FC<LayoutProps> = () => {
                             </div>
                         </button>
                         <div className="h-8 w-px bg-border/30 mx-1 hidden sm:block"></div>
+                        <Button variant="ghost" size="icon" onClick={() => setIsZenMode(true)} title="Enter Zen Mode (Alt+Z)">
+                            <Maximize2 className="h-4 w-4" />
+                        </Button>
                         <ModeToggle />
                         {/* Theme-aware Notification Button */}
                         <NotificationsBell />
                     </div>
-                </header>
+                        </motion.header>
+                    )}
+                </AnimatePresence>
 
                 {/* Search Dialog */}
                 <SearchDialog isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+
+                <AnimatePresence>
+                    {isZenMode && (
+                        <motion.div
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0, opacity: 0 }}
+                            className="fixed bottom-6 right-6 z-50"
+                        >
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-10 rounded-full bg-background/20 backdrop-blur-md border border-border/40 shadow-lg hover:bg-primary/20 hover:text-primary hover:border-primary/50 transition-all duration-300 group"
+                                onClick={() => setIsZenMode(false)}
+                                title="Exit Zen Mode (Alt+Z or Esc)"
+                            >
+                                <Minimize2 className="h-4 w-4 opacity-60 group-hover:opacity-100" />
+                            </Button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* Scrollable Content with Page Transitions */}
                 <main className="flex-1 overflow-auto p-4 md:p-6 scrollbar-thin scrollbar-thumb-border/50">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={location.pathname.startsWith('/jobs') ? '/jobs' : location.pathname}
-                            initial={{ opacity: 0, y: 20, scale: 0.98 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: -20, scale: 0.98 }}
-                            transition={{ duration: 0.3, ease: "easeOut" }}
-                            className="mx-auto max-w-8xl h-full"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ 
+                                opacity: { duration: 0.2 },
+                                y: { duration: 0.2 }
+                            }}
+                            className={cn(
+                                "mx-auto h-full w-full",
+                                isZenMode ? "max-w-none" : "max-w-8xl"
+                            )}
                         >
                             <Outlet />
                         </motion.div>
                     </AnimatePresence>
                 </main>
-            </div>
+            </motion.div>
 
             {/* --- Mobile Overlay --- */}
             <AnimatePresence>
@@ -287,15 +367,58 @@ export const Layout: React.FC<LayoutProps> = () => {
                                 </Button>
                             </div>
                             <nav className="flex flex-col gap-2">
-                                <NavItem to="/dashboard" icon={<LayoutDashboard />} label="Dashboard" onClick={handleMobileNavClick} />
-                                <NavItem to="/connections" icon={<Cable />} label="Connections" onClick={handleMobileNavClick} />
-                                <NavItem to="/explorer" icon={<Search />} label="Explorer" onClick={handleMobileNavClick} />
-                                <NavItem to="/operators" icon={<Sparkles />} label="Operators" onClick={handleMobileNavClick} />
-                                <NavItem to="/pipelines" icon={<Workflow />} label="Pipelines" onClick={handleMobileNavClick} />
-                                <NavItem to="/jobs" icon={<Activity />} label="Jobs & Runs" onClick={handleMobileNavClick} />
-                                {/* Theme-aware divider */}
-                                <div className="h-px bg-border/40 my-4"></div>
-                                <NavItem to="/settings" icon={<Settings />} label="Settings" onClick={handleMobileNavClick} />
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <NavItem to="/dashboard" icon={<LayoutDashboard />} label="Dashboard" onClick={handleMobileNavClick} />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">Dashboard</TooltipContent>
+                                    </Tooltip>
+
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <NavItem to="/connections" icon={<Cable />} label="Connections" onClick={handleMobileNavClick} />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">Connections</TooltipContent>
+                                    </Tooltip>
+
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <NavItem to="/explorer" icon={<Search />} label="Explorer" onClick={handleMobileNavClick} />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">Explorer</TooltipContent>
+                                    </Tooltip>
+
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <NavItem to="/operators" icon={<Sparkles />} label="Operators" onClick={handleMobileNavClick} />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">Operators</TooltipContent>
+                                    </Tooltip>
+
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <NavItem to="/pipelines" icon={<Workflow />} label="Pipelines" onClick={handleMobileNavClick} />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">Pipelines</TooltipContent>
+                                    </Tooltip>
+
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <NavItem to="/jobs" icon={<Activity />} label="Jobs & Runs" onClick={handleMobileNavClick} />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">Jobs & Runs</TooltipContent>
+                                    </Tooltip>
+
+                                    <div className="h-px bg-border/40 my-4"></div>
+
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <NavItem to="/settings" icon={<Settings />} label="Settings" onClick={handleMobileNavClick} />
+                                        </TooltipTrigger>
+                                        <TooltipContent side="right">Settings</TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
                             </nav>
                         </motion.div>
                     </div>

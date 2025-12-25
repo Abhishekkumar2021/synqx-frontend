@@ -9,6 +9,7 @@ import {
     LayoutGrid, List as ListIcon
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { PipelineSettingsDialog } from '@/components/features/pipelines/PipelineSettingsDialog';
 import { PipelineVersionDialog } from '@/components/features/pipelines/PipelineVersionDialog';
 import { cn } from '@/lib/utils';
@@ -18,8 +19,10 @@ import { PipelineListItem } from '@/components/features/pipelines/PipelineListIt
 import { LoadingSkeleton, EmptyState } from '@/components/features/pipelines/PipelineStates';
 import { PageMeta } from '@/components/common/PageMeta';
 import { useJobsListTelemetry } from '@/hooks/useJobsListTelemetry';
+import { useZenMode } from '@/context/ZenContext';
 
 export const PipelinesListPage: React.FC = () => {
+    const { isZenMode } = useZenMode();
     // Enable real-time updates for pipeline status via global jobs telemetry
     useJobsListTelemetry();
 
@@ -93,7 +96,12 @@ export const PipelinesListPage: React.FC = () => {
     if (isLoadingPipelines) return <LoadingSkeleton />;
 
     return (
-        <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 md:gap-8 animate-in fade-in duration-700 p-4 md:p-0 ">
+        <motion.div 
+            className={cn(
+                "flex flex-col gap-6 md:gap-8 p-4 md:p-0",
+                isZenMode ? "h-[calc(100vh-3rem)]" : "h-[calc(100vh-8rem)]"
+            )}
+        >
             <PageMeta title="Pipelines" description="Orchestrate and monitor your data workflows." />
 
             {/* --- Page Header --- */}
@@ -228,6 +236,6 @@ export const PipelinesListPage: React.FC = () => {
                     onOpenChange={setVersionsOpen}
                 />
             )}
-        </div>
+        </motion.div>
     );
 };

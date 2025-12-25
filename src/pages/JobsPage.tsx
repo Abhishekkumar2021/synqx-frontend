@@ -8,10 +8,12 @@ import {
     RefreshCw, Filter, ChevronDown, Terminal, History as HistoryIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 import { JobsList } from '@/components/features/jobs/JobsList';
 import { JobDetails } from '@/components/features/jobs/JobDetails';
 import { PageMeta } from '@/components/common/PageMeta';
 import { useJobsListTelemetry } from '@/hooks/useJobsListTelemetry';
+import { useZenMode } from '@/context/ZenContext';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -24,6 +26,7 @@ import {
 export const JobsPage: React.FC = () => {
     // Enable real-time list updates via WebSockets
     useJobsListTelemetry();
+    const { isZenMode } = useZenMode();
 
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -82,7 +85,12 @@ export const JobsPage: React.FC = () => {
     }, [pipelineIdFilter, pipelines]);
 
     return (
-        <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 animate-in fade-in duration-700">
+        <motion.div 
+            className={cn(
+                "flex flex-col gap-6",
+                isZenMode ? "h-[calc(100vh-3rem)]" : "h-[calc(100vh-8rem)]"
+            )}
+        >
             <PageMeta title="Execution History" description="Monitor pipeline runs and logs." />
 
             {/* --- Header Section --- */}
@@ -202,6 +210,6 @@ export const JobsPage: React.FC = () => {
                     )}
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 };

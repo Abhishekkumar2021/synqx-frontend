@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/dialog";
 import { PageMeta } from '@/components/common/PageMeta';
 import { motion } from 'framer-motion';
+import { useZenMode } from '@/context/ZenContext';
+import { cn } from '@/lib/utils';
 
 import { ConnectionsHeader } from '@/components/features/connections/ConnectionsHeader';
 import { ConnectionsToolbar } from '@/components/features/connections/ConnectionsToolbar';
@@ -29,6 +31,7 @@ export const ConnectionsPage: React.FC = () => {
     const [testingId, setTestingId] = useState<number | null>(null);
     const [filter, setFilter] = useState('');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const { isZenMode } = useZenMode();
 
     const { data: connections, isLoading, error } = useQuery({
         queryKey: ['connections'],
@@ -113,7 +116,10 @@ export const ConnectionsPage: React.FC = () => {
     }, [connections, filter]);
 
     if (error) return (
-        <div className="flex h-[calc(100vh-8rem)] items-center justify-center animate-in fade-in duration-500">
+        <div className={cn(
+            "flex items-center justify-center animate-in fade-in duration-500",
+            isZenMode ? "h-[calc(100vh-3rem)]" : "h-[calc(100vh-8rem)]"
+        )}>
             <motion.div
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -144,7 +150,12 @@ export const ConnectionsPage: React.FC = () => {
     );
 
     return (
-        <div className="flex flex-col h-[calc(100vh-8rem)] gap-6 md:gap-8 animate-in fade-in duration-700 p-4 md:p-0">
+        <motion.div 
+            className={cn(
+                "flex flex-col gap-6 md:gap-8 p-4 md:p-0",
+                isZenMode ? "h-[calc(100vh-3rem)]" : "h-[calc(100vh-8rem)]"
+            )}
+        >
             <PageMeta title="Connections" description="Manage data sources and destinations." />
 
             <ConnectionsHeader onCreate={handleCreate} />
@@ -184,6 +195,6 @@ export const ConnectionsPage: React.FC = () => {
                 onConfirm={confirmDelete}
                 connectionName={connectionToDelete?.name}
             />
-        </div>
+        </motion.div>
     );
 };

@@ -17,7 +17,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, formatNumber } from '@/lib/utils';
 import { CodeBlock } from '@/components/ui/docs/CodeBlock';
 import { toast } from 'sonner';
 
@@ -144,7 +144,7 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ data, isLoading }) => 
                         />
                     </div>
                     <Badge variant="outline" className="h-6 px-3 rounded-full border-border/50 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 bg-muted/20">
-                        {processedData.length} Nodes
+                        {formatNumber(processedData.length)} Nodes
                     </Badge>
                 </div>
 
@@ -263,7 +263,7 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ data, isLoading }) => 
                     <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">{data.columns.length} Fields Detected</span>
                 </div>
                 <span className="text-[10px] font-mono font-black text-primary/40 italic">
-                    {data.results.length.toLocaleString()} ROWS RETURNED
+                    {formatNumber(data.results.length)} ROWS RETURNED
                 </span>
             </footer>
         </div>

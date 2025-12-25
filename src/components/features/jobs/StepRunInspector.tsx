@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { cn } from '@/lib/utils';
+import { cn, formatNumber } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { useQuery } from '@tanstack/react-query';
@@ -221,7 +221,7 @@ export const StepRunInspector: React.FC<StepRunInspectorProps> = ({
                                                 <ArrowDownToLine size={12} />
                                                 <span className="text-[9px] font-black uppercase tracking-widest">Ingress</span>
                                             </div>
-                                            <p className="text-3xl font-black tracking-tighter text-blue-500">{(step.records_in || 0).toLocaleString()}</p>
+                                            <p className="text-3xl font-black tracking-tighter text-blue-500">{formatNumber(step.records_in || 0)}</p>
                                             <span className="text-[9px] font-bold text-muted-foreground/40 uppercase">Total Records In</span>
                                         </div>
                                         <div className="p-5 rounded-[2rem] bg-emerald-500/5 border border-emerald-500/10 flex flex-col gap-1 shadow-sm">
@@ -229,7 +229,7 @@ export const StepRunInspector: React.FC<StepRunInspectorProps> = ({
                                                 <ArrowUpFromLine size={12} />
                                                 <span className="text-[9px] font-black uppercase tracking-widest">Egress</span>
                                             </div>
-                                            <p className="text-3xl font-black tracking-tighter text-emerald-500">{(step.records_out || 0).toLocaleString()}</p>
+                                            <p className="text-3xl font-black tracking-tighter text-emerald-500">{formatNumber(step.records_out || 0)}</p>
                                             <span className="text-[9px] font-bold text-muted-foreground/40 uppercase">Successfully Processed</span>
                                         </div>
                                     </div>
@@ -241,14 +241,14 @@ export const StepRunInspector: React.FC<StepRunInspectorProps> = ({
                                                     <Filter size={12} />
                                                     <span className="text-[9px] font-black uppercase tracking-widest">Filtered</span>
                                                 </div>
-                                                <span className="text-sm font-black font-mono text-amber-600">{recordsFiltered.toLocaleString()}</span>
+                                                <span className="text-sm font-black font-mono text-amber-600">{formatNumber(recordsFiltered)}</span>
                                             </div>
                                             <div className="px-5 py-3 rounded-2xl bg-destructive/5 border border-destructive/10 flex items-center justify-between">
                                                 <div className="flex items-center gap-2 text-destructive/60">
                                                     <AlertTriangle size={12} />
                                                     <span className="text-[9px] font-black uppercase tracking-widest">Errors</span>
                                                 </div>
-                                                <span className="text-sm font-black font-mono text-destructive">{recordsError.toLocaleString()}</span>
+                                                <span className="text-sm font-black font-mono text-destructive">{formatNumber(recordsError)}</span>
                                             </div>
                                         </div>
                                     )}

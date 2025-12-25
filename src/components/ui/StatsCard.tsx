@@ -61,7 +61,11 @@ export const StatsCard: React.FC<StatsCardProps> = ({
 
             {/* Value & Trends */}
             <div className="flex flex-col gap-2">
-                <h3 className="text-4xl font-bold tracking-tighter tabular-nums text-foreground">{value}</h3>
+                <h3 
+                    className="text-4xl font-bold tracking-tighter tabular-nums text-foreground"
+                >
+                    {value}
+                </h3>
 
                 {(trend || subtext) && (
                     <div className="flex items-center gap-2 text-xs font-semibold mt-1">
