@@ -86,12 +86,13 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
         if (node) {
             const config = node.data.config as any || {};
             let currentType = ((node.data.type as string) || (node.data.operator_type as string) || 'transform').toLowerCase();
-            const currentOpClass = (node.data.operator_class as string) || (currentType === 'source' ? 'PostgresExtractor' : currentType === 'sink' ? 'PostgresLoader' : 'pandas_transform');
+            const currentOpClass = (node.data.operator_class as string) || (currentType === 'source' ? 'extractor' : currentType === 'sink' ? 'loader' : 'pandas_transform');
 
             const def = getOperatorDefinition(currentOpClass);
             
             const formValues: any = {
                 label: (node.data.label as string) || '',
+                description: (node.data.description as string) || '',
                 operator_type: currentType,
                 operator_class: currentOpClass,
                 config: JSON.stringify(config, null, 2),
@@ -99,15 +100,16 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                 asset_id: String(node.data.asset_id || node.data.source_asset_id || node.data.destination_asset_id || ''),
                 max_retries: node.data.max_retries ?? 3,
                 retry_strategy: (node.data as any).retry_strategy || 'fixed',
+                retry_delay_seconds: node.data.retry_delay_seconds ?? 60,
                 timeout_seconds: node.data.timeout_seconds ?? 3600
             };
 
-            // Dynamic hydration based on fields
+            // Dynamic hydration based on definition fields
             if (def?.fields) {
                 def.fields.forEach(field => {
                     const val = config[field.configKey];
-                    if (field.type === 'json' || field.type === 'textarea') {
-                        formValues[field.name] = JSON.stringify(val || {}, null, 2);
+                    if (field.type === 'json') {
+                        formValues[field.name] = val ? JSON.stringify(val, null, 2) : '';
                     } else if (Array.isArray(val)) {
                         formValues[field.name] = val.join(', ');
                     } else {
@@ -119,6 +121,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
             reset(formValues);
         }
     }, [node, reset]);
+
 
     if (!node) return null;
 
@@ -134,7 +137,13 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                 opDef.fields.forEach(field => {
                     const val = data[field.name];
                     if (field.type === 'json') {
-                        dynamicConfig[field.configKey] = JSON.parse(val);
+                        try { 
+                            if (val && val.trim()) {
+                                dynamicConfig[field.configKey] = JSON.parse(val); 
+                            }
+                        } catch(e) {
+                            console.error(`Failed to parse JSON for field ${field.name}`, e);
+                        }
                     } else if (field.description?.toLowerCase().includes('comma separated')) {
                         dynamicConfig[field.configKey] = val.split(',').map((s: string) => s.trim()).filter(Boolean);
                     } else if (field.type === 'number') {
@@ -147,6 +156,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
 
             const payload: any = {
                 label: data.label,
+                description: data.description,
                 type: data.operator_type,
                 operator_class: data.operator_class,
                 config: { ...baseConfig, ...dynamicConfig },
@@ -154,8 +164,10 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                 asset_id: data.asset_id ? parseInt(data.asset_id) : undefined,
                 max_retries: data.max_retries,
                 retry_strategy: data.retry_strategy,
+                retry_delay_seconds: data.retry_delay_seconds,
                 timeout_seconds: data.timeout_seconds,
             };
+
 
             if (data.operator_type === 'source') payload.source_asset_id = payload.asset_id;
             if (data.operator_type === 'sink') payload.destination_asset_id = payload.asset_id;
@@ -256,20 +268,24 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                     <ScrollArea className="flex-1">
                         <div className="p-6 space-y-6">
                             <TabsContent value="settings" className="m-0 space-y-6 focus-visible:outline-none">
-                                {/* Core Configuration */}
-                                <div className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Identity</Label>
-                                        <Input
-                                            {...register('label', { required: true })}
-                                            placeholder="Descriptive name..."
-                                            className="h-10 rounded-lg bg-background/50 border-border/40 focus:ring-primary/20"
-                                        />
-                                    </div>
+                                {/* Identity - Name Only */}
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Node Identity</Label>
+                                    <Input
+                                        {...register('label', { required: true })}
+                                        placeholder="Descriptive name..."
+                                        className="h-10 rounded-lg bg-background/50 border-border/40 focus:ring-primary/20"
+                                    />
+                                </div>
 
-                                    {/* Connection/Asset Section for IO Nodes */}
+                                {/* Operator Specific Config (IO or Logic) */}
+                                <div className="space-y-4">
                                     {(nodeType === 'source' || nodeType === 'sink') && (
                                         <div className="space-y-4 p-4 rounded-xl border border-border/40 bg-muted/10">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Database className="h-3 w-3 text-muted-foreground" />
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">IO Mapping</span>
+                                            </div>
                                             <div className="space-y-2">
                                                 <Label className="text-[10px] font-bold">Connection</Label>
                                                 <Controller
@@ -307,7 +323,6 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                         </div>
                                     )}
 
-                                    {/* Dynamic Fields from Schema */}
                                     {opDef?.fields && (
                                         <div className="space-y-4 p-4 rounded-xl border border-border/40 bg-primary/5">
                                             <div className="flex items-center gap-2 mb-2">
@@ -317,21 +332,13 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                             {opDef.fields.map(renderField)}
                                         </div>
                                     )}
-
-                                    {/* Fallback info */}
-                                    {!opDef?.fields && nodeType !== 'source' && nodeType !== 'sink' && (
-                                        <div className="flex items-center gap-3 p-4 bg-muted/20 border border-border/40 rounded-xl text-muted-foreground">
-                                            <Info size={16} />
-                                            <p className="text-[10px]">No visual fields available. Use <b>Advanced</b> tab for JSON config.</p>
-                                        </div>
-                                    )}
                                 </div>
 
                                 <Separator className="opacity-50" />
 
                                 {/* Reliability */}
                                 <div className="space-y-4">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Orchestration</Label>
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Orchestration & Reliability</Label>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
                                             <Label className="text-[10px] font-bold">Retry Logic</Label>
@@ -352,13 +359,48 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                                 )}
                                             />
                                         </div>
+                                        {watch('retry_strategy') !== 'none' && (
+                                            <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                <Label className="text-[10px] font-bold">Max Retries</Label>
+                                                <Input type="number" {...register('max_retries', { valueAsNumber: true })} className="h-9 bg-background/50" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {watch('retry_strategy') !== 'none' && (
+                                            <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                <Label className="text-[10px] font-bold">Retry Delay (sec)</Label>
+                                                <Input type="number" {...register('retry_delay_seconds', { valueAsNumber: true })} className="h-9 bg-background/50" />
+                                            </div>
+                                        )}
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] font-bold">Attempts</Label>
-                                            <Input type="number" {...register('max_retries', { valueAsNumber: true })} className="h-9 bg-background/50" />
+                                            <Label className="text-[10px] font-bold">Execution TTL (sec)</Label>
+                                            <Input type="number" {...register('timeout_seconds', { valueAsNumber: true })} placeholder="3600" className="h-9 bg-background/50" />
                                         </div>
                                     </div>
                                 </div>
+
+                                <Separator className="opacity-50" />
+
+                                {/* Secondary Info */}
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Documentation</Label>
+                                    <Textarea
+                                        {...register('description')}
+                                        placeholder="Optional node description or notes..."
+                                        className="min-h-[80px] rounded-lg bg-background/50 border-border/40 focus:ring-primary/20 text-xs resize-none"
+                                    />
+                                </div>
+
+                                {!opDef?.fields && nodeType !== 'source' && nodeType !== 'sink' && (
+                                    <div className="flex items-center gap-3 p-4 bg-muted/20 border border-border/40 rounded-xl text-muted-foreground">
+                                        <Info size={16} />
+                                        <p className="text-[10px]">No visual fields available. Use <b>Advanced</b> tab for JSON config.</p>
+                                    </div>
+                                )}
                             </TabsContent>
+
 
                             <TabsContent value="advanced" className="m-0 h-full focus-visible:outline-none">
                                 <div className="space-y-4 h-full">

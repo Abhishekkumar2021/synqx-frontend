@@ -239,7 +239,20 @@ export const PipelineCanvas: React.FC = () => {
     [setEdges],
   );
 
-  const onAddNode = (type: string, operatorClass?: string, label?: string) => {
+    const [opSearch, setOpSearch] = useState("");
+
+    const filteredDefinitions = useMemo(() => {
+        if (!opSearch) return NODE_DEFINITIONS;
+        return NODE_DEFINITIONS.map(category => ({
+            ...category,
+            items: category.items.filter(item => 
+                item.label.toLowerCase().includes(opSearch.toLowerCase()) ||
+                item.desc.toLowerCase().includes(opSearch.toLowerCase())
+            )
+        })).filter(category => category.items.length > 0);
+    }, [opSearch]);
+
+    const onAddNode = (type: string, operatorClass?: string, label?: string) => {
       const newNodeId = `node_${Date.now()}`;
       // Center the node somewhat in the view or randomize slightly
       const offset = Math.random() * 50; 
@@ -628,39 +641,57 @@ export const PipelineCanvas: React.FC = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent 
                             align="center" 
-                            sideOffset={10}
-                            className="w-64 bg-background/80 backdrop-blur-3xl border-border/20 shadow-2xl rounded-2xl p-2 ring-1 ring-white/5"
+                            sideOffset={20}
+                            className="w-72 bg-background/80 backdrop-blur-3xl border-border/20 shadow-2xl rounded-2xl p-2 ring-1 ring-white/5"
                         >
-                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar px-1">
-                                {NODE_DEFINITIONS.map((category, idx) => (
-                                    <div key={idx} className="mb-2 last:mb-0">
-                                        <div className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
-                                            {category.category}
-                                        </div>
-                                        {category.items.map((item, i) => (
-                                            <DropdownMenuItem 
-                                                key={i}
-                                                className="group flex items-center gap-3 p-2 rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer transition-colors"
-                                                onClick={() => onAddNode(item.type, (item as any).opClass, item.label)}
-                                            >
-                                                <div className={cn(
-                                                    "p-1.5 rounded-lg border shadow-sm transition-colors group-hover:border-primary/30",
-                                                    item.type === 'source' ? "bg-chart-1/10 border-chart-1/20 text-chart-1" :
-                                                    item.type === 'sink' ? "bg-chart-2/10 border-chart-2/20 text-chart-2" :
-                                                    item.type === 'validate' ? "bg-chart-4/10 border-chart-4/20 text-chart-4" :
-                                                    ['join', 'union', 'merge'].includes(item.type) ? "bg-chart-5/10 border-chart-5/20 text-chart-5" :
-                                                    "bg-chart-3/10 border-chart-3/20 text-chart-3"
-                                                )}>
-                                                    <item.icon className="h-3.5 w-3.5" />
-                                                </div>
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="text-xs font-semibold">{item.label}</span>
-                                                    <span className="text-[9px] text-muted-foreground group-hover:text-primary/70">{item.desc}</span>
-                                                </div>
-                                            </DropdownMenuItem>
-                                        ))}
+                            <div className="px-2 py-2 mb-2 border-b border-border/10">
+                                <div className="relative group">
+                                    <Plus className="z-20 absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                    <Input 
+                                        placeholder="Search operators..." 
+                                        value={opSearch}
+                                        onChange={(e) => setOpSearch(e.target.value)}
+                                        className="h-9 pl-8 rounded-xl bg-muted/30 border-none text-xs focus-visible:ring-1 focus-visible:ring-primary/20"
+                                        autoFocus
+                                    />
+                                </div>
+                            </div>
+                            <div className="max-h-[350px] overflow-y-auto custom-scrollbar px-1">
+                                {filteredDefinitions.length === 0 ? (
+                                    <div className="py-8 text-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-50">
+                                        No results matching "{opSearch}"
                                     </div>
-                                ))}
+                                ) : (
+                                    filteredDefinitions.map((category, idx) => (
+                                        <div key={idx} className="mb-2 last:mb-0">
+                                            <div className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
+                                                {category.category}
+                                            </div>
+                                            {category.items.map((item, i) => (
+                                                <DropdownMenuItem 
+                                                    key={i}
+                                                    className="group flex items-center gap-3 p-2 rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer transition-colors"
+                                                    onClick={() => onAddNode(item.type, (item as any).opClass, item.label)}
+                                                >
+                                                    <div className={cn(
+                                                        "p-1.5 rounded-lg border shadow-sm transition-colors group-hover:border-primary/30",
+                                                        item.type === 'source' ? "bg-chart-1/10 border-chart-1/20 text-chart-1" :
+                                                        item.type === 'sink' ? "bg-chart-2/10 border-chart-2/20 text-chart-2" :
+                                                        item.type === 'validate' ? "bg-chart-4/10 border-chart-4/20 text-chart-4" :
+                                                        ['join', 'union', 'merge'].includes(item.type) ? "bg-chart-5/10 border-chart-5/20 text-chart-5" :
+                                                        "bg-chart-3/10 border-chart-3/20 text-chart-3"
+                                                    )}>
+                                                        <item.icon className="h-3.5 w-3.5" />
+                                                    </div>
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-xs font-semibold">{item.label}</span>
+                                                        <span className="text-[9px] text-muted-foreground group-hover:text-primary/70">{item.desc}</span>
+                                                    </div>
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </DropdownMenuContent>
                     </DropdownMenu>
