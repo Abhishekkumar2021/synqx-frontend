@@ -10,7 +10,9 @@ import {
     Play, AlertTriangle,
     Table as TableIcon, Loader2, Maximize2, Minimize2,
     Clock, Plus, X, AlignLeft, TextSelect, SquareTerminal,
-    Trash2} from 'lucide-react';
+    Trash2,
+    Database
+} from 'lucide-react';
 import { toast } from 'sonner';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -34,12 +36,12 @@ import { cn } from '@/lib/utils';
 const MaximizePortal = ({ children }: { children: React.ReactNode }) => {
     return createPortal(
         <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            className="fixed inset-0 z-9999 bg-background flex flex-col isolate"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] bg-background/80 backdrop-blur-3xl flex flex-col isolate p-4"
         >
-            <div className="flex-1 overflow-hidden relative">
+            <div className="flex-1 overflow-hidden relative rounded-[2.5rem] border border-border/60 shadow-2xl bg-background flex flex-col">
                 {children}
             </div>
         </motion.div>,
@@ -160,7 +162,6 @@ export const ExplorerPage: React.FC = () => {
             const char = sql[i];
             const nextChar = sql[i + 1];
 
-            // Handle Strings
             if (inSingleQuote) {
                 buffer += char;
                 if (char === "'" && sql[i - 1] !== '\\') inSingleQuote = false;
@@ -171,8 +172,6 @@ export const ExplorerPage: React.FC = () => {
                 if (char === '"' && sql[i - 1] !== '\\') inDoubleQuote = false;
                 continue;
             }
-
-            // Handle Comments
             if (inBlockComment) {
                 buffer += char;
                 if (char === '*' && nextChar === '/') {
@@ -187,8 +186,6 @@ export const ExplorerPage: React.FC = () => {
                 if (char === '\n') inLineComment = false;
                 continue;
             }
-
-            // Start States
             if (char === "'") {
                 inSingleQuote = true;
                 buffer += char;
@@ -211,8 +208,6 @@ export const ExplorerPage: React.FC = () => {
                 i++;
                 continue;
             }
-
-            // Split
             if (char === ';') {
                 if (buffer.trim()) {
                     statements.push(buffer.trim());
@@ -220,31 +215,26 @@ export const ExplorerPage: React.FC = () => {
                 buffer = '';
                 continue;
             }
-
             buffer += char;
         }
-
         if (buffer.trim()) {
             statements.push(buffer.trim());
         }
-
         return statements;
     };
 
-    // Helper: Get Statement at Cursor
     const getStatementAtCursor = () => {
         if (!editorRef.current) return '';
         const model = editorRef.current.getModel();
         const position = editorRef.current.getPosition();
         const text = model.getValue();
         const offset = model.getOffsetAt(position);
-        
-        // Simple search for nearest semicolons
+
         const before = text.lastIndexOf(';', offset - 1);
         const after = text.indexOf(';', offset);
         const start = before === -1 ? 0 : before + 1;
         const end = after === -1 ? text.length : after;
-        
+
         return text.substring(start, end).trim();
     };
 
@@ -280,8 +270,7 @@ export const ExplorerPage: React.FC = () => {
         if (statements.length === 0) return;
 
         setIsExecuting(true);
-        
-        // Sequential Execution
+
         for (const stmt of statements) {
             try {
                 const start = performance.now();
@@ -307,13 +296,9 @@ export const ExplorerPage: React.FC = () => {
                     }
                     return t;
                 }));
-
-                // Add to History
                 refetchHistory();
-
             } catch (err: any) {
                 toast.error("Query Failed", { description: `Statement: ${stmt.substring(0, 30)}...\nError: ${err.message}` });
-                // We assume we continue? Or stop? Professional clients usually stop on error.
                 break;
             }
         }
@@ -323,7 +308,7 @@ export const ExplorerPage: React.FC = () => {
 
     const handleSchemaAction = (type: 'run' | 'insert', sql: string) => {
         if (!editorRef.current) return;
-        
+
         if (type === 'insert') {
             const editor = editorRef.current;
             const position = editor.getPosition();
@@ -337,8 +322,8 @@ export const ExplorerPage: React.FC = () => {
             setIsExecuting(true);
             executeRawQuery(parseInt(selectedConnectionId!), sql)
                 .then(data => {
-                     const resultId = Math.random().toString(36).substr(2, 9);
-                     const newResult: ResultItem = {
+                    const resultId = Math.random().toString(36).substr(2, 9);
+                    const newResult: ResultItem = {
                         id: resultId,
                         timestamp: Date.now(),
                         statement: sql,
@@ -382,7 +367,6 @@ export const ExplorerPage: React.FC = () => {
         });
     };
 
-    // --- Autocomplete Registration (Untouched) ---
     useEffect(() => {
         if (!monaco || !schemaMetadata || !isSupported) return;
         const provider = monaco.languages.registerCompletionItemProvider('sql', {
@@ -422,7 +406,6 @@ export const ExplorerPage: React.FC = () => {
 
     const renderEditor = () => (
         <div className="h-full flex flex-col bg-background relative isolate">
-            {/* Tab Bar Container */}
             <div className="h-10 flex items-center gap-1 px-2 bg-muted/20 border-b border-border/40 overflow-x-auto no-scrollbar shrink-0">
                 {tabs.map(tab => (
                     <Tooltip key={tab.id}>
@@ -431,8 +414,8 @@ export const ExplorerPage: React.FC = () => {
                                 onClick={() => setActiveTabId(tab.id)}
                                 className={cn(
                                     "group flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap shrink-0 cursor-pointer",
-                                    activeTabId === tab.id 
-                                        ? "bg-primary/10 text-primary shadow-sm" 
+                                    activeTabId === tab.id
+                                        ? "bg-primary/10 text-primary shadow-sm"
                                         : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                                 )}
                             >
@@ -459,14 +442,16 @@ export const ExplorerPage: React.FC = () => {
                 </Tooltip>
             </div>
 
-            {/* Toolbar */}
             <div className="h-12 border-b border-border/40 flex items-center justify-between px-4 bg-muted/5 shrink-0 gap-4">
                 <div className="flex items-center gap-2">
                     <Select value={selectedConnectionId || ''} onValueChange={(val) => { setSelectedConnectionId(val); localStorage.setItem('synqx-explorer-last-connection', val); }}>
-                        <SelectTrigger className="w-56 h-8 bg-background/50 border-border/40 rounded-xl font-bold text-xs italic">
-                            <SelectValue placeholder="Initialize Data Source" />
+                        <SelectTrigger className="w-56 h-8 glass-input rounded-xl text-xs font-bold transition-all shadow-none">
+                            <div className="flex items-center gap-2 truncate">
+                                <Database className="h-3.5 w-3.5 text-primary/60 shrink-0" />
+                                <SelectValue placeholder="Initialize Data Source" />
+                            </div>
                         </SelectTrigger>
-                        <SelectContent className="glass-panel border-border/40 rounded-2xl">
+                        <SelectContent className="glass border-border/40 rounded-2xl">
                             {connections?.map(c => {
                                 const supported = SUPPORTED_EXPLORER_TYPES.includes(c.connector_type.toLowerCase());
                                 return (
@@ -480,10 +465,9 @@ export const ExplorerPage: React.FC = () => {
                             })}
                         </SelectContent>
                     </Select>
-                    
+
                     <div className="h-6 w-px bg-border/40 mx-2" />
-                    
-                    {/* Execution Controls */}
+
                     <div className="flex items-center bg-background/50 rounded-xl p-0.5 border border-border/40 shadow-sm">
                         <Tooltip>
                             <TooltipTrigger asChild>
@@ -574,7 +558,7 @@ export const ExplorerPage: React.FC = () => {
                     </Tooltip>
                 </div>
             </div>
-            
+
             <div className="flex-1 overflow-hidden relative group">
                 {!isSupported && selectedConnectionId && (
                     <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-md p-12 text-center animate-in fade-in duration-300">
@@ -619,14 +603,11 @@ export const ExplorerPage: React.FC = () => {
         e.stopPropagation();
         setTabs(prev => prev.map(t => {
             if (t.id !== activeTabId) return t;
-            
             const newResults = t.results.filter(r => r.id !== resultId);
             let newActiveId = t.activeResultId;
-            
             if (t.activeResultId === resultId) {
                 newActiveId = newResults.length > 0 ? newResults[0].id : undefined;
             }
-            
             return {
                 ...t,
                 results: newResults,
@@ -637,67 +618,66 @@ export const ExplorerPage: React.FC = () => {
 
     const renderResults = () => (
         <div className="h-full flex flex-col bg-card/10 relative overflow-hidden">
-            {/* Result Tab Bar */}
             <div className="h-10 border-b border-border/40 bg-muted/10 flex items-center justify-between px-2 shrink-0 overflow-hidden">
                 <div className="flex-1 overflow-x-auto custom-scrollbar flex items-center h-10 gap-1 px-2">
-                        {activeTab.results.length === 0 ? (
-                            <div className="flex items-center gap-2 px-2 text-muted-foreground/50">
-                                <TableIcon size={14} />
-                                <span className="text-[10px] font-black uppercase tracking-widest italic">No Results</span>
-                            </div>
-                        ) : (
-                            activeTab.results.map((res, idx) => (
-                                <Tooltip key={res.id}>
-                                    <TooltipTrigger asChild>
-                                        <div
-                                            onClick={() => setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, activeResultId: res.id } : t))}
-                                            className={cn(
-                                                "group flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap shrink-0 cursor-pointer pr-1",
-                                                activeTab.activeResultId === res.id 
-                                                    ? "bg-primary/10 text-primary shadow-sm" 
-                                                    : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                                            )}
-                                        >
-                                            <span className="opacity-50">#{idx + 1}</span>
-                                            <span className="truncate max-w-[100px]">{res.statement.substring(0, 15)}...</span>
-                                            {activeTab.activeResultId === res.id && (
-                                                <span className="ml-1 text-[8px] bg-primary/20 px-1 rounded text-primary/80">{res.data.results.length}</span>
-                                            )}
-                                            <button
-                                                onClick={(e) => closeResultTab(res.id, e)}
-                                                className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-destructive/10 hover:text-destructive rounded-md transition-all ml-1"
-                                            >
-                                                <X size={10} />
-                                            </button>
-                                        </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-xs break-all font-mono text-[10px]">
-                                        {res.statement}
-                                    </TooltipContent>
-                                </Tooltip>
-                            ))
-                        )}
-                        {activeTab.results.length > 0 && (
-                            <Tooltip>
+                    {activeTab.results.length === 0 ? (
+                        <div className="flex items-center gap-2 px-2 text-muted-foreground/50">
+                            <TableIcon size={14} />
+                            <span className="text-[10px] font-black uppercase tracking-widest italic">No Results</span>
+                        </div>
+                    ) : (
+                        activeTab.results.map((res, idx) => (
+                            <Tooltip key={res.id}>
                                 <TooltipTrigger asChild>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-6 w-6 ml-2 text-muted-foreground/40 hover:text-destructive shrink-0"
-                                        onClick={() => setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, results: [], activeResultId: undefined } : t))}
+                                    <div
+                                        onClick={() => setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, activeResultId: res.id } : t))}
+                                        className={cn(
+                                            "group flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap shrink-0 cursor-pointer pr-1",
+                                            activeTab.activeResultId === res.id
+                                                ? "bg-primary/10 text-primary shadow-sm"
+                                                : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                                        )}
                                     >
-                                        <Trash2 size={12} />
-                                    </Button>
+                                        <span className="opacity-50">#{idx + 1}</span>
+                                        <span className="truncate max-w-[100px]">{res.statement.substring(0, 15)}...</span>
+                                        {activeTab.activeResultId === res.id && (
+                                            <span className="ml-1 text-[8px] bg-primary/20 px-1 rounded text-primary/80">{res.data.results.length}</span>
+                                        )}
+                                        <button
+                                            onClick={(e) => closeResultTab(res.id, e)}
+                                            className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-destructive/10 hover:text-destructive rounded-md transition-all ml-1"
+                                        >
+                                            <X size={10} />
+                                        </button>
+                                    </div>
                                 </TooltipTrigger>
-                                <TooltipContent>Clear All Results</TooltipContent>
+                                <TooltipContent className="max-w-xs break-all font-mono text-[10px]">
+                                    {res.statement}
+                                </TooltipContent>
                             </Tooltip>
-                        )}
+                        ))
+                    )}
+                    {activeTab.results.length > 0 && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 ml-2 text-muted-foreground/40 hover:text-destructive shrink-0"
+                                    onClick={() => setTabs(prev => prev.map(t => t.id === activeTabId ? { ...t, results: [], activeResultId: undefined } : t))}
+                                >
+                                    <Trash2 size={12} />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Clear All Results</TooltipContent>
+                        </Tooltip>
+                    )}
                 </div>
-                
+
                 <div className="flex items-center gap-1 pl-2 border-l border-border/40 shrink-0 bg-muted/10">
-                     <Tooltip>
-                         <TooltipTrigger asChild>
-                             <Button
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-8 w-8 rounded-lg"
@@ -710,33 +690,20 @@ export const ExplorerPage: React.FC = () => {
                     </Tooltip>
                 </div>
             </div>
-            
+
             <div className="flex-1 min-h-0 w-full relative">
                 <ResultsGrid data={activeResult ? activeResult.data : null} isLoading={isExecuting} />
             </div>
         </div>
     );
 
-
-
     return (
         <div className="h-full flex flex-col relative overflow-hidden animate-in fade-in duration-700 bg-background rounded-3xl border border-border/40 shadow-2xl">
             <PageMeta title="Explorer" />
 
             <AnimatePresence>
-                {/* Maximization Overlays */}
-                {maximizedView === 'editor' && (
-                    <MaximizePortal>
-                        {renderEditor()}
-                    </MaximizePortal>
-                )}
-                {maximizedView === 'results' && (
-                    <MaximizePortal >
-                        {renderResults()}
-                    </MaximizePortal>
-                )}
-
-                {/* History Sidebar Overlay */}
+                {maximizedView === 'editor' && <MaximizePortal>{renderEditor()}</MaximizePortal>}
+                {maximizedView === 'results' && <MaximizePortal >{renderResults()}</MaximizePortal>}
                 {showHistory && (
                     <>
                         <motion.div
@@ -760,13 +727,11 @@ export const ExplorerPage: React.FC = () => {
             </AnimatePresence>
 
             <ResizablePanelGroup direction="horizontal">
-                <ResizablePanel defaultSize={20} minSize={15} className="bg-muted/5 border-r border-border/40 flex flex-col">
-                    <div className="flex-1 overflow-hidden">
-                        <SchemaBrowser 
-                            connectionId={selectedConnectionId ? parseInt(selectedConnectionId) : null} 
-                            onAction={handleSchemaAction}
-                        />
-                    </div>
+                <ResizablePanel defaultSize={20} minSize={15} className="bg-muted/5 border-r border-border/40">
+                    <SchemaBrowser
+                        connectionId={selectedConnectionId ? parseInt(selectedConnectionId) : null}
+                        onAction={handleSchemaAction}
+                    />
                 </ResizablePanel>
 
                 <ResizableHandle withHandle className="bg-transparent" />
@@ -776,9 +741,7 @@ export const ExplorerPage: React.FC = () => {
                         <ResizablePanel defaultSize={50} minSize={20} className="relative overflow-hidden isolate flex flex-col">
                             {renderEditor()}
                         </ResizablePanel>
-
                         <ResizableHandle withHandle className="bg-transparent" />
-
                         <ResizablePanel defaultSize={50} minSize={10} className="overflow-hidden">
                             {renderResults()}
                         </ResizablePanel>

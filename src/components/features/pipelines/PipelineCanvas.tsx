@@ -646,7 +646,7 @@ export const PipelineCanvas: React.FC = () => {
                         >
                             <div className="px-2 py-2 mb-2 border-b border-border/10">
                                 <div className="relative group">
-                                    <Plus className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                    <Plus className="z-20 absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                     <Input 
                                         placeholder="Search operators..." 
                                         value={opSearch}

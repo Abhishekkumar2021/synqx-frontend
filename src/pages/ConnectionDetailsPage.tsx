@@ -63,14 +63,61 @@ import { useMemo, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ConfigField } from '@/components/features/connections/ConfigField';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PackageAutocomplete } from '@/components/common/PackageAutocomplete';
+import { installDependency, listDependencies, uninstallDependency, initializeEnvironment } from '@/lib/api';
+
+const PYTHON_PACKAGES = [
+    'pandas', 'numpy', 'scipy', 'scikit-learn', 'requests', 'beautifulsoup4', 'faker', 'sqlalchemy',
+    'polars', 'dask', 'pyspark', 'matplotlib', 'seaborn', 'plotly', 'nltk', 'spacy', 'tensorflow',
+    'pytorch', 'keras', 'fastapi', 'flask', 'django', 'celery', 'redis', 'pymongo', 'psycopg2-binary',
+    'mysql-connector-python', 'snowflake-connector-python', 'boto3', 'google-cloud-storage', 'azure-storage-blob'
+];
+
+const NODE_PACKAGES = [
+    'lodash', 'moment', 'axios', 'node-fetch', 'date-fns', 'uuid', 'faker', 'chance', 'csv-parser',
+    'fast-csv', 'json2csv', 'xml2js', 'xlsx', 'mongodb', 'pg', 'mysql2', 'redis', 'ioredis', 'aws-sdk',
+    '@google-cloud/storage', '@azure/storage-blob', 'express', 'fastify', 'socket.io', 'mongoose',
+    'sequelize', 'typeorm', 'prisma', 'chalk', 'dotenv', 'fs-extra'
+];
 
 const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
-    const { data: envInfo, isLoading, isError } = useQuery({
+    const { data: envInfo, isLoading, isError, refetch } = useQuery({
         queryKey: ['connectionEnvironment', connectionId],
         queryFn: () => getConnectionEnvironment(connectionId),
     });
 
-    const [activeTab, setActiveTab] = useState<'general' | 'python' | 'shell'>('general');
+    const [activeTab, setActiveTab] = useState<'general' | 'python' | 'shell' | 'node'>('general');
+    const [installing, setInstalling] = useState(false);
+    const [initializing, setInitializing] = useState(false);
+    const [pkgName, setPkgName] = useState("");
+
+    const handleInstall = async (language: string) => {
+        if (!pkgName) return;
+        setInstalling(true);
+        try {
+            await installDependency(connectionId, language, pkgName);
+            toast.success(`Installed ${pkgName}`);
+            setPkgName("");
+            refetch();
+        } catch (e: any) {
+            toast.error(e.response?.data?.detail || "Installation failed");
+        } finally {
+            setInstalling(false);
+        }
+    };
+
+    const handleInitialize = async (language: string) => {
+        setInitializing(true);
+        try {
+            await initializeEnvironment(connectionId, language);
+            toast.success(`${language} environment initialized`);
+            refetch();
+        } catch (e: any) {
+            toast.error(e.response?.data?.detail || "Initialization failed");
+        } finally {
+            setInitializing(false);
+        }
+    };
 
     if (isLoading) return <Skeleton className="h-32 w-full rounded-2xl" />;
     if (isError || !envInfo) return null;
@@ -81,6 +128,36 @@ const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
 
     const installedPackages = envInfo.installed_packages || {};
     const availableTools = envInfo.available_tools || {};
+    const npmPackages = envInfo.npm_packages || {};
+    const initializedLangs = new Set(envInfo.initialized_languages || []);
+
+    const renderTabContent = (language: string, content: React.ReactNode) => {
+        if (!initializedLangs.has(language)) {
+            return (
+                <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8 bg-muted/5 rounded-xl border border-dashed border-border/40">
+                    <div className="p-3 rounded-full bg-primary/10 text-primary">
+                        <Terminal className="h-6 w-6" />
+                    </div>
+                    <div className="space-y-1">
+                        <h4 className="font-bold text-foreground">Environment Not Initialized</h4>
+                        <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                            Initialize the isolated {language} environment to manage dependencies and execute scripts safely.
+                        </p>
+                    </div>
+                    <Button 
+                        size="sm" 
+                        onClick={() => handleInitialize(language)}
+                        disabled={initializing}
+                        className="gap-2 font-bold"
+                    >
+                        {initializing ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                        Initialize {language.charAt(0).toUpperCase() + language.slice(1)} Env
+                    </Button>
+                </div>
+            );
+        }
+        return content;
+    };
 
     return (
         <div className="rounded-2xl border border-border/40 bg-background/40 backdrop-blur-xl shadow-sm overflow-hidden flex flex-col md:flex-row h-[500px]">
@@ -105,8 +182,25 @@ const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
                 >
                     <FileCode className="h-3.5 w-3.5" />
                     Python
-                    <Badge variant="secondary" className="ml-auto text-[9px] h-4 px-1">{Object.keys(installedPackages).length}</Badge>
+                    {initializedLangs.has('python') && (
+                        <Badge variant="secondary" className="ml-auto text-[9px] h-4 px-1">{Object.keys(installedPackages).length}</Badge>
+                    )}
                 </button>
+                {envInfo.node_version && (
+                    <button
+                        onClick={() => setActiveTab('node')}
+                        className={cn(
+                            "flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-lg transition-all w-full text-left",
+                            activeTab === 'node' ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/20"
+                        )}
+                    >
+                        <FileCode className="h-3.5 w-3.5" />
+                        Node.js
+                        {initializedLangs.has('node') && (
+                            <Badge variant="secondary" className="ml-auto text-[9px] h-4 px-1">{Object.keys(npmPackages).length}</Badge>
+                        )}
+                    </button>
+                )}
                 <button
                     onClick={() => setActiveTab('shell')}
                     className={cn(
@@ -137,6 +231,13 @@ const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
                                         icon={<FileCode className="h-3.5 w-3.5" />}
                                     />
                                 )}
+                                {envInfo.node_version && (
+                                    <ConfigField 
+                                        label="Node.js Runtime" 
+                                        value={envInfo.node_version} 
+                                        icon={<FileCode className="h-3.5 w-3.5" />}
+                                    />
+                                )}
                                 {envInfo.platform && (
                                     <ConfigField 
                                         label="OS Platform" 
@@ -152,21 +253,32 @@ const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
                     </div>
                 )}
 
-                {activeTab === 'python' && (
+                {activeTab === 'python' && renderTabContent('python', (
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-2">
                             <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                                 <FileCode className="h-4 w-4 text-primary" />
                                 Installed Packages
                             </h3>
-                            <Input 
-                                placeholder="Search packages..." 
-                                className="h-7 w-48 text-xs bg-background/50"
-                                onChange={(e) => {
-                                    // Simple client-side search logic could go here or handled by component state
-                                    // For now just layout
-                                }}
-                            />
+                            <div className="flex items-center gap-2 w-full max-w-sm">
+                                <PackageAutocomplete 
+                                    value={pkgName}
+                                    onChange={setPkgName}
+                                    onSelect={(val) => setPkgName(val)}
+                                    options={PYTHON_PACKAGES}
+                                    placeholder="Search python package..."
+                                    className="h-8 text-xs"
+                                    leftIcon={FileCode}
+                                />
+                                <Button 
+                                    size="sm" 
+                                    className="h-8 px-3 text-xs shrink-0" 
+                                    onClick={() => handleInstall('python')}
+                                    disabled={installing || !pkgName}
+                                >
+                                    {installing ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                                </Button>
+                            </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                             {Object.entries(installedPackages).sort((a, b) => a[0].localeCompare(b[0])).map(([pkg, ver]) => (
@@ -179,7 +291,47 @@ const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
                             ))}
                         </div>
                     </div>
-                )}
+                ))}
+
+                {activeTab === 'node' && renderTabContent('node', (
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between gap-2">
+                            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                                <FileCode className="h-4 w-4 text-primary" />
+                                NPM Packages
+                            </h3>
+                            <div className="flex items-center gap-2 w-full max-w-sm">
+                                <PackageAutocomplete 
+                                    value={pkgName}
+                                    onChange={setPkgName}
+                                    onSelect={(val) => setPkgName(val)}
+                                    options={NODE_PACKAGES}
+                                    placeholder="Search npm package..."
+                                    className="h-8 text-xs"
+                                    leftIcon={FileCode}
+                                />
+                                <Button 
+                                    size="sm" 
+                                    className="h-8 px-3 text-xs shrink-0" 
+                                    onClick={() => handleInstall('node')}
+                                    disabled={installing || !pkgName}
+                                >
+                                    {installing ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {Object.entries(npmPackages).sort((a, b) => a[0].localeCompare(b[0])).map(([pkg, ver]) => (
+                                <div key={pkg} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-muted/5 border border-border/20 hover:bg-muted/10 transition-colors group">
+                                    <span className="font-medium truncate mr-2 text-foreground/80 group-hover:text-foreground" title={pkg}>{pkg}</span>
+                                    <Badge variant="outline" className="text-[10px] font-mono bg-background/50 text-muted-foreground h-5 border-border/30">
+                                        {String(ver)}
+                                    </Badge>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
 
                 {activeTab === 'shell' && (
                     <div className="space-y-4">
@@ -211,6 +363,7 @@ const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
 
 const AssetsTabContent = ({
     connectionId,
+    connectorType,
     assets,
     discoveredAssets,
     isLoading,
@@ -218,6 +371,7 @@ const AssetsTabContent = ({
     setDiscoveredAssets
 }: {
     connectionId: number,
+    connectorType: any,
     assets: Asset[] | undefined,
     discoveredAssets: any[],
     isLoading: boolean,
@@ -354,6 +508,7 @@ const AssetsTabContent = ({
 
             <CreateAssetsDialog 
                 connectionId={connectionId}
+                connectorType={connectorType}
                 open={isCreateOpen}
                 onOpenChange={setIsCreateOpen}
             />
@@ -1050,6 +1205,7 @@ export const ConnectionDetailsPage: React.FC = () => {
                     <TabsContent value="assets" className="h-full mt-0 focus-visible:outline-none">
                         <AssetsTabContent
                             connectionId={connectionId}
+                            connectorType={connection.connector_type}
                             assets={assets}
                             discoveredAssets={discoveredAssets}
                             isLoading={loadingAssets || discoverMutation.isPending}

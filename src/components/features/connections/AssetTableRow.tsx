@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
     Table as TableIcon, Eye, MoreHorizontal, RefreshCw, FileJson, Terminal,
     FileText, Database, Copy, Check, Maximize2, Minimize2, Search, ArrowUpDown, 
-    ChevronDown, Filter, X, Download
+    ChevronDown, Filter, X, Download, Code, FileCode, Workflow, Layers
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -52,9 +52,15 @@ interface AssetTableRowProps {
 // Helper to choose icon based on asset type
 const getAssetIcon = (type: string) => {
     const t = type.toLowerCase();
-    if (t.includes('table')) return <TableIcon className="h-4 w-4" />; 
-    if (t.includes('file') || t.includes('csv') || t.includes('json')) return <FileText className="h-4 w-4" />; 
-    return <Database className="h-4 w-4" />; 
+    if (t.includes('table')) return <TableIcon className="h-4 w-4" />;
+    if (t.includes('view')) return <Eye className="h-4 w-4" />;
+    if (t.includes('collection')) return <Layers className="h-4 w-4" />;
+    if (t.includes('file') || t.includes('csv') || t.includes('json')) return <FileText className="h-4 w-4" />;
+    if (t.includes('query')) return <Code className="h-4 w-4" />;
+    if (t.includes('script') || t.includes('python') || t.includes('javascript') || t.includes('ruby') || t.includes('perl')) return <FileCode className="h-4 w-4" />;
+    if (t.includes('powershell')) return <Terminal className="h-4 w-4" />;
+    if (t.includes('stream') || t.includes('kafka') || t.includes('rabbitmq')) return <Workflow className="h-4 w-4" />;
+    return <Database className="h-4 w-4" />;
 };
 
 export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionId }) => {

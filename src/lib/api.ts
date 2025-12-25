@@ -480,11 +480,39 @@ export interface ConnectionEnvironmentInfo {
     base_path?: string;
     available_tools?: Record<string, string>;
     installed_packages?: Record<string, string>;
+    node_version?: string;
+    npm_packages?: Record<string, string>;
+    initialized_languages?: string[];
+    ruby_version?: string;
+    powershell_version?: string;
+    perl_version?: string;
+    gcc_version?: string;
     details?: Record<string, any>;
 }
 
 export const getConnectionEnvironment = async (connectionId: number) => {
     const { data } = await api.get<ConnectionEnvironmentInfo>(`/connections/${connectionId}/environment`);
+    return data;
+};
+
+export const initializeEnvironment = async (connectionId: number, language: string) => {
+    const { data } = await api.post<{ status: string; path: string }>(`/connections/${connectionId}/environment/initialize`, { language });
+    return data;
+};
+
+// Dependency Management
+export const listDependencies = async (connectionId: number, language: string) => {
+    const { data } = await api.get<Record<string, string>>(`/connections/${connectionId}/dependencies/${language}`);
+    return data;
+};
+
+export const installDependency = async (connectionId: number, language: string, pkg: string) => {
+    const { data } = await api.post<{ output: string }>(`/connections/${connectionId}/dependencies/${language}/install`, { package: pkg });
+    return data;
+};
+
+export const uninstallDependency = async (connectionId: number, language: string, pkg: string) => {
+    const { data } = await api.post<{ output: string }>(`/connections/${connectionId}/dependencies/${language}/uninstall`, { package: pkg });
     return data;
 };
 

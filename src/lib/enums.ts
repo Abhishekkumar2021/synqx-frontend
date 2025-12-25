@@ -41,6 +41,22 @@ export const ConnectorType = {
 } as const;
 export type ConnectorType = typeof ConnectorType[keyof typeof ConnectorType];
 
+export const AssetType = {
+    TABLE: "table",
+    VIEW: "view",
+    COLLECTION: "collection",
+    FILE: "file",
+    KEY_PATTERN: "key_pattern",
+    API_ENDPOINT: "endpoint",
+    STREAM: "stream",
+    SQL_QUERY: "sql_query",
+    NOSQL_QUERY: "nosql_query",
+    PYTHON_SCRIPT: "python",
+    SHELL_SCRIPT: "shell",
+    JAVASCRIPT_SCRIPT: "javascript"
+} as const;
+export type AssetType = typeof AssetType[keyof typeof AssetType];
+
 export const PipelineStatus = {
     DRAFT: "draft",
     ACTIVE: "active",
