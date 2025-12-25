@@ -39,9 +39,9 @@ const MaximizePortal = ({ children }: { children: React.ReactNode }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] bg-background/80 backdrop-blur-3xl flex flex-col isolate p-4"
+            className="fixed inset-0 z-[9999] bg-background flex flex-col isolate"
         >
-            <div className="flex-1 overflow-hidden relative rounded-[2.5rem] border border-border/60 shadow-2xl bg-background flex flex-col">
+            <div className="flex-1 overflow-hidden relative rounded-none border-0 shadow-none bg-background flex flex-col">
                 {children}
             </div>
         </motion.div>,
@@ -692,7 +692,12 @@ export const ExplorerPage: React.FC = () => {
             </div>
 
             <div className="flex-1 min-h-0 w-full relative">
-                <ResultsGrid data={activeResult ? activeResult.data : null} isLoading={isExecuting} />
+                <ResultsGrid 
+                    data={activeResult ? activeResult.data : null} 
+                    isLoading={isExecuting} 
+                    title={activeResult ? `Result #${tabs.find(t => t.id === activeTabId)?.results.indexOf(activeResult)! + 1}` : undefined}
+                    description={activeResult ? activeResult.statement.substring(0, 60) + '...' : undefined}
+                />
             </div>
         </div>
     );

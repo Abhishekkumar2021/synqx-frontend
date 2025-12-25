@@ -8,6 +8,12 @@ import { cn } from '@/lib/utils';
 import { codeToHtml } from 'shiki';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/hooks/useTheme';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface CodeBlockProps {
   code: string;
@@ -20,6 +26,7 @@ interface CodeBlockProps {
   maxHeight?: string;
   rounded?: boolean;
   wrap?: boolean;
+  usePortal?: boolean;
 }
 
 export const CodeBlock = ({
@@ -32,7 +39,8 @@ export const CodeBlock = ({
   title,
   maxHeight = '400px',
   rounded = false,
-  wrap = false
+  wrap = false,
+  usePortal = false
 }: CodeBlockProps) => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [highlightedCode, setHighlightedCode] = useState('');
@@ -47,14 +55,6 @@ export const CodeBlock = ({
   );
 
   const shikiTheme = useMemo(() => isDark ? 'vitesse-dark' : 'vitesse-light', [isDark]);
-
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsMaximized(false);
-    };
-    if (isMaximized) window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [isMaximized]);
 
   useEffect(() => {
     if (isMaximized) {
@@ -116,7 +116,7 @@ export const CodeBlock = ({
             "[&>pre]:bg-transparent! [&>pre]:m-0 [&>pre]:w-full [&>pre]:h-full",
             isExpanded ? "[&>pre]:p-8 [&>pre]:leading-7" : "[&>pre]:p-5 [&>pre]:leading-6"
           )}
-          onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
           dangerouslySetInnerHTML={{
             __html: highlightedCode || `<pre class="p-4 opacity-40">${code}</pre>`
           }}
@@ -125,57 +125,138 @@ export const CodeBlock = ({
     </div>
   );
 
+  const maximizedContent = (
+    <AnimatePresence>
+      {isMaximized && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[10000] flex items-center justify-center"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-white/60 dark:bg-black/40 backdrop-blur-2xl"
+            onClick={() => setIsMaximized(false)}
+          />
+
+          <motion.div
+            layoutId={`code-block-${title}`}
+            className={cn(
+              "relative w-full h-full",
+              "rounded-none overflow-hidden flex flex-col z-[10001]",
+              "bg-background border-0 shadow-none ring-0"
+            )}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Production-grade Header */}
+            <div className="flex items-center justify-between px-8 py-4 bg-muted/10 backdrop-blur-3xl shrink-0 border-b border-border/40 relative z-20">
+              <div className="flex items-center gap-8">
+                {/* Traffic Lights */}
+                <div
+                  className="flex items-center gap-2 group/lights cursor-pointer p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                  onClick={() => setIsMaximized(false)}
+                >
+                  <div className="w-3 h-3 rounded-full bg-red-500/80 flex items-center justify-center shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+                    <X size={8} className="text-red-950 opacity-0 group-hover/lights:opacity-100 transition-opacity" />
+                  </div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-500/80 shadow-[0_0_10px_rgba(245,158,11,0.2)]" />
+                  <div className="w-3 h-3 rounded-full bg-green-500/80 shadow-[0_0_10px_rgba(16,185,129,0.2)]" />
+                </div>
+
+                <div className="h-8 w-px bg-border/40 hidden sm:block" />
+
+                <div className="flex items-center gap-4">
+                  <div className="space-y-0.5">
+                    <h3 className="text-sm font-black tracking-tight text-foreground uppercase tracking-widest">{title || 'Code Inspector'}</h3>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-primary/10 border border-primary/20">
+                        <FileCode size={10} className="text-primary" />
+                        <span className="text-[9px] font-black text-primary uppercase tracking-widest">{language}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted/30 border border-border/40">
+                        <div className="h-1 w-1 rounded-full bg-muted-foreground/50" />
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{editable ? 'Editable' : 'Read-Only'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={handleCopy}
+                        className="h-10 w-10 rounded-xl bg-background/40 border border-border/40 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all shadow-sm"
+                      >
+                        {copied ? <Check size={18} className="text-success" /> : <Copy size={18} />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Copy to Clipboard</TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setIsMaximized(false)}
+                        className="h-10 w-10 rounded-xl bg-background/40 border border-border/40 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all shadow-sm"
+                      >
+                        <Minimize size={18} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Exit Fullscreen (Esc)</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 bg-background/50 relative z-10">
+              {renderContent(true)}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
   return (
-    <>
+    <div className={cn("relative", isMaximized && "z-[9999]")}>
       <div
         className={cn(
           "relative group transition-all duration-500 w-full flex flex-col overflow-hidden",
-          "glass border-0 shadow-none flex flex-col",
-          rounded ? "rounded-xl border border-border/40" : "rounded-none",
-          "hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-primary/5",
+          "bg-transparent border border-border/20 shadow-none",
+          rounded ? "rounded-xl" : "rounded-sm",
           className
         )}
         style={{ height: maxHeight }} // Fixed height enables internal scroll
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        <div className="absolute inset-0 ring-1 ring-inset ring-black/5 dark:ring-white/10 pointer-events-none" />
-
-        <div className={cn(
-          "flex items-center justify-between px-4 py-2 shrink-0",
-          "bg-muted/30 border-b border-border/40 backdrop-blur-xl"
-        )}>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 opacity-60">
-              <div className="w-2.5 h-2.5 rounded-full bg-red-500/40" />
-              <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/40" />
-              <div className="w-2.5 h-2.5 rounded-full bg-green-500/40" />
-            </div>
-            {title && (
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest truncate max-w-[200px]">
-                {title}
-              </span>
-            )}
-            {!title && (
-              <div className="flex items-center gap-2 px-2 py-0.5 rounded bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10">
-                <FileCode size={10} className="text-muted-foreground/70" />
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{language}</span>
-              </div>
-            )}
-          </div>
-
+        {/* Floating Actions (Top Right) */}
+        {!isMaximized && (
           <div className={cn(
-            "flex gap-1 transition-all duration-300",
-            isHovering ? "opacity-100 scale-100" : "opacity-0 scale-95"
+            "absolute top-2 right-2 z-30 flex gap-1 transition-all duration-300",
+            isHovering ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"
           )}>
-            <Button size="icon" variant="ghost" onClick={handleCopy} className="h-6 w-6 rounded hover:bg-black/5 dark:hover:bg-white/10">
-              {copied ? <Check size={12} className="text-success" /> : <Copy size={12} className="text-muted-foreground" />}
-            </Button>
-            <Button size="icon" variant="ghost" onClick={() => setIsMaximized(true)} className="h-6 w-6 rounded hover:bg-black/5 dark:hover:bg-white/10">
-              <Maximize2 size={12} className="text-muted-foreground" />
-            </Button>
+            <div className="flex items-center gap-1 p-1 rounded-lg bg-background/80 backdrop-blur-md border border-border/40 shadow-sm">
+              <Button size="icon" variant="ghost" onClick={handleCopy} title="Copy Code" className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary">
+                {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
+              </Button>
+              <Button size="icon" variant="ghost" onClick={() => setIsMaximized(true)} title="Maximize" className="h-7 w-7 rounded-md hover:bg-primary/10 hover:text-primary">
+                <Maximize2 size={14} />
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* This container allows the internal scroll to happen */}
         <div className="flex-1 min-h-0 bg-background/50">
@@ -183,83 +264,7 @@ export const CodeBlock = ({
         </div>
       </div>
 
-      {createPortal(
-        <AnimatePresence>
-          {isMaximized && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-12"
-            >
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-white/60 dark:bg-black/40 backdrop-blur-2xl"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsMaximized(false);
-                }}
-              />
-
-              <motion.div
-                layoutId={`code-block-${title}`}
-                className={cn(
-                  "relative w-full max-w-5xl h-full max-h-[85vh]",
-                  "rounded-3xl overflow-hidden flex flex-col z-[10000]",
-                  "glass-panel border-0 shadow-2xl",
-                  "ring-1 ring-black/10 dark:ring-white/20"
-                )}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between px-8 py-5 bg-white/20 dark:bg-black/20 backdrop-blur-3xl shrink-0 border-b border-black/5 dark:border-white/5">
-                  <div className="flex items-center gap-6">
-                    <div
-                      className="flex items-center gap-1.5 group/lights cursor-pointer"
-                      onClick={() => setIsMaximized(false)}
-                    >
-                      <div className="w-3 h-3 rounded-full bg-red-500/80 flex items-center justify-center">
-                        <X size={8} className="text-red-950 opacity-0 group-hover/lights:opacity-100 transition-opacity" />
-                      </div>
-                      <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                      <div className="w-3 h-3 rounded-full bg-green-500/80" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold tracking-tight">{title || 'Inspecting Code'}</h3>
-                      <p className="text-[10px] opacity-50 font-medium uppercase tracking-widest">{language}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={handleCopy}
-                      className="h-10 w-10 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10"
-                    >
-                      {copied ? <Check size={18} className="text-success" /> : <Copy size={18} />}
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => setIsMaximized(false)}
-                      className="h-10 w-10 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10"
-                    >
-                      <Minimize size={18} />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex-1 min-h-0 bg-background">
-                  {renderContent(true)}
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
-    </>
+      {usePortal ? createPortal(maximizedContent, document.body) : maximizedContent}
+    </div>
   );
 };

@@ -459,8 +459,8 @@ export function ApiReference() {
   return (
     <>
       <div className={cn(
-        "flex flex-col lg:flex-row rounded-3xl border border-white/10 overflow-hidden shadow-2xl transition-all duration-500 glass backdrop-blur-3xl bg-white/5 dark:bg-black/5",
-        isFullscreen ? "fixed inset-4 z-50 h-[calc(100vh-32px)]" : "relative h-auto lg:h-[900px] max-w-[1600px] mx-auto"
+        "flex flex-col lg:flex-row border border-white/10 overflow-hidden shadow-2xl transition-all duration-500 glass backdrop-blur-3xl bg-white/5 dark:bg-black/5",
+        isFullscreen ? "fixed inset-0 z-50 h-screen rounded-none" : "relative h-auto lg:h-[900px] max-w-[1600px] mx-auto rounded-3xl"
       )}>
         {/* Sidebar */}
         <div className="w-full lg:w-80 border-b lg:border-b-0 lg:border-r border-white/10 flex flex-col sidebar-glass bg-white/5 dark:bg-black/20 shrink-0 h-[300px] lg:h-auto">
@@ -705,7 +705,7 @@ export function ApiReference() {
                       </div>
 
                       {/* Schema Tabs */}
-                      <Tabs value={activeSchemaTab} onValueChange={(v) => setActiveSchemaTab(v as any)} className="border border-white/5 rounded-2xl overflow-hidden glass-card shadow-xl">
+                      <Tabs value={activeSchemaTab} onValueChange={(v) => setActiveSchemaTab(v as any)} className="border border-white/5 rounded-sm overflow-hidden glass-card shadow-xl">
                         <div className="p-1.5 border-b border-white/5 bg-slate-100/50 dark:bg-black/20 backdrop-blur-md">
                           <TabsList className="w-full justify-start bg-transparent h-auto p-0 gap-1.5">
                             <TabsTrigger
@@ -781,7 +781,7 @@ export function ApiReference() {
                         <h3 className="text-[10px] font-black uppercase tracking-widest">Code Examples</h3>
                       </div>
 
-                      <Tabs value={activeCodeLang} onValueChange={setActiveCodeLang} className="rounded-xl border border-white/5 overflow-hidden glass-card shadow-lg">
+                      <Tabs value={activeCodeLang} onValueChange={setActiveCodeLang} className="rounded-sm border border-white/5 overflow-hidden glass-card shadow-lg">
                         {/* Language Tabs */}
                         <div className="p-1.5 border-b border-white/5 bg-slate-100/50 dark:bg-white/10 backdrop-blur-md">
                           <TabsList className="w-full justify-start bg-transparent h-auto p-0 gap-1.5">
@@ -814,6 +814,7 @@ export function ApiReference() {
                                                                                   language={lang === 'curl' ? 'bash' : lang}
                                                                                   className="max-h-[300px]"
                                                                                   wrap={true}
+                                                                                  usePortal={true}
                                                                                 />                                                  </TabsContent>
                                                 ))}                        </Tabs>
                       </section>
@@ -864,11 +865,12 @@ export function ApiReference() {
                                                     placeholder='{ "key": "value" }'
                                                     className="min-h-[120px]"
                                                     wrap={true}
+                                                    usePortal={true}
                                                   />
                                                 </div>
                                               )}
                       
-                                              <div className="rounded-xl border border-border/40 p-4 space-y-4 bg-card/30 dark:bg-black/5 backdrop-blur-xl shadow-sm">
+                                              <div className="rounded-sm border border-border/40 p-4 space-y-4 bg-card/30 dark:bg-black/5 backdrop-blur-xl shadow-sm">
                                                 {/* Send Button */}
                                                 <Button                          onClick={handleTryItOut}
                           isLoading={requestState.loading}
@@ -921,6 +923,7 @@ export function ApiReference() {
                                 language="json"
                                 className="max-h-[300px]"
                                 wrap={true}
+                                usePortal={true}
                               />
                             )}
                           </div>

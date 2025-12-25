@@ -4,7 +4,7 @@ import {
     LayoutDashboard, Cable, Workflow, Activity, Settings,
     Search, Menu, X, ChevronRight, Home, LogOut,
     User, CreditCard, Users, PanelLeft, Command, Book, Sparkles,
-    Maximize2, Minimize2
+    Maximize2, Minimize2, HelpCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ModeToggle } from './ModeToggle';
@@ -246,16 +246,28 @@ export const Layout: React.FC<LayoutProps> = () => {
                         <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileMenuOpen(true)}>
                             <Menu className="h-5 w-5" />
                         </Button>
+                        
+                        {/* Status Indicator */}
+                        <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/5 border border-emerald-500/20 mr-2">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </span>
+                            <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">System Live</span>
+                        </div>
+
                         <div className="hidden md:flex items-center text-sm text-muted-foreground/80">
-                            <Link to="/dashboard" className="hover:text-primary transition-colors flex items-center gap-1">
-                                <Home className="h-4 w-4" />
+                            <Link to="/dashboard" className="hover:text-primary transition-colors flex items-center gap-1.5 group">
+                                <div className="p-1.5 rounded-lg group-hover:bg-primary/10 transition-all">
+                                    <Home className="h-4 w-4" />
+                                </div>
                                 <span className="sr-only">Dashboard</span>
                             </Link>
                             {location.pathname !== '/dashboard' && (
                                 <>
-                                    <ChevronRight className="h-4 w-4 mx-2 opacity-50" />
-                                    <span className="font-medium text-foreground capitalize tracking-wide">
-                                        {location.pathname.split('/')[1] || 'Dashboard'}
+                                    <ChevronRight className="h-3.5 w-3.5 mx-1 opacity-30" />
+                                    <span className="font-bold text-foreground capitalize tracking-tight px-2 py-1 rounded-lg bg-muted/30 border border-border/20">
+                                        {location.pathname.split('/')[1]?.replace(/-/g, ' ') || 'Dashboard'}
                                     </span>
                                 </>
                             )}
@@ -263,24 +275,51 @@ export const Layout: React.FC<LayoutProps> = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <button 
-                            onClick={() => setIsSearchOpen(true)}
-                            className="hidden lg:flex items-center gap-3 h-10 rounded-2xl border border-border/60 bg-background/40 px-4 text-sm text-muted-foreground shadow-sm hover:bg-muted/30 hover:text-foreground hover:border-primary/30 transition-all w-64 group"
-                        >
-                            <Search className="h-4 w-4 group-hover:text-primary transition-colors" />
-                            <span className="font-medium">Search pipelines...</span>
-                            {/* Theme-aware kbd element */}
-                            <div className="flex items-center gap-1 rounded-md border border-border/40 bg-muted/20 px-1.5 font-mono text-[10px] font-bold text-muted-foreground ml-auto opacity-70">
+                        {/* Search Bar - Sleeker */}
+                        <div className="relative group hidden lg:block">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors z-20" />
+                            <input 
+                                type="text"
+                                readOnly
+                                onClick={() => setIsSearchOpen(true)}
+                                placeholder="Quick search..."
+                                className="h-10 w-64 pl-10 pr-12 rounded-2xl border border-border/60 bg-background/40 text-sm text-muted-foreground cursor-pointer hover:bg-muted/30 hover:border-primary/30 transition-all outline-none"
+                            />
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 rounded-md border border-border/40 bg-muted/20 px-1.5 font-mono text-[10px] font-bold text-muted-foreground opacity-70">
                                 <Command className="h-2.5 w-2.5" />
                                 <span>K</span>
                             </div>
-                        </button>
+                        </div>
+
                         <div className="h-8 w-px bg-border/30 mx-1 hidden sm:block"></div>
-                        <Button variant="ghost" size="icon" onClick={() => setIsZenMode(true)} title="Enter Zen Mode (Alt+Z)">
-                            <Maximize2 className="h-4 w-4" />
-                        </Button>
+                        
+                        <div className="flex items-center gap-1">
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Link to="/docs/intro">
+                                            <Button variant="ghost" size="icon" className="rounded-xl hover:bg-primary/5 hover:text-primary">
+                                                <HelpCircle className="h-4.5 w-4.5" />
+                                            </Button>
+                                        </Link>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Knowledge Base</TooltipContent>
+                                </Tooltip>
+
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" onClick={() => setIsZenMode(true)} title="Enter Zen Mode (Alt+Z)" className="rounded-xl hover:bg-primary/5 hover:text-primary">
+                                            <Maximize2 className="h-4.5 w-4.5" />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Zen Mode (Alt+Z)</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+
+                        <div className="h-8 w-px bg-border/30 mx-1 hidden sm:block"></div>
+                        
                         <ModeToggle />
-                        {/* Theme-aware Notification Button */}
                         <NotificationsBell />
                     </div>
                         </motion.header>

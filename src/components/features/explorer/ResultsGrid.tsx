@@ -20,20 +20,34 @@ import { Button } from '@/components/ui/button';
 import { cn, formatNumber } from '@/lib/utils';
 import { CodeBlock } from '@/components/ui/docs/CodeBlock';
 import { toast } from 'sonner';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface ResultsGridProps {
     data: QueryResponse | null;
     isLoading: boolean;
     isMaximized?: boolean;
+    title?: string;
+    description?: string;
+    onSelectRows?: (indices: Set<number>) => void;
+    selectedRows?: Set<number>;
+    hideHeader?: boolean;
 }
 
-export const ResultsGrid: React.FC<ResultsGridProps> = ({ data, isLoading }) => {
+export const ResultsGrid: React.FC<ResultsGridProps> = ({ 
+    data, 
+    isLoading, 
+    title, 
+    description,
+    onSelectRows,
+    selectedRows = new Set(),
+    hideHeader = false
+}) => {
     const [filter, setFilter] = useState('');
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
-    // --- Data Processing (Untouched) ---
+    // --- Data Processing ---
     const processedData = useMemo(() => {
-        if (!data) return [];
+        if (!data || !data.results) return [];
         let results = data.results.map((row, idx) => ({ ...row, __idx: idx }));
 
         if (filter) {
@@ -55,6 +69,23 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ data, isLoading }) => 
         }
         return results;
     }, [data, filter, sortConfig]);
+
+    const handleSelectAll = (checked: boolean) => {
+        if (!onSelectRows) return;
+        if (checked) {
+            onSelectRows(new Set(processedData.map(r => r.__idx)));
+        } else {
+            onSelectRows(new Set());
+        }
+    };
+
+    const handleSelectRow = (idx: number, checked: boolean) => {
+        if (!onSelectRows) return;
+        const next = new Set(selectedRows);
+        if (checked) next.add(idx);
+        else next.delete(idx);
+        onSelectRows(next);
+    };
 
     // --- Export Logic ---
     const downloadFile = (content: string, fileName: string, contentType: string) => {
@@ -113,6 +144,29 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ data, isLoading }) => 
     if (isLoading) return <LoadingSkeleton />;
     if (!data) return <EmptyState />;
 
+    if (processedData.length === 0 && data.results.length > 0) {
+        return (
+            <div className="flex-1 flex flex-col min-h-0 h-full">
+                {/* Keep header so user can clear filter */}
+                <div className="flex items-center justify-between px-5 py-3 bg-muted/20 border-b border-border/40 shrink-0 z-50">
+                    <div className="flex items-center gap-4">
+                        <div className="relative w-64 group">
+                            <ListFilter className="z-20 absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                            <Input
+                                placeholder="Search results..."
+                                className="h-9 pl-10 rounded-xl bg-background/50 border-border/40 text-xs font-bold focus:ring-4 focus:ring-primary/10 transition-all shadow-none"
+                                value={filter}
+                                onChange={(e) => setFilter(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setFilter('')} className="rounded-xl">Clear Filter</Button>
+                </div>
+                <EmptyState message="No matching records" description="Try adjusting your search terms or clear the filter." />
+            </div>
+        );
+    }
+
     if (data.results.length === 0 && data.columns.length === 0) {
         return (
              <div className="flex-1 h-full flex flex-col items-center justify-center text-muted-foreground gap-4 bg-card/5 animate-in fade-in duration-500">
@@ -132,52 +186,71 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ data, isLoading }) => 
             <div className="absolute inset-x-0 top-0 h-px bg-white/40 dark:bg-white/10 pointer-events-none z-50" />
 
             {/* Header Control Bar */}
-            <div className="flex items-center justify-between px-5 py-3 bg-muted/20 border-b border-border/40 shrink-0 z-50">
-                <div className="flex items-center gap-4">
-                    <div className="relative w-64 group">
-                        <ListFilter className="z-20 absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                        <Input
-                            placeholder="Search results..."
-                            className="h-9 pl-10 rounded-xl bg-background/50 border-border/40 text-xs font-bold focus:ring-4 focus:ring-primary/10 transition-all shadow-none"
-                            value={filter}
-                            onChange={(e) => setFilter(e.target.value)}
-                        />
+            {!hideHeader && (
+                <div className="flex items-center justify-between px-5 py-3 bg-muted/20 border-b border-border/40 shrink-0 z-50">
+                    <div className="flex items-center gap-4">
+                        {title && (
+                            <div className="flex flex-col mr-4">
+                                <span className="text-xs font-black uppercase tracking-widest text-foreground">{title}</span>
+                                {description && <span className="text-[10px] text-muted-foreground font-medium">{description}</span>}
+                            </div>
+                        )}
+                        <div className="relative w-64 group">
+                            <ListFilter className="z-20 absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                            <Input
+                                placeholder="Search results..."
+                                className="h-9 pl-10 rounded-xl bg-background/50 border-border/40 text-xs font-bold focus:ring-4 focus:ring-primary/10 transition-all shadow-none"
+                                value={filter}
+                                onChange={(e) => setFilter(e.target.value)}
+                            />
+                        </div>
+                        <Badge variant="outline" className="h-6 px-3 rounded-full border-border/50 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 bg-muted/20">
+                            {formatNumber(processedData.length)} Nodes
+                        </Badge>
                     </div>
-                    <Badge variant="outline" className="h-6 px-3 rounded-full border-border/50 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 bg-muted/20">
-                        {formatNumber(processedData.length)} Nodes
-                    </Badge>
-                </div>
 
-                <div className="flex items-center gap-3">
-                    {/* --- EXPORT DROP-DOWN --- */}
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 rounded-xl gap-2 font-black uppercase text-[10px] tracking-widest bg-primary/5 hover:bg-primary/10 text-primary transition-all">
-                                <Download size={14} />
-                                Export
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 glass-panel border-border/40 rounded-2xl shadow-2xl p-2" align="end">
-                            <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest opacity-40 px-3 py-2">Data Formats</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleExport('json')} className="rounded-lg gap-3 py-2.5 cursor-pointer">
-                                <FileJson className="h-4 w-4 text-orange-500" />
-                                <span className="font-bold text-xs uppercase italic">JSON Registry</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleExport('csv')} className="rounded-lg gap-3 py-2.5 cursor-pointer">
-                                <FileText className="h-4 w-4 text-blue-500" />
-                                <span className="font-bold text-xs uppercase italic">CSV Spreadsheet</span>
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-center gap-3">
+                        {/* --- EXPORT DROP-DOWN --- */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 rounded-xl gap-2 font-black uppercase text-[10px] tracking-widest bg-primary/5 hover:bg-primary/10 text-primary transition-all">
+                                    <Download size={14} />
+                                    Export
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56 glass-panel border-border/40 rounded-2xl shadow-2xl p-2" align="end">
+                                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest opacity-40 px-3 py-2">Data Formats</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleExport('json')} className="rounded-lg gap-3 py-2.5 cursor-pointer">
+                                    <FileJson className="h-4 w-4 text-orange-500" />
+                                    <span className="font-bold text-xs uppercase italic">JSON Registry</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleExport('csv')} className="rounded-lg gap-3 py-2.5 cursor-pointer">
+                                    <FileText className="h-4 w-4 text-blue-500" />
+                                    <span className="font-bold text-xs uppercase italic">CSV Spreadsheet</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Main Grid Area (Untouched Sticky Logic) */}
             <div className="flex-1 overflow-auto custom-scrollbar bg-card/5 relative min-h-0">
                 <table className="w-full text-left border-separate border-spacing-0 min-w-max relative">
                     <thead className="sticky top-0 z-40">
                         <tr className="bg-background/90 backdrop-blur-xl border-b border-border/50 shadow-sm">
-                            <th className="sticky left-0 top-0 z-60 w-14 px-4 py-3 text-center border-r border-b border-border/40 bg-muted/50 backdrop-blur-2xl">
+                            {onSelectRows && (
+                                <th className="sticky left-0 top-0 z-70 w-12 px-4 py-3 text-center border-r border-b border-border/40 bg-muted/50 backdrop-blur-2xl">
+                                    <Checkbox 
+                                        checked={processedData.length > 0 && selectedRows.size === processedData.length}
+                                        onCheckedChange={handleSelectAll}
+                                    />
+                                </th>
+                            )}
+                            <th className={cn(
+                                "sticky top-0 z-60 w-14 px-4 py-3 text-center border-r border-b border-border/40 bg-muted/50 backdrop-blur-2xl",
+                                onSelectRows ? "left-12" : "left-0"
+                            )}>
                                 <span className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Idx</span>
                             </th>
                             {data.columns.map((col) => (
@@ -203,22 +276,43 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({ data, isLoading }) => 
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-border/10">
-                        {processedData.map((row: any) => (
-                            <tr key={row.__idx} className="group/row hover:bg-primary/2 transition-colors">
-                                <td className="sticky left-0 z-30 w-14 px-4 py-3 text-[10px] font-mono font-bold text-muted-foreground/30 text-center border-r border-b border-border/10 bg-background/95 backdrop-blur-sm group-hover/row:text-primary transition-colors">
+                        {processedData.map((row: any, i: number) => (
+                            <tr key={row.__idx} className={cn(
+                                "group/row hover:bg-primary/2 transition-colors",
+                                selectedRows.has(row.__idx) && "bg-primary/5"
+                            )}>
+                                {onSelectRows && (
+                                    <td className="sticky left-0 z-30 w-12 px-4 py-3 text-center border-r border-b border-border/10 bg-background/95 backdrop-blur-sm">
+                                        <Checkbox 
+                                            checked={selectedRows.has(row.__idx)}
+                                            onCheckedChange={(checked) => handleSelectRow(row.__idx, !!checked)}
+                                        />
+                                    </td>
+                                )}
+                                <td className={cn(
+                                    "sticky z-30 w-14 px-4 py-3 text-[10px] font-mono font-bold text-muted-foreground/30 text-center border-r border-b border-border/10 bg-background/95 backdrop-blur-sm group-hover/row:text-primary transition-colors",
+                                    onSelectRows ? "left-12" : "left-0"
+                                )}>
                                     {row.__idx + 1}
                                 </td>
                                 {data.columns.map((col) => {
                                     const val = row[col];
+                                    const isObject = val !== null && typeof val === 'object';
                                     return (
-                                        <td key={col} className="px-6 py-3 border-r border-b border-border/10 last:border-r-0 max-w-md">
-                                            <div className="flex items-center gap-3 group/cell">
+                                        <td 
+                                            key={col} 
+                                            className={cn(
+                                                "border-r border-b border-border/10 last:border-r-0 max-w-md",
+                                                isObject ? "p-1" : "px-6 py-3"
+                                            )}
+                                        >
+                                            <div className={cn("flex items-center group/cell", !isObject && "gap-3")}>
                                                 <div className="flex-1 min-w-0">
                                                     {val === null ? (
                                                         <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/20 italic">NULL</span>
-                                                    ) : typeof val === 'object' ? (
-                                                        <div className="max-w-sm border border-border/20 bg-background/50 rounded-lg overflow-hidden">
-                                                            <CodeBlock code={JSON.stringify(val, null, 2)} language="json" maxHeight='128px' editable={false} />
+                                                    ) : isObject ? (
+                                                        <div className="w-full bg-background/50 rounded-none overflow-hidden">
+                                                            <CodeBlock code={JSON.stringify(val, null, 2)} language="json" maxHeight='128px' editable={false} rounded={false} />
                                                         </div>
                                                     ) : typeof val === 'boolean' ? (
                                                         <Badge variant="outline" className={cn(
@@ -285,7 +379,7 @@ const LoadingSkeleton = () => (
     </div>
 );
 
-const EmptyState = () => (
+const EmptyState = ({ message, description }: { message?: string, description?: string }) => (
     <div className="flex-1 h-full flex flex-col items-center justify-center text-muted-foreground gap-8 bg-card/5 animate-in fade-in duration-1000">
         <div className="relative group">
             <div className="absolute inset-0 bg-primary/10 blur-3xl rounded-full group-hover:bg-primary/20 transition-all duration-700" />
@@ -294,9 +388,9 @@ const EmptyState = () => (
             </div>
         </div>
         <div className="text-center space-y-3">
-            <h3 className="text-xl font-black italic uppercase tracking-tighter text-foreground">Waiting for Execution</h3>
+            <h3 className="text-xl font-black italic uppercase tracking-tighter text-foreground">{message || "Waiting for Execution"}</h3>
             <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/40 max-w-xs leading-loose">
-                Execute a command to populate the grid
+                {description || "Execute a command to populate the grid"}
             </p>
         </div>
     </div>

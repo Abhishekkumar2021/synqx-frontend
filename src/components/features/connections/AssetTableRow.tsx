@@ -40,9 +40,11 @@ import {
     discoverAssetSchema,
     deleteAsset,
     getAssetSampleData,
-    type Asset
+    type Asset,
+    type QueryResponse
 } from '@/lib/api';
 import { EditAssetDialog } from './EditAssetDialog';
+import { ResultsGrid } from '../explorer/ResultsGrid';
 
 interface AssetTableRowProps {
     asset: Asset;
@@ -71,8 +73,6 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
     const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
     const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
     const [copied, setCopied] = useState(false);
-    const [sampleFilter, setSampleFilter] = useState('');
-    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
     const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set());
     const queryClient = useQueryClient();
 
@@ -118,104 +118,14 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
         onError: () => toast.error("Delete failed")
     });
 
-    const processedSampleData = useMemo(() => {
-        if (!sampleData?.rows) return [];
-        let data = sampleData.rows.map((row, idx) => ({ ...row, __idx: idx }));
-
-        // Filter
-        if (sampleFilter) {
-            data = data.filter(row => 
-                Object.entries(row).some(([key, val]) => 
-                    key !== '__idx' && String(val).toLowerCase().includes(sampleFilter.toLowerCase())
-                )
-            );
-        }
-
-        // Sort
-        if (sortConfig) {
-            data.sort((a, b) => {
-                const aVal = a[sortConfig.key];
-                const bVal = b[sortConfig.key];
-                if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-                if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-                return 0;
-            });
-        }
-
-        return data;
-    }, [sampleData, sampleFilter, sortConfig]);
-
-    const handleSort = (key: string) => {
-        setSortConfig(current => {
-            if (current?.key === key && current.direction === 'asc') return { key, direction: 'desc' };
-            return { key, direction: 'asc' };
-        });
-    };
-
-    const handleSelectRow = (idx: number, checked: boolean) => {
-        const next = new Set(selectedRows);
-        if (checked) next.add(idx);
-        else next.delete(idx);
-        setSelectedRows(next);
-    };
-
-    const handleSelectAll = (checked: boolean) => {
-        if (checked) {
-            setSelectedRows(new Set(processedSampleData.map(r => r.__idx)));
-        } else {
-            setSelectedRows(new Set());
-        }
-    };
-
-    const exportData = (format: 'json' | 'csv') => {
-        const dataToExport = selectedRows.size > 0 
-            ? sampleData!.rows.filter((_, i) => selectedRows.has(i))
-            : processedSampleData.map(({ __idx, ...rest }) => rest);
-
-        if (format === 'json') {
-            const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${asset.name}_export.json`;
-            a.click();
-        } else {
-            const headers = Object.keys(dataToExport[0]).join(',');
-            const rows = dataToExport.map(row => 
-                Object.values(row).map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')
-            ).join('\n');
-            const blob = new Blob([`${headers}\n${rows}`], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${asset.name}_export.csv`;
-            a.click();
-        }
-        toast.success("Export Successful", { description: `Exported ${dataToExport.length} records.` });
-    };
-
-    const JsonPreview = ({ data }: { data: any }) => {
-        const str = JSON.stringify(data, null, 2);
-        return (
-            <div className="group relative">
-                <pre className="text-[10px] font-mono text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/5 p-2 rounded-lg border border-blue-200 dark:border-blue-500/10 max-h-32 overflow-auto scrollbar-none transition-colors leading-tight">
-                    {str}
-                </pre>
-                <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 dark:bg-background/80 backdrop-blur-sm border border-border/20"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        navigator.clipboard.writeText(str);
-                        toast.success("JSON copied");
-                    }}
-                >
-                    <Copy className="h-3 w-3" />
-                </Button>
-            </div>
-        );
-    };
+    const formattedSampleData: QueryResponse | null = useMemo(() => {
+        if (!sampleData) return null;
+        return {
+            results: sampleData.rows || [],
+            columns: sampleData.rows?.length > 0 ? Object.keys(sampleData.rows[0]) : [],
+            count: sampleData.count || 0
+        };
+    }, [sampleData]);
 
     const selectedSchema = schemaVersions?.find(v => v.id === selectedVersionId);
 
@@ -455,44 +365,6 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                                 </div>
                             </div>
                             <div className="flex items-center gap-3 pr-8">
-                                <div className="relative group">
-                                    <Search className="z-20 absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-emerald-500 transition-colors" />
-                                    <Input 
-                                        placeholder="Global search..."
-                                        className="h-9 w-64 pl-9 rounded-xl bg-background/50 border-border/40 focus:ring-4 focus:ring-emerald-500/5 transition-all text-xs font-medium shadow-sm"
-                                        value={sampleFilter}
-                                        onChange={(e) => setSampleFilter(e.target.value)}
-                                    />
-                                    {sampleFilter && (
-                                        <button 
-                                            onClick={() => setSampleFilter('')}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </button>
-                                    )}
-                                </div>
-
-                                <div className="h-6 w-px bg-border/40 mx-1" />
-
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="sm" className="h-9 rounded-xl gap-2 font-bold bg-background/50 border-border/40 shadow-sm">
-                                            <Download className="h-3.5 w-3.5" />
-                                            Export
-                                            <ChevronDown className="h-3 w-3 opacity-50" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/60 shadow-xl">
-                                        <DropdownMenuItem onClick={() => exportData('csv')} className="gap-2 rounded-lg cursor-pointer">
-                                            <FileText className="h-4 w-4 text-emerald-500" /> Export CSV
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => exportData('json')} className="gap-2 rounded-lg cursor-pointer">
-                                            <FileJson className="h-4 w-4 text-blue-500" /> Export JSON
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-
                                 <Button
                                     variant="outline"
                                     size="icon"
@@ -504,119 +376,15 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
                             </div>
                         </DialogHeader>
 
-                        <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-border/50 hover:scrollbar-thumb-border/80 scrollbar-track-transparent">
-                            {loadingSample ? (
-                                <div className="p-8 space-y-6">
-                                    <Skeleton className="h-10 w-full rounded-xl" />
-                                    <div className="grid grid-cols-4 gap-4">
-                                        {Array.from({ length: 12 }).map((_, i) => (
-                                            <Skeleton key={i} className="h-20 w-full rounded-2xl opacity-50" />
-                                        ))}
-                                    </div>
-                                </div>
-                            ) : processedSampleData.length > 0 ? (
-                                <div className="relative border-x border-border/10 h-full">
-                                    <table className="w-full text-left border-collapse min-w-max">
-                                        <thead className="sticky top-0 bg-muted/95 backdrop-blur-xl z-20 shadow-sm">
-                                            <tr>
-                                                <th className="w-12 px-4 py-4 border-b border-r border-border/20 bg-muted/50 text-center">
-                                                    <Checkbox 
-                                                        checked={selectedRows.size > 0 && selectedRows.size === processedSampleData.length}
-                                                        onCheckedChange={handleSelectAll}
-                                                        className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
-                                                    />
-                                                </th>
-                                                <th className="w-12 px-4 py-4 text-[9px] font-black text-muted-foreground/40 border-b border-r border-border/20 text-center uppercase">#</th>
-                                                {Object.keys(sampleData!.rows[0]).map((header) => (
-                                                    <th 
-                                                        key={header} 
-                                                        onClick={() => handleSort(header)}
-                                                        className="px-6 py-4 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/80 border-b border-r border-border/20 last:border-r-0 cursor-pointer group/th hover:bg-muted transition-colors"
-                                                    >
-                                                        <div className="flex items-center gap-2">
-                                                            {header}
-                                                            <ArrowUpDown className={cn(
-                                                                "h-3 w-3 transition-colors",
-                                                                sortConfig?.key === header ? "text-emerald-500" : "opacity-0 group-hover/th:opacity-50"
-                                                            )} />
-                                                        </div>
-                                                    </th>
-                                                ))}
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-border/10 dark:divide-border/5">
-                                            {processedSampleData.map((row, i) => (
-                                                <tr 
-                                                    key={row.__idx} 
-                                                    className={cn(
-                                                        "transition-colors group/row",
-                                                        selectedRows.has(row.__idx) ? "bg-emerald-500/5" : (i % 2 === 0 ? "bg-transparent" : "bg-muted/60 dark:bg-muted/10"),
-                                                        "hover:bg-primary/8 dark:hover:bg-primary/4"
-                                                    )}
-                                                >
-                                                    <td className="w-12 px-4 py-4 border-r border-border/10 text-center">
-                                                        <Checkbox 
-                                                            checked={selectedRows.has(row.__idx)}
-                                                            onCheckedChange={(checked) => handleSelectRow(row.__idx, !!checked)}
-                                                            className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
-                                                        />
-                                                    </td>
-                                                    <td className="w-12 px-4 py-4 text-[10px] font-mono text-muted-foreground/40 dark:text-muted-foreground/30 border-r border-border/10 text-center">
-                                                        {i + 1}
-                                                    </td>
-                                                    {Object.entries(row).map(([key, val]: [string, any], j) => (
-                                                        key !== '__idx' && (
-                                                            <td key={j} className="px-6 py-4 text-xs font-medium border-r border-border/10 last:border-r-0 max-w-md">
-                                                                {val === null ? (
-                                                                    <span className="text-muted-foreground/40 dark:text-muted-foreground/20 italic tracking-widest text-[9px] uppercase">null</span>
-                                                                ) : typeof val === 'object' ? (
-                                                                    <JsonPreview data={val} />
-                                                                ) : typeof val === 'boolean' ? (
-                                                                    <Badge variant="outline" className={cn(
-                                                                        "text-[9px] px-1.5 h-4.5 font-bold border-none tracking-widest",
-                                                                        val 
-                                                                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400" 
-                                                                            : "bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400"
-                                                                    )}>
-                                                                        {String(val).toUpperCase()}
-                                                                    </Badge>
-                                                                ) : typeof val === 'number' ? (
-                                                                    <span className="text-indigo-700 dark:text-indigo-400 font-mono font-bold">{val}</span>
-                                                                ) : (
-                                                                    <span className="text-foreground/80 dark:text-foreground/70 break-all whitespace-pre-wrap leading-relaxed">{String(val)}</span>
-                                                                )}
-                                                            </td>
-                                                        )
-                                                    ))}
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-6 py-20 px-8 text-center animate-in fade-in zoom-in-95">
-                                    <div className="relative">
-                                        <div className="absolute inset-0 bg-emerald-500/10 blur-3xl rounded-full" />
-                                        <div className="relative h-24 w-24 rounded-3xl glass-card flex items-center justify-center shadow-xl">
-                                            <Filter className="h-10 w-10 text-muted-foreground/30" />
-                                        </div>
-                                    </div>
-                                    <div className="space-y-2 max-w-md">
-                                        <h3 className="text-xl font-bold text-foreground">No matching records</h3>
-                                        <p className="text-sm font-medium leading-relaxed">
-                                            Your filter criteria didn't match any data in this sample.
-                                            Try adjusting your search terms or clear the filter.
-                                        </p>
-                                    </div>
-                                    <Button 
-                                        variant="outline" 
-                                        className="rounded-xl border-dashed border-border/60 hover:border-emerald-500/50 hover:bg-emerald-500/5 font-bold transition-all shadow-sm"
-                                        onClick={() => setSampleFilter('')}
-                                    >
-                                        Clear Filter
-                                    </Button>
-                                </div>
-                            )}
+                        <div className="flex-1 min-h-0 relative">
+                            <ResultsGrid 
+                                data={formattedSampleData} 
+                                isLoading={loadingSample}
+                                onSelectRows={setSelectedRows}
+                                selectedRows={selectedRows}
+                                hideHeader={false}
+                                title={isMaximized ? "Sample Data Preview" : undefined}
+                            />
                         </div>
                     </DialogContent>
                 </Dialog>

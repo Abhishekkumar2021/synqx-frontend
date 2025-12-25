@@ -263,7 +263,13 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                         // Dependency Check
                                         if (field.dependency) {
                                             const depVal = configValues[field.dependency.field];
-                                            if (depVal !== field.dependency.value) return null;
+                                            const requiredVal = field.dependency.value;
+                                            
+                                            const isMatch = Array.isArray(requiredVal) 
+                                                ? requiredVal.includes(depVal)
+                                                : depVal === requiredVal;
+
+                                            if (!isMatch) return null;
                                         }
                                         return (
                                             <FormField key={field.name} control={form.control} name={`config.${field.name}`} render={({ field: f }) => (

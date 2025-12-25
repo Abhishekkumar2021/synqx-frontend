@@ -339,27 +339,31 @@ export const StepRunInspector: React.FC<StepRunInspectorProps> = ({
 
                             <div className="flex-1 min-h-0 relative">
                                 <TabsContent value="ingress" className="absolute inset-0 m-0 flex flex-col overflow-hidden">
-                                    <div className="px-6 py-2 flex items-center justify-between bg-muted/5 shrink-0">
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 italic">Ingress Data Buffer (First 100 records)</span>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-primary/60 hover:text-primary" onClick={() => setMaximizedDirection('in')}>
-                                            <Maximize2 size={14} />
-                                        </Button>
-                                    </div>
                                     <div className="flex-1 min-h-0 relative overflow-hidden">
-                                        <ResultsGrid data={displayInData} isLoading={isLoadingIn} />
+                                        <ResultsGrid 
+                                            data={displayInData} 
+                                            isLoading={isLoadingIn} 
+                                            title="Ingress Buffer"
+                                            description="First 100 records retrieved from source"
+                                        />
                                     </div>
+                                    <Button variant="ghost" size="icon" className="absolute top-3 right-3 z-60 h-7 w-7 rounded-lg text-primary/60 hover:text-primary" onClick={() => setMaximizedDirection('in')}>
+                                        <Maximize2 size={14} />
+                                    </Button>
                                 </TabsContent>
 
                                 <TabsContent value="egress" className="absolute inset-0 m-0 flex flex-col overflow-hidden">
-                                    <div className="px-6 py-2 flex items-center justify-between bg-muted/5 shrink-0">
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 italic">Egress Data Buffer (First 100 records)</span>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-primary/60 hover:text-primary" onClick={() => setMaximizedDirection('out')}>
-                                            <Maximize2 size={14} />
-                                        </Button>
-                                    </div>
                                     <div className="flex-1 min-h-0 relative overflow-hidden">
-                                        <ResultsGrid data={displayOutData} isLoading={isLoadingOut && !step.sample_data} />
+                                        <ResultsGrid 
+                                            data={displayOutData} 
+                                            isLoading={isLoadingOut && !step.sample_data} 
+                                            title="Egress Buffer"
+                                            description="First 100 records emitted to downstream"
+                                        />
                                     </div>
+                                    <Button variant="ghost" size="icon" className="absolute top-3 right-3 z-60 h-7 w-7 rounded-lg text-primary/60 hover:text-primary" onClick={() => setMaximizedDirection('out')}>
+                                        <Maximize2 size={14} />
+                                    </Button>
                                 </TabsContent>
                             </div>
                         </Tabs>
@@ -376,6 +380,8 @@ export const StepRunInspector: React.FC<StepRunInspectorProps> = ({
                         <ResultsGrid 
                             data={maximizedDirection === 'in' ? displayInData : displayOutData} 
                             isLoading={maximizedDirection === 'in' ? isLoadingIn : (isLoadingOut && !step.sample_data)} 
+                            title={maximizedDirection === 'in' ? "Ingress Data Stream" : "Egress Data Stream"}
+                            description={`Full buffer inspection for ${nodeLabel}`}
                         />
                     </MaximizePortal>
                 )}

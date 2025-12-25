@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import {
-    Database, Cloud, HardDrive, Globe, FileJson, Server, Code
+    Database, Cloud, HardDrive, Globe, FileJson, Server, Code, FileSpreadsheet
 } from 'lucide-react';
 
 export interface ConnectorMetadata {
@@ -47,6 +47,10 @@ export const CONNECTOR_META: Record<string, ConnectorMetadata> = {
         id: 'sqlite', name: 'SQLite', description: 'C-language library embedded database.', 
         icon: <Database />, category: 'Database', color: "text-blue-400 bg-blue-400/10 border-blue-400/20"
     },
+    duckdb: { 
+        id: 'duckdb', name: 'DuckDB', description: 'Embeddable analytical database (OLAP).', 
+        icon: <Database />, category: 'Database', color: "text-yellow-600 bg-yellow-600/10 border-yellow-600/20"
+    },
     snowflake: { 
         id: 'snowflake', name: 'Snowflake', description: 'Cloud-native data warehousing platform.', 
         icon: <Cloud />, category: 'Warehouse', color: "text-cyan-400 bg-cyan-400/10 border-cyan-400/20", popular: true 
@@ -58,6 +62,10 @@ export const CONNECTOR_META: Record<string, ConnectorMetadata> = {
     bigquery: { 
         id: 'bigquery', name: 'Google BigQuery', description: 'Serverless enterprise data warehouse.', 
         icon: <Cloud />, category: 'Warehouse', color: "text-blue-600 bg-blue-600/10 border-blue-600/20"
+    },
+    google_sheets: { 
+        id: 'google_sheets', name: 'Google Sheets', description: 'Spreadsheets as a real-time data source.', 
+        icon: <FileSpreadsheet />, category: 'API', color: "text-emerald-600 bg-emerald-600/10 border-emerald-600/20", popular: true 
     },
     mongodb: { 
         id: 'mongodb', name: 'MongoDB', description: 'Source-available document database.', 
@@ -151,6 +159,12 @@ export const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
             { name: "database_path", label: "Database Path", type: "text", required: true, placeholder: "/path/to/database.db" }
         ]
     },
+    duckdb: {
+        fields: [
+            { name: "path", label: "Database Path", type: "text", placeholder: "/path/to/duck.db (Leave empty for in-memory)" },
+            { name: "memory", label: "In-Memory Mode", type: "select", options: [{label: "True", value: true}, {label: "False", value: false}], defaultValue: true }
+        ]
+    },
     mongodb: {
         fields: [
             { name: "connection_string", label: "Connection String (URI)", type: "text", placeholder: "mongodb://user:pass@host:27017/db" },
@@ -199,6 +213,20 @@ export const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
             { name: "credentials_path", label: "Key File Path", type: "text" },
         ]
     },
+    google_sheets: {
+        fields: [
+            { name: "spreadsheet_id", label: "Spreadsheet ID", type: "text", required: true, placeholder: "e.g. 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms" },
+            {
+                name: "auth_type", label: "Authentication Type", type: "select", required: true, defaultValue: "service_account",
+                options: [
+                    { label: "Service Account JSON", value: "service_account" },
+                    { label: "API Key (Public Sheets Only)", value: "api_key" }
+                ]
+            },
+            { name: "service_account_json", label: "Service Account Credentials (JSON)", type: "textarea", required: true, dependency: { field: "auth_type", value: "service_account" }, placeholder: "{ ... }" },
+            { name: "api_key", label: "Google API Key", type: "password", required: true, dependency: { field: "auth_type", value: "api_key" } }
+        ]
+    },
     rest_api: {
         fields: [
             { name: "base_url", label: "Base URL", type: "text", required: true, placeholder: "https://api.example.com/v1" },
@@ -221,7 +249,32 @@ export const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
                 options: [{label: "Header", value: "header"}, {label: "Query Param", value: "query"}],
                 dependency: { field: "auth_type", value: "api_key" } 
             },
+            
+            // Advanced Data Mapping
+            { name: "data_key", label: "JSON Data Path", type: "text", placeholder: "e.g. data.items or results (leave empty for root array)" },
+            
+            // Pagination
+            {
+                name: "pagination_type", label: "Pagination Strategy", type: "select", defaultValue: "none",
+                options: [
+                    { label: "None / No Pagination", value: "none" },
+                    { label: "Limit & Offset", value: "limit_offset" },
+                    { label: "Page Number", value: "page_number" },
+                ]
+            },
+            { name: "page_size", label: "Default Page Size", type: "number", defaultValue: 100, dependency: { field: "pagination_type", value: ["limit_offset", "page_number"] } },
+            { name: "limit_param", label: "Limit Parameter Name", type: "text", defaultValue: "limit", dependency: { field: "pagination_type", value: "limit_offset" } },
+            { name: "offset_param", label: "Offset Parameter Name", type: "text", defaultValue: "offset", dependency: { field: "pagination_type", value: "limit_offset" } },
+            { name: "page_param", label: "Page Parameter Name", type: "text", defaultValue: "page", dependency: { field: "pagination_type", value: "page_number" } },
+            { name: "page_size_param", label: "Page Size Parameter Name", type: "text", defaultValue: "page_size", dependency: { field: "pagination_type", value: "page_number" } },
+
+            // Headers & Parameters
+            { name: "headers", label: "Custom Headers (JSON)", type: "textarea", placeholder: '{"X-Custom-Header": "value"}' },
+            { name: "default_params", label: "Default Query Params (JSON)", type: "textarea", placeholder: '{"version": "v2"}' },
+
+            // Performance & Reliability
             { name: "timeout", label: "Timeout (seconds)", type: "number", defaultValue: 30.0 },
+            { name: "max_retries", label: "Max Retries", type: "number", defaultValue: 3 },
         ]
     },
     local_file: { 

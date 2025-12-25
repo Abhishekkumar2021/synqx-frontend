@@ -139,6 +139,13 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
         const payload: AssetBulkCreate = {
             assets: data.assets.filter(a => a.name.trim() !== '').map(asset => {
                 let config: Record<string, any> = {};
+                
+                // For REST APIs, we treat the name as an endpoint
+                let finalName = asset.name.trim();
+                if (connectorType === ConnectorType.REST_API && !finalName.startsWith('/')) {
+                    finalName = '/' + finalName;
+                }
+
                 if ([AssetType.SQL_QUERY, AssetType.NOSQL_QUERY].includes(asset.asset_type as AssetType)) {
                     config.query = asset.query;
                 } else if (QUERY_SCRIPT_TYPES.includes(asset.asset_type as AssetType)) {
@@ -152,7 +159,7 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                     config.write_mode = asset.write_mode;
                 }
                 return {
-                    name: asset.name,
+                    name: finalName,
                     asset_type: asset.asset_type,
                     is_source: asset.usageType === 'source',
                     is_destination: asset.usageType === 'destination',
@@ -230,7 +237,11 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                                                     <Database className="z-20 absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
                                                     <Input
                                                         {...register(`assets.${index}.name`, { required: true })}
-                                                        placeholder={isQuery ? "Name..." : "Table or file name..."}
+                                                        placeholder={
+                                                            isQuery ? "Name..." : 
+                                                            connectorType === ConnectorType.REST_API ? "Endpoint (e.g. /users)..." :
+                                                            "Table or file name..."
+                                                        }
                                                         className="pl-9 h-10 rounded-xl bg-background/50 border-border/40 text-sm font-medium"
                                                     />
                                                 </div>
@@ -242,7 +253,6 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                                                             <Select onValueChange={(val) => { f.onChange(val); if (QUERY_SCRIPT_TYPES.includes(val as AssetType)) setValue(`assets.${index}.usageType`, 'source'); }} defaultValue={f.value}>
                                                                 <SelectTrigger className="h-10 rounded-xl bg-background/50 border-border/40 text-sm font-medium">
                                                                     <div className="flex items-center gap-2">
-                                                                        {ASSET_META[f.value as AssetType] && React.createElement(ASSET_META[f.value as AssetType].icon, { className: "h-3.5 w-3.5 text-muted-foreground" })}
                                                                         <SelectValue />
                                                                     </div>
                                                                 </SelectTrigger>
