@@ -6,29 +6,11 @@ import {
     HardDriveUpload,
     Server,
     Settings2,
-    MoreHorizontal,
     Loader2,
-    Play,
-    Copy,
-    Trash2,
-    AlertCircle,
-    CheckCircle2,
     Layers,
     ShieldCheck,
-    Square,
-    XCircle
-} from 'lucide-react';
+    Square} from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 // --- Types ---
 interface PipelineNodeData extends Record<string, unknown> {
@@ -113,39 +95,15 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
     const isSkipped = status === 'skipped';
     const isWarning = status === 'warning';
 
-    // Theme Styles Helper
-    const getThemeStyles = (color: string) => {
-        switch (color) {
-            case 'chart-1': return {
-                bg: "bg-chart-1/10", text: "text-chart-1", border: "border-chart-1/20", ring: "ring-chart-1/30",
-                glow: "shadow-[0_0_20px_rgba(59,130,246,0.15)]", // Blue
-                handle: "hover:border-chart-1 hover:bg-chart-1/10"
-            };
-            case 'chart-2': return {
-                bg: "bg-chart-2/10", text: "text-chart-2", border: "border-chart-2/20", ring: "ring-chart-2/30",
-                glow: "shadow-[0_0_20px_rgba(16,185,129,0.15)]", // Green
-                handle: "hover:border-chart-2 hover:bg-chart-2/10"
-            };
-            case 'chart-3': return {
-                bg: "bg-chart-3/10", text: "text-chart-3", border: "border-chart-3/20", ring: "ring-chart-3/30",
-                glow: "shadow-[0_0_20px_rgba(139,92,246,0.15)]", // Purple
-                handle: "hover:border-chart-3 hover:bg-chart-3/10"
-            };
-            case 'chart-4': return {
-                bg: "bg-chart-4/10", text: "text-chart-4", border: "border-chart-4/20", ring: "ring-chart-4/30",
-                glow: "shadow-[0_0_20px_rgba(245,158,11,0.15)]", // Orange
-                handle: "hover:border-chart-4 hover:bg-chart-4/10"
-            };
-            case 'chart-5': return {
-                bg: "bg-chart-5/10", text: "text-chart-5", border: "border-chart-5/20", ring: "ring-chart-5/30",
-                glow: "shadow-[0_0_20px_rgba(239,68,68,0.15)]", // Red
-                handle: "hover:border-chart-5 hover:bg-chart-5/10"
-            };
-            default: return {
-                bg: "bg-primary/10", text: "text-primary", border: "border-primary/20", ring: "ring-primary/30",
-                glow: "shadow-[0_0_20px_rgba(var(--primary),0.15)]",
-                handle: "hover:border-primary hover:bg-primary/10"
-            };
+    // Theme Styles Helper - Using Solid Theme-Aware Variables
+    const getThemeStyles = (colorVar: string) => {
+        switch (colorVar) {
+            case 'chart-1': return { text: "text-chart-1", border: "border-chart-1", bg: "bg-chart-1" };
+            case 'chart-2': return { text: "text-chart-2", border: "border-chart-2", bg: "bg-chart-2" };
+            case 'chart-3': return { text: "text-chart-3", border: "border-chart-3", bg: "bg-chart-3" };
+            case 'chart-4': return { text: "text-chart-4", border: "border-chart-4", bg: "bg-chart-4" };
+            case 'chart-5': return { text: "text-chart-5", border: "border-chart-5", bg: "bg-chart-5" };
+            default: return { text: "text-primary", border: "border-primary", bg: "bg-primary" };
         }
     };
 
@@ -154,146 +112,116 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
     return (
         <div
             className={cn(
-                "group relative flex min-w-[280px] flex-col rounded-3xl glass-card transition-all duration-700 ease-out border",
-                // Base Border & Glass
-                "border-border/60 bg-background/40 backdrop-blur-xl",
+                "group relative flex min-w-[280px] flex-col rounded-[3rem] transition-all duration-300 ease-out border-2 overflow-hidden",
+                // Base Surface: Glassmorphism consistent with dashboard
+                "bg-background/70 dark:bg-card/50 backdrop-blur-xl text-foreground shadow-xl",
+                themeStyles.border,
 
-                // Status States
-                isError && "border-destructive/50 ring-destructive/20 shadow-destructive/10 bg-destructive/5",
-                isRunning && "border-primary/50 shadow-2xl shadow-primary/20 scale-[1.02] z-50",
-                isSuccess && cn("border-emerald-500/30", themeStyles.glow),
-                isPending && "opacity-40 grayscale-[0.5] scale-[0.98]",
-
-                // Selection State (Subtle scale + Shadow bloom)
-                selected
-                    ? cn("ring-1 ring-offset-0 scale-[1.01] shadow-2xl z-50", themeStyles.ring, themeStyles.border)
-                    : "hover:border-primary/30 hover:shadow-xl hover:shadow-black/5 hover:-translate-y-0.5"
+                // Selection State
+                selected ? "ring-2 ring-primary ring-offset-4 ring-offset-background scale-[1.02] z-50 shadow-2xl" : "hover:scale-[1.01] hover:shadow-2xl hover:bg-background/80 dark:hover:bg-card/60",
+                
+                // Status Specific Overrides
+                isError && "border-destructive/60 bg-destructive/[0.02]",
+                isRunning && "border-primary/60 bg-primary/[0.02] scale-[1.02] z-50",
+                isPending && "grayscale-[0.5] opacity-80"
             )}
         >
-            {/* Ambient pulse for running nodes */}
-            {isRunning && (
-                <div className="absolute -inset-1 rounded-3xl bg-primary/10 animate-pulse -z-10 blur-md" />
-            )}
+            {/* Ambient inner shine */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
 
             {/* --- Header --- */}
-            <div className="flex items-start justify-between p-4 pb-3">
-                <div className="flex items-center gap-3.5 min-w-0">
-                    {/* Icon Box */}
+            <div className="flex items-start justify-between p-7 pb-4 relative z-10">
+                <div className="flex items-center gap-4 min-w-0">
+                    {/* Icon Box - Solid Background for contrast */}
                     <div className={cn(
-                        "flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border transition-all duration-300 shadow-sm",
+                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-[1.5rem] border-2 transition-all duration-300 shadow-lg relative",
                         themeStyles.bg,
+                        "text-white dark:text-background", 
                         themeStyles.border,
-                        selected ? "border-current/40 shadow-inner" : "",
-                        isRunning && "animate-pulse ring-4 ring-primary/10"
+                        isRunning && "animate-pulse ring-4 ring-primary/20"
                     )}>
                         {isRunning ? (
-                            <Loader2 className={cn("h-5 w-5 animate-spin", themeStyles.text)} />
+                            <Loader2 className={cn("h-6 w-6 animate-spin")}/>
                         ) : (
-                            <Icon className={cn("h-5 w-5", themeStyles.text)} />
+                            <Icon className={cn("h-6 w-6")}/>
                         )}
                     </div>
 
                     {/* Labels */}
-                    <div className="flex flex-col min-w-0 gap-0.5">
-                        <span className="text-sm font-bold text-foreground truncate pr-2 leading-none" title={nodeData.label}>
+                    <div className="flex flex-col min-w-0 gap-1">
+                        <span className="text-sm font-black tracking-tight truncate pr-2 leading-tight text-foreground">
                             {nodeData.label}
                         </span>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-                            {config.label}
-                        </span>
+                        <div className="flex">
+                            <span className={cn("text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-xl bg-muted/50 border border-border/20 shadow-sm", themeStyles.text)}>
+                                {config.label}
+                            </span>
+                        </div>
                     </div>
                 </div>
-
-                {/* Action Menu - Hidden in readOnly mode */}
-                {!nodeData.readOnly && (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 -mr-1.5 rounded-full text-muted-foreground/50 hover:text-foreground hover:bg-muted/50 data-[state=open]:bg-muted/50 data-[state=open]:text-foreground transition-colors"
-                            >
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/40 bg-background/80 backdrop-blur-2xl shadow-xl">
-                            <DropdownMenuLabel className="text-xs text-muted-foreground uppercase tracking-widest px-3 py-2">Node Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator className="bg-border/40" />
-                            <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-accent focus:text-accent-foreground rounded-lg mx-1">
-                                <Settings2 className="h-3.5 w-3.5 opacity-70" /> Configure
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-accent focus:text-accent-foreground rounded-lg mx-1">
-                                <Play className="h-3.5 w-3.5 opacity-70" /> Run Node
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-border/40" />
-                            <DropdownMenuItem className="cursor-pointer gap-2 focus:bg-accent focus:text-accent-foreground rounded-lg mx-1">
-                                <Copy className="h-3.5 w-3.5 opacity-70" /> Duplicate
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer gap-2 text-destructive focus:text-destructive focus:bg-destructive/10 rounded-lg mx-1">
-                                <Trash2 className="h-3.5 w-3.5 opacity-70" /> Delete
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-                )}
             </div>
 
             {/* --- Body / Metrics --- */}
             {(status !== 'idle' || typeof nodeData.rowsProcessed === 'number') && (
-                <div className="px-4 pb-4 pt-0">
-                    <div className="flex items-center justify-between pt-3 border-t border-border/30">
+                <div className="px-7 pb-7 pt-0 relative z-10">
+                    <div className="flex items-center justify-between pt-4 border-t border-border/20">
 
                         {/* Status Badge */}
-                        <div className="flex items-center gap-1.5">
-                            {isRunning && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
-                            {isSuccess && <CheckCircle2 className="h-3 w-3 text-emerald-500" />}
-                            {isError && <AlertCircle className="h-3 w-3 text-destructive" />}
-                            {isSkipped && <XCircle className="h-3 w-3 text-muted-foreground/40" />}
-                            {isWarning && <AlertCircle className="h-3 w-3 text-amber-500" />}
+                        <div className="flex items-center gap-2">
+                            <div className={cn(
+                                "h-2 w-2 rounded-full ring-2 ring-background/20",
+                                isRunning && "bg-primary animate-pulse shadow-[0_0_8px_var(--color-primary)]",
+                                isSuccess && "bg-emerald-500 shadow-[0_0_8px_#10b981]",
+                                isError && "bg-destructive shadow-[0_0_8px_#ef4444]",
+                                isSkipped && "bg-muted-foreground",
+                                isWarning && "bg-amber-500 shadow-[0_0_8px_#f59e0b]"
+                            )} />
 
                             <span className={cn(
-                                "text-[10px] font-semibold uppercase tracking-wide",
+                                "text-[10px] font-black uppercase tracking-[0.15em]",
                                 isRunning && "text-primary animate-pulse",
                                 isSuccess && "text-emerald-500",
                                 isError && "text-destructive",
-                                isSkipped && "text-muted-foreground/40",
+                                isSkipped && "text-muted-foreground",
                                 isWarning && "text-amber-500",
-                                isPending && "text-muted-foreground/60"
+                                isPending && "text-muted-foreground"
                             )}>
-                                {isRunning ? "Processing..." : isPending ? "Waiting..." : status}
+                                {isRunning ? "Processing" : status}
                             </span>
                         </div>
 
                         {/* Data Metric */}
                         {typeof nodeData.rowsProcessed === 'number' && (
-                            <Badge variant="secondary" className="h-5 px-1.5 text-[10px] font-mono tracking-tight bg-muted/50 text-muted-foreground border-transparent hover:bg-muted/70 shadow-none">
-                                {formatNumber(nodeData.rowsProcessed)} rows
-                            </Badge>
+                            <div className="flex items-center gap-1.5 bg-muted/30 px-2.5 py-1 rounded-xl border border-border/10 shadow-inner">
+                                <Layers className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-[10px] font-black tabular-nums text-foreground/80 tracking-tight">
+                                    {formatNumber(nodeData.rowsProcessed)}
+                                </span>
+                            </div>
                         )}
                     </div>
 
                     {/* Error Message */}
                     {isError && nodeData.error && (
-                        <div className="mt-3 text-[10px] text-destructive-foreground bg-destructive/10 p-2.5 rounded-lg border border-destructive/20 font-medium leading-relaxed">
+                        <div className="mt-4 text-[10px] text-destructive bg-destructive/10 p-4 rounded-[1.5rem] border border-destructive/20 font-bold leading-relaxed shadow-inner">
                             {nodeData.error}
                         </div>
                     )}
                 </div>
             )}
 
-            {/* --- Connection Ports (Glass Handles) --- */}
+            {/* --- Connection Ports (Standardized) --- */}
             
             {type !== 'source' && (
                 <Handle
                     type="target"
                     position={Position.Left}
                     className={cn(
-                        "w-3.5! h-7! rounded-full! border-2! z-50 transition-all duration-300",
-                        "bg-background/80! backdrop-blur-md shadow-sm",
-                        "border-border/60",
-                        themeStyles.handle,
-                        selected && cn(themeStyles.border.replace('/20', '!'), "bg-background!")
+                        "w-3 h-3 rounded-full border-2 z-50 transition-all duration-300",
+                        "bg-background shadow-md hover:scale-125 hover:border-primary",
+                        "border-border"
                     )}
-                    style={{ left: -14 }} 
+                    style={{ left: -7 }} 
                 />
             )}
 
@@ -302,13 +230,11 @@ const PipelineNode = ({ data, selected }: NodeProps) => {
                     type="source"
                     position={Position.Right}
                     className={cn(
-                        "w-3.5! h-7! rounded-full! border-2! z-50 transition-all duration-300",
-                        "bg-background/80! backdrop-blur-md shadow-sm",
-                        "border-border/60",
-                        themeStyles.handle,
-                        selected && cn(themeStyles.border.replace('/20', '!'), "bg-background!")
+                        "w-3 h-3 rounded-full border-2 z-50 transition-all duration-300",
+                        "bg-background shadow-md hover:scale-125 hover:border-primary",
+                        "border-border"
                     )}
-                    style={{ right: -14 }}
+                    style={{ right: -7 }}
                 />
             )}
         </div>

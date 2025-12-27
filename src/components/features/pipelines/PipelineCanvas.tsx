@@ -59,7 +59,12 @@ import {
 
 // Custom Components
 import PipelineNode from '@/components/features/pipelines/PipelineNode'; 
+import GlowEdge from '@/components/features/pipelines/GlowEdge';
 import { NodeProperties } from '@/components/features/pipelines/NodeProperties';
+
+const edgeTypes = {
+    glow: GlowEdge,
+};
 import { PipelineVersionDialog } from '@/components/features/pipelines/PipelineVersionDialog';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import {
@@ -223,9 +228,9 @@ export const PipelineCanvas: React.FC = () => {
         id: `e-${e.from_node_id}-${e.to_node_id}`,
         source: e.from_node_id,
         target: e.to_node_id,
-        type: 'smoothstep', 
+        type: 'glow', 
         animated: false,
-        style: { stroke: 'var(--color-border)', strokeWidth: 2 },
+        style: { strokeWidth: 2 },
     }));
 
     const needsLayout = flowNodes.length > 0 && flowNodes.every(n => n.position.x === 0 && n.position.y === 0);
@@ -245,9 +250,8 @@ export const PipelineCanvas: React.FC = () => {
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge({ 
         ...params, 
-        type: 'smoothstep', 
+        type: 'glow', 
         animated: true, 
-        style: { stroke: 'var(--color-primary)', strokeWidth: 2, strokeDasharray: '5,5' },
     }, eds)),
     [setEdges],
   );
@@ -567,21 +571,30 @@ export const PipelineCanvas: React.FC = () => {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             onNodeClick={(_, node) => setSelectedNodeId(node.id)}
             onPaneClick={() => setSelectedNodeId(null)}
             colorMode={flowTheme}
-            minZoom={0.2}
-            maxZoom={2}
-            defaultEdgeOptions={{ type: 'smoothstep', style: { strokeWidth: 2, stroke: 'var(--color-border)' } }}
+            minZoom={0.1}
+            maxZoom={4}
+            defaultEdgeOptions={{ 
+                type: 'glow', 
+                style: { strokeWidth: 2 } 
+            }}
             proOptions={{ hideAttribution: true }}
             className="transition-colors duration-500"
           >
             <Background 
+                variant={BackgroundVariant.Lines} 
+                gap={40} 
+                size={1} 
+                color={theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)'}
+            />
+            <Background 
                 variant={BackgroundVariant.Dots} 
-                gap={24} 
-                size={1.5} 
-                color="var(--muted-foreground)"
-                className="opacity-20"
+                gap={20} 
+                size={1} 
+                color={theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}
             />
             
             <Controls className="bg-background/80! backdrop-blur-xl! border-border/40! shadow-lg! rounded-xl! overflow-hidden m-2 md:m-4 border fill-foreground text-foreground" showInteractive={false} />
@@ -702,8 +715,8 @@ export const PipelineCanvas: React.FC = () => {
 
           {/* Properties Inspector */}
           <div className={cn(
-              "absolute top-auto md:top-4 bottom-0 md:bottom-4 left-0 md:left-auto right-0 md:right-4 w-full md:w-[380px] h-[60%] md:h-auto glass-panel border-t md:border border-border/40 shadow-2xl flex flex-col overflow-hidden z-30 transition-all duration-500 cubic-bezier(0.32, 0.72, 0, 1) rounded-b-none md:rounded-2xl",
-              selectedNode ? "translate-y-0 md:translate-x-0 opacity-100" : "translate-y-[120%] md:translate-y-0 md:translate-x-[120%] opacity-0 pointer-events-none"
+              "absolute top-0 right-0 w-full md:w-[400px] h-full glass-panel shadow-2xl flex flex-col overflow-hidden z-50 transition-all duration-500 cubic-bezier(0.32, 0.72, 0, 1) rounded-none",
+              selectedNode ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"
           )}>
               {selectedNode && (
                 <NodeProperties 
