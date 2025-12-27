@@ -1,19 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Maximize2, Copy, Check, X, Minimize, FileCode } from 'lucide-react';
+import { Maximize2, Copy, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { codeToHtml } from 'shiki';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/hooks/useTheme';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 interface CodeBlockProps {
   code: string;
@@ -99,7 +93,6 @@ export const CodeBlock = ({
           className={cn(
             "font-mono bg-transparent border-0 focus-visible:ring-0 resize-none w-full relative z-10",
             "overflow-y-auto custom-scrollbar flex-1",
-            "selection:bg-primary/30 selection:text-foreground",
             wrap ? "whitespace-pre-wrap" : "whitespace-pre",
             isExpanded ? "text-sm leading-relaxed p-8" : "text-xs leading-relaxed p-5"
           )}
@@ -110,7 +103,6 @@ export const CodeBlock = ({
           className={cn(
             "w-full h-full overflow-y-auto relative z-20 select-text cursor-text custom-scrollbar flex-1",
             "dark:[&_.shiki_span]:filter dark:[&_.shiki_span]:brightness-125",
-            "selection:bg-primary/20 dark:selection:bg-primary/40 selection:text-foreground",
             wrap ? "[&>pre]:whitespace-pre-wrap" : "[&>pre]:whitespace-pre",
             isExpanded ? "text-[13px]" : "text-[11px]",
             "[&>pre]:bg-transparent! [&>pre]:m-0 [&>pre]:w-full [&>pre]:h-full",
@@ -133,93 +125,53 @@ export const CodeBlock = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[10000] flex items-center justify-center"
-          onPointerDown={(e) => e.stopPropagation()}
         >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-white/60 dark:bg-black/40 backdrop-blur-2xl"
+            className="absolute inset-0 bg-background/40 backdrop-blur-2xl"
             onClick={() => setIsMaximized(false)}
           />
 
           <motion.div
             layoutId={`code-block-${title}`}
-            className={cn(
-              "relative w-full h-full",
-              "rounded-none overflow-hidden flex flex-col z-[10001]",
-              "bg-background border-0 shadow-none ring-0"
-            )}
+            className="relative w-full h-full bg-background flex flex-col z-[10001]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Production-grade Header */}
-            <div className="flex items-center justify-between px-8 py-4 bg-muted/10 backdrop-blur-3xl shrink-0 border-b border-border/40 relative z-20">
-              <div className="flex items-center gap-8">
-                {/* Traffic Lights */}
-                <div
-                  className="flex items-center gap-2 group/lights cursor-pointer p-1.5 rounded-lg hover:bg-white/5 transition-colors"
-                  onClick={() => setIsMaximized(false)}
-                >
-                  <div className="w-3 h-3 rounded-full bg-red-500/80 flex items-center justify-center shadow-[0_0_10px_rgba(239,68,68,0.2)]">
-                    <X size={8} className="text-red-950 opacity-0 group-hover/lights:opacity-100 transition-opacity" />
-                  </div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/80 shadow-[0_0_10px_rgba(245,158,11,0.2)]" />
-                  <div className="w-3 h-3 rounded-full bg-green-500/80 shadow-[0_0_10px_rgba(16,185,129,0.2)]" />
-                </div>
-
-                <div className="h-8 w-px bg-border/40 hidden sm:block" />
-
-                <div className="flex items-center gap-4">
-                  <div className="space-y-0.5">
-                    <h3 className="text-sm font-black tracking-tight text-foreground uppercase tracking-widest">{title || 'Code Inspector'}</h3>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-primary/10 border border-primary/20">
-                        <FileCode size={10} className="text-primary" />
-                        <span className="text-[9px] font-black text-primary uppercase tracking-widest">{language}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted/30 border border-border/40">
-                        <div className="h-1 w-1 rounded-full bg-muted-foreground/50" />
-                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{editable ? 'Editable' : 'Read-Only'}</span>
-                      </div>
-                    </div>
-                  </div>
+            {/* Simplified Minimal Header */}
+            <div className="flex items-center justify-between px-6 py-3 border-b border-border/40 bg-muted/5 backdrop-blur-md">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded border border-border bg-muted/50 font-mono text-muted-foreground">
+                    {language}
+                  </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={handleCopy}
-                        className="h-10 w-10 rounded-xl bg-background/40 border border-border/40 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all shadow-sm"
-                      >
-                        {copied ? <Check size={18} className="text-success" /> : <Copy size={18} />}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Copy to Clipboard</TooltipContent>
-                  </Tooltip>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopy}
+                  className="h-8 gap-2 text-xs hover:bg-primary/5 hover:text-primary transition-all"
+                >
+                  {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
+                  <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy'}</span>
+                </Button>
 
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={() => setIsMaximized(false)}
-                        className="h-10 w-10 rounded-xl bg-background/40 border border-border/40 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all shadow-sm"
-                      >
-                        <Minimize size={18} />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Exit Fullscreen (Esc)</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsMaximized(false)}
+                  className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-colors group"
+                >
+                  <X size={18} className="transition-transform group-hover:rotate-90" />
+                </Button>
               </div>
             </div>
 
-            <div className="flex-1 min-h-0 bg-background/50 relative z-10">
+            <div className="flex-1 min-h-0 bg-transparent">
               {renderContent(true)}
             </div>
           </motion.div>

@@ -5,7 +5,6 @@ import {
     Clock,
     XCircle,
     Loader2,
-    PauseCircle,
     PlayCircle
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// API Definitions
 import axios from 'axios';
 import { toast } from 'sonner';
 import { 
@@ -610,22 +611,61 @@ export interface RecentActivity {
     user_avatar?: string;
 }
 
+export interface SystemHealth {
+    cpu_percent: number;
+    memory_usage_mb: number;
+    active_workers: number;
+}
+
+export interface FailingPipeline {
+    id: number;
+    name: string;
+    failure_count: number;
+}
+
+export interface SlowestPipeline {
+    id: number;
+    name: string;
+    avg_duration: number;
+}
+
+export interface DashboardAlert {
+    id: number;
+    message: string;
+    level: string;
+    created_at: string;
+    pipeline_id?: number;
+}
+
+export interface ConnectorHealth {
+    status: string;
+    count: number;
+}
+
 export interface DashboardStats {
     total_pipelines: number;
     active_pipelines: number;
-    total_jobs_24h: number;
-    success_rate_24h: number;
-    avg_duration_24h: number;
     total_connections: number;
-    total_rows_24h: number;
-    total_bytes_24h: number;
+    connector_health: ConnectorHealth[];
+    
+    total_jobs: number;
+    success_rate: number;
+    avg_duration: number;
+    total_rows: number;
+    total_bytes: number;
+    
     throughput: ThroughputDataPoint[];
     pipeline_distribution: PipelineDistribution[];
     recent_activity: RecentActivity[];
+
+    system_health?: SystemHealth;
+    top_failing_pipelines: FailingPipeline[];
+    slowest_pipelines: SlowestPipeline[];
+    recent_alerts: DashboardAlert[];
 }
 
-export const getDashboardStats = async () => {
-    const { data } = await api.get<DashboardStats>('/dashboard/stats');
+export const getDashboardStats = async (timeRange: string = '24h') => {
+    const { data } = await api.get<DashboardStats>('/dashboard/stats', { params: { time_range: timeRange } });
     return data;
 };
 

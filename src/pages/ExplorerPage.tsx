@@ -39,7 +39,7 @@ const MaximizePortal = ({ children }: { children: React.ReactNode }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] bg-background flex flex-col isolate"
+            className="fixed inset-0 z-9999 bg-background flex flex-col isolate"
         >
             <div className="flex-1 overflow-hidden relative rounded-none border-0 shadow-none bg-background flex flex-col">
                 {children}

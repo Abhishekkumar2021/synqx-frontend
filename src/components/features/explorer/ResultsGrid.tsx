@@ -1,11 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { type QueryResponse } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
-    Terminal, ListFilter, ArrowUpDown, Copy, Hash,
-    Database, Download, FileJson, FileText
+    Terminal, ListFilter, Copy,
+    Database, Download, FileJson, FileText,
+    ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+    Columns, Settings2, EyeOff, MoreHorizontal,
+    PinOff, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, X
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -13,14 +16,41 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
     DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuCheckboxItem,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { cn, formatNumber } from '@/lib/utils';
 import { CodeBlock } from '@/components/ui/docs/CodeBlock';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
+
+import {
+    useReactTable,
+    getCoreRowModel,
+    getSortedRowModel,
+    getFilteredRowModel,
+    getPaginationRowModel,
+    flexRender,
+    type ColumnDef,
+    type SortingState,
+    type ColumnFiltersState,
+    type VisibilityState,
+    type RowSelectionState,
+    type ColumnPinningState,
+    type Column,
+} from "@tanstack/react-table"
 
 interface ResultsGridProps {
     data: QueryResponse | null;
@@ -33,59 +63,152 @@ interface ResultsGridProps {
     hideHeader?: boolean;
 }
 
+type Density = 'compact' | 'standard' | 'comfortable';
+
 export const ResultsGrid: React.FC<ResultsGridProps> = ({ 
     data, 
     isLoading, 
     title, 
     description,
     onSelectRows,
-    selectedRows = new Set(),
+    selectedRows,
     hideHeader = false
 }) => {
-    const [filter, setFilter] = useState('');
-    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
-
-    // --- Data Processing ---
-    const processedData = useMemo(() => {
-        if (!data || !data.results) return [];
-        let results = data.results.map((row, idx) => ({ ...row, __idx: idx }));
-
-        if (filter) {
-            const lowerFilter = filter.toLowerCase();
-            results = results.filter(row =>
-                Object.values(row).some(v => String(v).toLowerCase().includes(lowerFilter))
-            );
+    // --- Table State ---
+    const [sorting, setSorting] = useState<SortingState>([]);
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+    const [columnPinning, setColumnPinning] = useState<ColumnPinningState>({ left: [], right: [] });
+    const [globalFilter, setGlobalFilter] = useState('');
+    const [density, setDensity] = useState<Density>('standard');
+    
+    // Sync external selectedRows prop to internal table state
+    useEffect(() => {
+        if (!selectedRows) {
+            setRowSelection({});
+            return;
         }
+        const newSelection: RowSelectionState = {};
+        selectedRows.forEach(idx => {
+            newSelection[idx] = true;
+        });
+        setRowSelection(newSelection);
+    }, [selectedRows]);
 
-        if (sortConfig) {
-            results.sort((a: any, b: any) => {
-                const aVal = a[sortConfig.key];
-                const bVal = b[sortConfig.key];
-                if (aVal === null) return 1;
-                if (bVal === null) return -1;
-                const comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
-                return sortConfig.direction === 'asc' ? comparison : -comparison;
+    // Update parent when selection changes
+    const handleRowSelectionChange = useCallback((updaterOrValue: any) => {
+        const newSelection = typeof updaterOrValue === 'function' 
+            ? updaterOrValue(rowSelection) 
+            : updaterOrValue;
+        
+        setRowSelection(newSelection);
+        
+        if (onSelectRows) {
+            const indices = new Set(Object.keys(newSelection).map(Number));
+            onSelectRows(indices);
+        }
+    }, [rowSelection, onSelectRows]);
+
+
+    // --- Data Preparation ---
+    const tableData = useMemo(() => {
+        if (!data?.results) return [];
+        return data.results.map((row, idx) => ({ ...row, __idx: idx }));
+    }, [data]);
+
+    const columns = useMemo<ColumnDef<any>[]>(() => {
+        if (!data?.columns) return [];
+
+        const cols: ColumnDef<any>[] = [];
+
+        // 1. Selection Column (if enabled)
+        if (onSelectRows) {
+            cols.push({
+                id: "select",
+                header: ({ table }) => (
+                    <div className="flex justify-center">
+                        <Checkbox
+                            checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
+                            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                            aria-label="Select all"
+                        />
+                    </div>
+                ),
+                cell: ({ row }) => (
+                    <div className="flex justify-center">
+                        <Checkbox
+                            checked={row.getIsSelected()}
+                            onCheckedChange={(value) => row.toggleSelected(!!value)}
+                            aria-label="Select row"
+                        />
+                    </div>
+                ),
+                size: 40,
+                enablePinning: true,
+                enableSorting: false,
+                enableHiding: false,
             });
         }
-        return results;
-    }, [data, filter, sortConfig]);
 
-    const handleSelectAll = (checked: boolean) => {
-        if (!onSelectRows) return;
-        if (checked) {
-            onSelectRows(new Set(processedData.map(r => r.__idx)));
-        } else {
-            onSelectRows(new Set());
-        }
-    };
+        // 2. Index Column
+        cols.push({
+            id: "index",
+            header: () => <div className="text-center w-full">IDX</div>,
+            accessorFn: (row) => row.__idx + 1,
+            cell: ({ getValue }) => <div className="text-center font-mono text-muted-foreground/50 font-bold text-[10px]">{getValue() as number}</div>,
+            size: 50,
+            enablePinning: true,
+            enableSorting: true,
+            enableHiding: false,
+        });
 
-    const handleSelectRow = (idx: number, checked: boolean) => {
-        if (!onSelectRows) return;
-        const next = new Set(selectedRows);
-        if (checked) next.add(idx);
-        else next.delete(idx);
-        onSelectRows(next);
-    };
+        // 3. Data Columns
+        data.columns.forEach(colName => {
+            cols.push({
+                accessorKey: colName,
+                header: ({ column }) => <DataTableColumnHeader column={column} title={colName} />,
+                cell: ({ getValue }) => <DataTableCell value={getValue()} density={density} />,
+                minSize: 100,
+            });
+        });
+
+        return cols;
+    }, [data, onSelectRows, density]);
+
+    // --- Table Instance ---
+    const table = useReactTable({
+        data: tableData,
+        columns,
+        state: {
+            sorting,
+            columnFilters,
+            columnVisibility,
+            rowSelection,
+            columnPinning,
+            globalFilter,
+        },
+        enableRowSelection: true,
+        onRowSelectionChange: handleRowSelectionChange,
+        onSortingChange: setSorting,
+        onColumnFiltersChange: setColumnFilters,
+        onColumnVisibilityChange: setColumnVisibility,
+        onColumnPinningChange: setColumnPinning,
+        onGlobalFilterChange: setGlobalFilter,
+        getCoreRowModel: getCoreRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+        getRowId: row => String(row.__idx), // Use stable index as ID
+        initialState: {
+            pagination: {
+                pageSize: 50,
+            },
+            columnPinning: {
+                left: ['select', 'index'],
+            }
+        },
+    });
 
     // --- Export Logic ---
     const downloadFile = (content: string, fileName: string, contentType: string) => {
@@ -98,76 +221,48 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({
     };
 
     const handleExport = (format: 'json' | 'csv') => {
-        if (!data || data.results.length === 0) return;
-
+        if (!data || table.getRowModel().rows.length === 0) return;
+        
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const exportSet = processedData.map(({ __idx, ...cleanRow }) => cleanRow);
+        const visibleCols = table.getVisibleLeafColumns().filter(c => c.id !== 'select' && c.id !== 'index');
+        const rows = table.getFilteredRowModel().rows; // Export all filtered rows, not just paginated
 
-        switch (format) {
-            case 'json':
-                downloadFile(JSON.stringify(exportSet, null, 2), `export_${timestamp}.json`, 'application/json');
-                break;
-            case 'csv': {
-                const headers = data.columns.join(',');
-                const rows = exportSet.map(row =>
-                    data.columns.map(col => {
-                        let val = row[col];
+        const exportData = rows.map(row => {
+            const obj: any = {};
+            visibleCols.forEach(col => {
+                obj[col.id] = row.getValue(col.id);
+            });
+            return obj;
+        });
 
-                        // Handle JSON/Object data: Stringify if it's an object or array
-                        if (val !== null && typeof val === 'object') {
-                            try {
-                                val = JSON.stringify(val);
-                            } catch (e) {
-                                val = '[Complex Object]';
-                            }
-                        } else if (val === null || val === undefined) {
-                            val = '';
-                        }
-                        return `"${String(val).replace(/"/g, '""')}"`;
-                    }).join(',')
-                ).join('\n');
-
-                downloadFile(`${headers}\n${rows}`, `export_${timestamp}.csv`, 'text/csv');
-                break;
-            }
-
+        if (format === 'json') {
+            downloadFile(JSON.stringify(exportData, null, 2), `export_${timestamp}.json`, 'application/json');
+        } else {
+            const headers = visibleCols.map(c => c.id).join(',');
+            const csvRows = exportData.map(row =>
+                visibleCols.map(col => {
+                    let val = row[col.id];
+                    if (val !== null && typeof val === 'object') {
+                        try { val = JSON.stringify(val); } catch (e) { val = '[Object]'; }
+                    }
+                    return `"${String(val ?? '').replace(/"/g, '""')}"`;
+                }).join(',')
+            ).join('\n');
+            downloadFile(`${headers}\n${csvRows}`, `export_${timestamp}.csv`, 'text/csv');
         }
     };
 
-    const handleSort = (key: string) => {
-        setSortConfig(current => {
-            if (current?.key === key && current.direction === 'asc') return { key, direction: 'desc' };
-            return { key, direction: 'asc' };
-        });
+    // --- Styling Helpers ---
+    const densityConfig = {
+        compact: { cell: "px-3 py-1 text-[11px]", header: "px-3 py-2 h-8" },
+        standard: { cell: "px-4 py-2 text-[13px]", header: "px-4 py-3 h-10" },
+        comfortable: { cell: "px-6 py-4 text-sm", header: "px-6 py-4 h-12" }
     };
 
     if (isLoading) return <LoadingSkeleton />;
     if (!data) return <EmptyState />;
 
-    if (processedData.length === 0 && data.results.length > 0) {
-        return (
-            <div className="flex-1 flex flex-col min-h-0 h-full">
-                {/* Keep header so user can clear filter */}
-                <div className="flex items-center justify-between px-5 py-3 bg-muted/20 border-b border-border/40 shrink-0 z-50">
-                    <div className="flex items-center gap-4">
-                        <div className="relative w-64 group">
-                            <ListFilter className="z-20 absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                            <Input
-                                placeholder="Search results..."
-                                className="h-9 pl-10 rounded-xl bg-background/50 border-border/40 text-xs font-bold focus:ring-4 focus:ring-primary/10 transition-all shadow-none"
-                                value={filter}
-                                onChange={(e) => setFilter(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => setFilter('')} className="rounded-xl">Clear Filter</Button>
-                </div>
-                <EmptyState message="No matching records" description="Try adjusting your search terms or clear the filter." />
-            </div>
-        );
-    }
-
-    if (data.results.length === 0 && data.columns.length === 0) {
+    if (tableData.length === 0 && data.results.length === 0 && data.columns.length === 0) {
         return (
              <div className="flex-1 h-full flex flex-col items-center justify-center text-muted-foreground gap-4 bg-card/5 animate-in fade-in duration-500">
                 <div className="p-4 rounded-full bg-success/10 text-success">
@@ -180,6 +275,12 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({
             </div>
         );
     }
+    
+    const activeFilterCount = (globalFilter ? 1 : 0) + columnFilters.length;
+    const clearAllFilters = () => {
+        setGlobalFilter('');
+        setColumnFilters([]);
+    };
 
     return (
         <div className="flex-1 flex flex-col min-h-0 h-full bg-background/60 dark:bg-background/40 backdrop-blur-2xl backdrop-saturate-150 relative overflow-hidden isolate">
@@ -187,38 +288,98 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({
 
             {/* Header Control Bar */}
             {!hideHeader && (
-                <div className="flex items-center justify-between px-5 py-3 bg-muted/20 border-b border-border/40 shrink-0 z-50">
-                    <div className="flex items-center gap-4">
+                <div className="flex items-center justify-between px-5 py-3 bg-muted/20 border-b border-border/40 shrink-0 z-50 gap-4">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
                         {title && (
-                            <div className="flex flex-col mr-4">
+                            <div className="flex flex-col mr-4 shrink-0">
                                 <span className="text-xs font-black uppercase tracking-widest text-foreground">{title}</span>
                                 {description && <span className="text-[10px] text-muted-foreground font-medium">{description}</span>}
                             </div>
                         )}
-                        <div className="relative w-64 group">
-                            <ListFilter className="z-20 absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <div className="relative w-64 group shrink-0">
+                            <ListFilter className={cn(
+                                "z-20 absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors",
+                                globalFilter ? "text-primary" : "text-muted-foreground group-focus-within:text-primary"
+                            )} />
                             <Input
-                                placeholder="Search results..."
+                                placeholder="Global search..."
                                 className="h-9 pl-10 rounded-xl bg-background/50 border-border/40 text-xs font-bold focus:ring-4 focus:ring-primary/10 transition-all shadow-none"
-                                value={filter}
-                                onChange={(e) => setFilter(e.target.value)}
+                                value={globalFilter ?? ''}
+                                onChange={(e) => setGlobalFilter(e.target.value)}
                             />
                         </div>
-                        <Badge variant="outline" className="h-6 px-3 rounded-full border-border/50 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 bg-muted/20">
-                            {formatNumber(processedData.length)} Nodes
-                        </Badge>
+                         <div className="flex items-center gap-2">
+                             <Badge variant="outline" className="h-6 px-3 rounded-full border-border/50 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 bg-muted/20 whitespace-nowrap">
+                                {formatNumber(table.getFilteredRowModel().rows.length)} Results
+                            </Badge>
+                            {activeFilterCount > 0 && (
+                                <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    onClick={clearAllFilters}
+                                    className="h-6 px-2 text-[10px] text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 rounded-full"
+                                >
+                                    <X size={10} />
+                                    Clear Filters
+                                </Button>
+                            )}
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        {/* --- EXPORT DROP-DOWN --- */}
+                    <div className="flex items-center gap-2 shrink-0">
+                        {/* Density */}
                         <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/5 text-muted-foreground hover:text-primary">
+                                    <Settings2 size={16} />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-48 glass-panel border-border/40 rounded-2xl shadow-2xl p-1 z-[10000]" align="end">
+                                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest opacity-40 px-3 py-2">Density</DropdownMenuLabel>
+                                <DropdownMenuRadioGroup value={density} onValueChange={(v) => setDensity(v as Density)}>
+                                    <DropdownMenuRadioItem value="compact" className="text-xs font-medium">Compact</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="standard" className="text-xs font-medium">Standard</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="comfortable" className="text-xs font-medium">Comfortable</DropdownMenuRadioItem>
+                                </DropdownMenuRadioGroup>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        {/* Columns */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 rounded-xl gap-2 text-xs font-medium bg-muted/30 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-all">
+                                    <Columns size={14} />
+                                    <span className="hidden sm:inline">Columns</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56 glass-panel border-border/40 rounded-2xl shadow-2xl p-1 max-h-96 overflow-y-auto custom-scrollbar z-[10000]" align="end">
+                                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest opacity-40 px-3 py-2">Visible Columns</DropdownMenuLabel>
+                                {table.getAllColumns().filter(c => c.id !== 'select' && c.id !== 'index').map(column => (
+                                    <DropdownMenuCheckboxItem
+                                        key={column.id}
+                                        checked={column.getIsVisible()}
+                                        onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                                        className="text-xs font-medium cursor-pointer rounded-lg"
+                                    >
+                                        <span className="truncate">{column.id}</span>
+                                    </DropdownMenuCheckboxItem>
+                                ))}
+                                <DropdownMenuSeparator className="bg-border/30" />
+                                <DropdownMenuItem onClick={() => table.toggleAllColumnsVisible(true)} className="text-xs cursor-pointer rounded-lg justify-center text-primary font-bold">
+                                    Reset to All
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                         {/* Export */}
+                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm" className="h-8 rounded-xl gap-2 font-black uppercase text-[10px] tracking-widest bg-primary/5 hover:bg-primary/10 text-primary transition-all">
                                     <Download size={14} />
                                     Export
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56 glass-panel border-border/40 rounded-2xl shadow-2xl p-2" align="end">
+                             <DropdownMenuContent className="w-56 glass-panel border-border/40 rounded-2xl shadow-2xl p-2 z-[10000]" align="end">
                                 <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest opacity-40 px-3 py-2">Data Formats</DropdownMenuLabel>
                                 <DropdownMenuItem onClick={() => handleExport('json')} className="rounded-lg gap-3 py-2.5 cursor-pointer">
                                     <FileJson className="h-4 w-4 text-orange-500" />
@@ -234,135 +395,319 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({
                 </div>
             )}
 
-            {/* Main Grid Area (Untouched Sticky Logic) */}
+             {/* Table Area */}
             <div className="flex-1 overflow-auto custom-scrollbar bg-card/5 relative min-h-0">
                 <table className="w-full text-left border-separate border-spacing-0 min-w-max relative">
-                    <thead className="sticky top-0 z-40">
-                        <tr className="bg-background/90 backdrop-blur-xl border-b border-border/50 shadow-sm">
-                            {onSelectRows && (
-                                <th className="sticky left-0 top-0 z-70 w-12 px-4 py-3 text-center border-r border-b border-border/40 bg-muted/50 backdrop-blur-2xl">
-                                    <Checkbox 
-                                        checked={processedData.length > 0 && selectedRows.size === processedData.length}
-                                        onCheckedChange={handleSelectAll}
-                                    />
-                                </th>
-                            )}
-                            <th className={cn(
-                                "sticky top-0 z-60 w-14 px-4 py-3 text-center border-r border-b border-border/40 bg-muted/50 backdrop-blur-2xl",
-                                onSelectRows ? "left-12" : "left-0"
-                            )}>
-                                <span className="text-[9px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Idx</span>
-                            </th>
-                            {data.columns.map((col) => (
-                                <th
-                                    key={col}
-                                    onClick={() => handleSort(col)}
-                                    className="sticky top-0 z-40 px-6 py-4 cursor-pointer group hover:bg-primary/3 transition-all border-r border-b border-border/40 last:border-r-0 bg-background/90 backdrop-blur-xl"
-                                >
-                                    <div className="flex items-center justify-between gap-4">
-                                        <div className="flex items-center gap-2.5">
-                                            <div className="p-1.5 rounded-lg bg-primary/5 group-hover:bg-primary/10 transition-colors">
-                                                {typeof data.results[0]?.[col] === 'number' ? <Hash size={12} className="text-primary" /> : <Database size={12} className="text-primary" />}
-                                            </div>
-                                            <span className="text-[11px] font-black uppercase tracking-widest text-foreground/80 italic">{col}</span>
-                                        </div>
-                                        <ArrowUpDown className={cn(
-                                            "h-3.5 w-3.5 transition-all",
-                                            sortConfig?.key === col ? "text-primary opacity-100 scale-110" : "opacity-10 scale-90"
-                                        )} />
-                                    </div>
-                                </th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/10">
-                        {processedData.map((row: any, i: number) => (
-                            <tr key={row.__idx} className={cn(
-                                "group/row hover:bg-primary/2 transition-colors",
-                                selectedRows.has(row.__idx) && "bg-primary/5"
-                            )}>
-                                {onSelectRows && (
-                                    <td className="sticky left-0 z-30 w-12 px-4 py-3 text-center border-r border-b border-border/10 bg-background/95 backdrop-blur-sm">
-                                        <Checkbox 
-                                            checked={selectedRows.has(row.__idx)}
-                                            onCheckedChange={(checked) => handleSelectRow(row.__idx, !!checked)}
-                                        />
-                                    </td>
-                                )}
-                                <td className={cn(
-                                    "sticky z-30 w-14 px-4 py-3 text-[10px] font-mono font-bold text-muted-foreground/30 text-center border-r border-b border-border/10 bg-background/95 backdrop-blur-sm group-hover/row:text-primary transition-colors",
-                                    onSelectRows ? "left-12" : "left-0"
-                                )}>
-                                    {row.__idx + 1}
-                                </td>
-                                {data.columns.map((col) => {
-                                    const val = row[col];
-                                    const isObject = val !== null && typeof val === 'object';
+                     <thead className="sticky top-0 z-40">
+                         {table.getHeaderGroups().map(headerGroup => (
+                            <tr key={headerGroup.id} className="bg-background/90 backdrop-blur-xl border-b border-border/50 shadow-sm">
+                                {headerGroup.headers.map(header => {
+                                    // Pinning Styles
+                                    const pinStyles = getCommonPinningStyles(header.column);
+                                    const isPinned = header.column.getIsPinned();
+                                    const isLastLeft = isPinned === 'left' && header.column.getIsLastColumn('left');
+                                    const isFirstRight = isPinned === 'right' && header.column.getIsFirstColumn('right');
+                                    
                                     return (
-                                        <td 
-                                            key={col} 
+                                        <th
+                                            key={header.id}
+                                            style={pinStyles}
                                             className={cn(
-                                                "border-r border-b border-border/10 last:border-r-0 max-w-md",
-                                                isObject ? "p-1" : "px-6 py-3"
+                                                "border-r border-b-2 border-border/60 last:border-r-0 bg-background/90 backdrop-blur-xl transition-colors",
+                                                densityConfig[density].header,
+                                                (header.column.getIsSorted() || header.column.getIsFiltered()) && "bg-primary/5",
+                                                isPinned && "z-50 bg-background/95 backdrop-blur-md",
+                                                isLastLeft && "border-r-2 border-r-border/60 shadow-[4px_0_4px_-2px_rgba(0,0,0,0.1)]",
+                                                isFirstRight && "border-l-2 border-l-border/60 shadow-[-4px_0_4px_-2px_rgba(0,0,0,0.1)]"
                                             )}
                                         >
-                                            <div className={cn("flex items-center group/cell", !isObject && "gap-3")}>
-                                                <div className="flex-1 min-w-0">
-                                                    {val === null ? (
-                                                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/20 italic">NULL</span>
-                                                    ) : isObject ? (
-                                                        <div className="w-full bg-background/50 rounded-none overflow-hidden">
-                                                            <CodeBlock code={JSON.stringify(val, null, 2)} language="json" maxHeight='128px' editable={false} rounded={false} />
-                                                        </div>
-                                                    ) : typeof val === 'boolean' ? (
-                                                        <Badge variant="outline" className={cn(
-                                                            "text-[9px] px-2.5 h-5 font-black uppercase border-0 tracking-widest",
-                                                            val ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
-                                                        )}>
-                                                            {String(val)}
-                                                        </Badge>
-                                                    ) : typeof val === 'number' ? (
-                                                        <span className="text-[13px] font-mono font-bold text-indigo-500/90 tracking-tighter">{val.toLocaleString()}</span>
-                                                    ) : (
-                                                        <span className="text-[13px] font-medium text-foreground/70 tracking-tight leading-relaxed line-clamp-2">{String(val)}</span>
-                                                    )}
-                                                </div>
-                                                {val !== null && typeof val !== 'object' && (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            navigator.clipboard.writeText(String(val));
-                                                            toast.success("Copied to clipboard");
-                                                        }}
-                                                        className="opacity-0 group-hover/cell:opacity-100 p-2 rounded-xl bg-primary/10 text-primary transition-all hover:scale-110 active:scale-95"
-                                                    >
-                                                        <Copy size={12} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
+                                            {header.isPlaceholder
+                                                ? null
+                                                : flexRender(header.column.columnDef.header, header.getContext())}
+                                        </th>
                                     );
                                 })}
                             </tr>
                         ))}
+                    </thead>
+                    <tbody className="divide-y divide-border/10">
+                         {table.getRowModel().rows.length === 0 ? (
+                             <tr>
+                                <td colSpan={columns.length} className="h-24 text-center text-muted-foreground text-xs italic">
+                                    No results match your filters.
+                                </td>
+                            </tr>
+                         ) : (
+                            table.getRowModel().rows.map(row => (
+                                <tr 
+                                    key={row.id}
+                                    data-state={row.getIsSelected() && "selected"}
+                                    className={cn(
+                                        "group/row transition-colors hover:bg-muted/50",
+                                        "even:bg-muted/30 odd:bg-transparent",
+                                        row.getIsSelected() && "bg-primary/10"
+                                    )}
+                                >
+                                    {row.getVisibleCells().map(cell => {
+                                         const pinStyles = getCommonPinningStyles(cell.column);
+                                         const isPinned = cell.column.getIsPinned();
+                                         const isLastLeft = isPinned === 'left' && cell.column.getIsLastColumn('left');
+                                         const isFirstRight = isPinned === 'right' && cell.column.getIsFirstColumn('right');
+
+                                         return (
+                                            <td
+                                                key={cell.id}
+                                                style={pinStyles}
+                                                className={cn(
+                                                    "border-r border-b border-border/40 last:border-r-0 max-w-md",
+                                                    cell.column.id === 'select' || cell.column.id === 'index' ? "p-0" : densityConfig[density].cell,
+                                                    cell.column.getIsFiltered() && "bg-primary/2",
+                                                    isPinned && "z-30 bg-background/95 backdrop-blur-md",
+                                                    isLastLeft && "border-r-2 border-r-border/60 shadow-[4px_0_4px_-2px_rgba(0,0,0,0.1)]",
+                                                    isFirstRight && "border-l-2 border-l-border/60 shadow-[-4px_0_4px_-2px_rgba(0,0,0,0.1)]"
+                                                )}
+                                            >
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </td>
+                                         );
+                                    })}
+                                </tr>
+                            ))
+                         )}
                     </tbody>
                 </table>
             </div>
 
-            {/* Footer Summary Bar (Untouched) */}
-            <footer className="px-5 py-2.5 bg-muted/20 border-t border-border/40 flex items-center justify-between shrink-0 z-50">
-                <div className="flex items-center gap-4">
-                    <span className="text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.2em]">Registry Archive</span>
-                    <div className="h-3 w-px bg-border/40" />
-                    <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">{data.columns.length} Fields Detected</span>
-                </div>
-                <span className="text-[10px] font-mono font-black text-primary/40 italic">
-                    {formatNumber(data.results.length)} ROWS RETURNED
-                </span>
+             {/* Footer Control Bar */}
+             <footer className="px-5 py-2 bg-muted/20 border-t border-border/40 flex items-center justify-between shrink-0 z-50">
+                 <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Rows</span>
+                         <Select 
+                            value={String(table.getState().pagination.pageSize)} 
+                            onValueChange={(v) => table.setPageSize(Number(v))}
+                        >
+                             <SelectTrigger className="h-7 w-16 text-[10px] font-bold">
+                                <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent className="z-[10000]">
+                                {[10, 25, 50, 100, 500].map(size => (
+                                     <SelectItem key={size} value={String(size)} className="text-[10px] font-bold">{size}</SelectItem>
+                                ))}
+                             </SelectContent>
+                         </Select>
+                    </div>
+                    <div className="h-4 w-px bg-border/40" />
+                    <span className="text-[10px] font-medium text-muted-foreground">
+                        Page <span className="text-foreground font-bold">{table.getState().pagination.pageIndex + 1}</span> of <span className="text-foreground font-bold">{table.getPageCount()}</span>
+                    </span>
+                 </div>
+
+                 <div className="flex items-center gap-1">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-lg disabled:opacity-30"
+                        onClick={() => table.setPageIndex(0)}
+                        disabled={!table.getCanPreviousPage()}
+                    >
+                        <ChevronsLeft size={14} />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-lg disabled:opacity-30"
+                        onClick={() => table.previousPage()}
+                        disabled={!table.getCanPreviousPage()}
+                    >
+                        <ChevronLeft size={14} />
+                    </Button>
+                    
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-lg disabled:opacity-30"
+                        onClick={() => table.nextPage()}
+                        disabled={!table.getCanNextPage()}
+                    >
+                        <ChevronRight size={14} />
+                    </Button>
+                     <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 rounded-lg disabled:opacity-30"
+                        onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                        disabled={!table.getCanNextPage()}
+                    >
+                        <ChevronsRight size={14} />
+                    </Button>
+                 </div>
             </footer>
+
         </div>
     );
 };
+
+
+// --- Sub Components ---
+
+const DataTableCell = ({ value, density }: { value: any, density: Density }) => {
+    const isObject = value !== null && typeof value === 'object';
+    
+    if (value === null) {
+        return <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 italic">NULL</span>;
+    }
+    
+    if (isObject) {
+        return (
+             <div className="w-full bg-background/50 rounded-none overflow-hidden p-1">
+                <CodeBlock 
+                    code={JSON.stringify(value, null, 2)} 
+                    language="json" 
+                    maxHeight='128px' 
+                    editable={false} 
+                    rounded={false} 
+                    usePortal={true}
+                />
+            </div>
+        );
+    }
+    
+    return (
+        <div className="flex items-center group/cell gap-3">
+             <div className="flex-1 min-w-0">
+                {typeof value === 'boolean' ? (
+                     <Badge variant="outline" className={cn(
+                        "text-[9px] px-2.5 h-5 font-black uppercase border-0 tracking-widest",
+                        value ? "bg-success/10 text-success border-success/20" : "bg-destructive/10 text-destructive border-destructive/20"
+                    )}>
+                        {String(value)}
+                    </Badge>
+                ) : typeof value === 'number' ? (
+                    <span className="text-[13px] font-mono font-bold text-indigo-600 dark:text-indigo-400 tracking-tighter">{value.toLocaleString()}</span>
+                ) : (
+                     <span className={cn(
+                        "font-medium text-foreground/80 tracking-tight leading-relaxed line-clamp-2",
+                        density === 'compact' ? "text-[11px]" : "text-[13px]"
+                    )}>{String(value)}</span>
+                )}
+             </div>
+             <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    navigator.clipboard.writeText(String(value));
+                    toast.success("Copied to clipboard");
+                }}
+                className="opacity-0 group-hover/cell:opacity-100 p-1.5 rounded-lg bg-primary/10 text-primary transition-all hover:scale-110 active:scale-95 shrink-0"
+            >
+                <Copy size={10} />
+            </button>
+        </div>
+    );
+};
+
+const DataTableColumnHeader = ({ column, title }: { column: Column<any, unknown>, title: string }) => {
+    const isFiltered = column.getIsFiltered();
+    
+    return (
+        <div className="flex items-center justify-between gap-3">
+             <div 
+                className="flex items-center gap-2 cursor-pointer flex-1 min-w-0"
+                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            >
+                 <div className="p-1.5 rounded-lg bg-primary/5 hover:bg-primary/10 transition-colors shrink-0">
+                    <Database size={12} className="text-primary" />
+                </div>
+                <span className={cn(
+                    "text-[11px] font-black uppercase tracking-widest text-foreground/80 italic truncate",
+                    column.getIsSorted() && "text-primary"
+                )}>{title}</span>
+            </div>
+            
+             <div className="flex items-center gap-1 shrink-0">
+                {isFiltered && <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                         <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className={cn(
+                                "h-6 w-6 rounded-lg hover:bg-primary/10",
+                                (column.getIsSorted() || isFiltered || column.getIsPinned()) ? "text-primary" : "text-muted-foreground/50 hover:text-foreground"
+                            )}
+                        >
+                            {column.getIsSorted() === 'desc' ? (
+                                <ArrowDown size={12} />
+                            ) : column.getIsSorted() === 'asc' ? (
+                                <ArrowUp size={12} />
+                            ) : (
+                                <MoreHorizontal size={14} />
+                            )}
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 z-[10001]">
+                         <div className="px-2 py-2">
+                            <Input
+                                placeholder={`Filter ${title}...`}
+                                value={(column.getFilterValue() as string) ?? ""}
+                                onChange={(e) => column.setFilterValue(e.target.value)}
+                                className="h-8 text-xs bg-muted/20"
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => e.stopPropagation()}
+                            />
+                        </div>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => column.toggleSorting(false)}>
+                            <ArrowUp size={14} className="mr-2 text-muted-foreground/70" /> Asc
+                        </DropdownMenuItem>
+                         <DropdownMenuItem onClick={() => column.toggleSorting(true)}>
+                            <ArrowDown size={14} className="mr-2 text-muted-foreground/70" /> Desc
+                        </DropdownMenuItem>
+                        {column.getIsSorted() && (
+                            <DropdownMenuItem onClick={() => column.clearSorting()}>
+                                <X size={14} className="mr-2 text-muted-foreground/70" /> Clear Sort
+                            </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        
+                        <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground tracking-wider font-bold">Pinning</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => column.pin('left')}>
+                            <ArrowLeft className="mr-2 h-4 w-4" /> Pin Left
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => column.pin('right')}>
+                            <ArrowRight className="mr-2 h-4 w-4" /> Pin Right
+                        </DropdownMenuItem>
+                        {column.getIsPinned() && (
+                            <DropdownMenuItem onClick={() => column.pin(false)}>
+                                <PinOff size={14} className="mr-2" /> Unpin
+                            </DropdownMenuItem>
+                        )}
+
+                         <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => column.toggleVisibility(false)} className="text-destructive focus:text-destructive">
+                            <EyeOff size={14} className="mr-2" /> Hide Column
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+             </div>
+        </div>
+    );
+};
+
+// CSS for sticky pinning using React Table
+const getCommonPinningStyles = (column: Column<any>): React.CSSProperties => {
+  const isPinned = column.getIsPinned();
+
+  return {
+    left: isPinned === 'left' ? `${column.getStart()}px` : undefined,
+    right: isPinned === 'right' ? `${column.getAfter()}px` : undefined,
+    position: isPinned ? 'sticky' : 'relative',
+    width: column.getSize(),
+    zIndex: isPinned ? 1 : 0,
+    backgroundColor: isPinned ? 'var(--background)' : undefined,
+  };
+};
+
 const LoadingSkeleton = () => (
     <div className="flex-1 h-full flex flex-col p-6 gap-6 bg-background/50 animate-pulse overflow-hidden">
         <div className="flex gap-4 border-b border-border pb-6 shrink-0">

@@ -13,7 +13,6 @@ import {
     getConnectionImpact,
     getConnectionUsageStats,
     getConnectionEnvironment,
-    type ConnectionEnvironmentInfo,
 } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,7 +64,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ConfigField } from '@/components/features/connections/ConfigField';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PackageAutocomplete } from '@/components/common/PackageAutocomplete';
-import { installDependency, listDependencies, uninstallDependency, initializeEnvironment } from '@/lib/api';
+import { installDependency, initializeEnvironment } from '@/lib/api';
 
 const PYTHON_PACKAGES = [
     'pandas', 'numpy', 'scipy', 'scikit-learn', 'requests', 'beautifulsoup4', 'faker', 'sqlalchemy',
@@ -229,21 +228,18 @@ const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
                                     <ConfigField 
                                         label="Python Runtime" 
                                         value={envInfo.python_version.split(' ')[0]} 
-                                        icon={<FileCode className="h-3.5 w-3.5" />}
                                     />
                                 )}
                                 {envInfo.node_version && (
                                     <ConfigField 
                                         label="Node.js Runtime" 
                                         value={envInfo.node_version} 
-                                        icon={<FileCode className="h-3.5 w-3.5" />}
                                     />
                                 )}
                                 {envInfo.platform && (
                                     <ConfigField 
                                         label="OS Platform" 
                                         value={envInfo.platform} 
-                                        icon={<Cpu className="h-3.5 w-3.5" />}
                                     />
                                 )}
                                 {envInfo.base_path && (

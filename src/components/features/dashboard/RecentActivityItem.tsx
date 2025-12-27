@@ -33,44 +33,42 @@ export const RecentActivityItem: React.FC<RecentActivityItemProps> = ({ job }) =
     return (
         <div
             className={cn(
-                "group grid grid-cols-12 gap-4 items-center px-6 py-5 transition-all duration-200 cursor-pointer relative",
+                "group grid grid-cols-12 gap-4 items-center px-6 py-4 transition-all duration-200 cursor-pointer relative",
                 "border-b border-border/30 last:border-0 hover:bg-muted/40",
-                "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1",
-                "before:bg-primary before:scale-y-0 before:transition-transform before:duration-200",
-                "hover:before:scale-y-100"
+                "hover:pl-7 transition-[padding] duration-200" // Subtle shift interaction
             )}
             onClick={() => navigate(`/jobs/${job.id}`)}
         >
             {/* Identity */}
             <div className="col-span-12 md:col-span-5 flex items-center gap-4 min-w-0">
-                <div className="h-10 w-10 rounded-xl bg-primary/5 border border-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-sm">
-                    <Workflow className="h-5 w-5" />
+                <div className="h-9 w-9 rounded-lg bg-primary/5 border border-primary/10 text-primary flex items-center justify-center shrink-0 shadow-sm group-hover:bg-primary/10 transition-colors">
+                    <Workflow className="h-4.5 w-4.5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 mb-0.5">
-                        <span className="font-bold text-sm text-foreground truncate">
+                    <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
                             {job.pipeline_name || `Pipeline ${job.pipeline_id}`}
                         </span>
-                        <span className="text-[10px] font-mono text-muted-foreground/60 bg-muted/30 px-1.5 rounded">#{job.id}</span>
                     </div>
+                    <span className="text-[10px] font-mono text-muted-foreground/60">Job #{job.id}</span>
                 </div>
             </div>
 
             {/* Status */}
             <div className="col-span-6 md:col-span-2">
-                <StatusBadge status={job.status} />
+                <StatusBadge status={job.status} className="h-6 px-2.5 text-[10px] font-bold uppercase tracking-wider" />
             </div>
 
             {/* Duration */}
             <div className="col-span-6 md:col-span-2 flex flex-col justify-center">
-                <span className="text-xs font-mono font-bold text-foreground/80">
+                <span className="text-xs font-mono font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                     {formatDuration(job.execution_time_ms)}
                 </span>
             </div>
 
             {/* Timestamp */}
             <div className="col-span-6 md:col-span-2 flex flex-col justify-center">
-                <span className="text-xs font-medium text-foreground/80">
+                <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors">
                     {formatDistanceToNow(new Date(job.started_at), { addSuffix: true })}
                 </span>
             </div>
@@ -79,7 +77,7 @@ export const RecentActivityItem: React.FC<RecentActivityItemProps> = ({ job }) =
             <div className="col-span-12 md:col-span-1 flex items-center justify-end opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
                             <MoreVertical className="h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>

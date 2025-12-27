@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { 
     X, Database, Zap, ArrowRight, Activity, 
-    Clock, Cpu, HardDrive, AlertCircle, RefreshCcw,
-    Table, Code, Filter, AlertTriangle, ArrowDownToLine, ArrowUpFromLine,
+    Clock, Cpu, AlertCircle, RefreshCcw,
+    Table, Filter, AlertTriangle, ArrowDownToLine, ArrowUpFromLine,
     Maximize2, Minimize2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,10 +19,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getStepData } from '@/lib/api';
 import { ResultsGrid } from '@/components/features/explorer/ResultsGrid';
 import {
-    Tooltip,
-    TooltipContent,
     TooltipProvider,
-    TooltipTrigger,
 } from "@/components/ui/tooltip";
 
 interface StepRunInspectorProps {
