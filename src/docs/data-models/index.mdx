@@ -1,13 +1,13 @@
 ---
 title: "Data Models"
-description: "Reference for the SynqX Database Schema."
+description: "Authoritative reference for the SynqX metadata and state persistence schema."
 ---
 
-# Data Models
+# Data Persistence Architecture
 
-The SynqX database schema is the source of truth for the system. It is designed using **SQLAlchemy** 2.0+ style declarative mapping.
+SynqX utilizes a highly structured relational schema to maintain the authoritative state of data pipelines, connections, and execution history. The models are implemented using **SQLAlchemy 2.0** declarative mapping, ensuring strict typing and comprehensive referential integrity.
 
-<div className="w-full h-[600px] border rounded-lg overflow-hidden my-6 bg-background">
+<div className="w-full h-[600px] border rounded-3xl overflow-hidden my-8 bg-background shadow-2xl ring-1 ring-border/40">
   <iframe 
     src="/erd.html" 
     className="w-full h-full border-0 bg-background"
@@ -15,37 +15,41 @@ The SynqX database schema is the source of truth for the system. It is designed 
   />
 </div>
 
-## Model Organization
+## Logical Domains
 
-The schema is divided into logical domains:
+The schema is partitioned into four primary logical domains:
 
-<Cards>
-  <Card title="Core Entities" href="/docs/data-models/core" description="Connections, Assets, and Multi-tenancy mixins." />
-  <Card title="Pipelines & Versioning" href="/docs/data-models/pipelines" description="Pipelines, Versions, Nodes, and Edges." />
-  <Card title="Execution State" href="/docs/data-models/execution" description="Jobs, Runs, StepRuns, and Context." />
-  <Card title="Observability" href="/docs/data-models/observability" description="Logs, Alerts, and Scheduler Events." />
-</Cards>
+### 1. Connectivity Registry
+Manages physical system definitions and the logical assets contained within them.
+-   **Connections**: Encrypted system configurations and auth parameters.
+-   **Assets**: Abstracted data entities (tables, endpoints, files).
+-   **Schema Versions**: Fingerprints of asset structure at specific points in time.
 
-## Common Mixins
+### 2. Pipeline Orchestration
+Defines the structure and versioning of Directed Acyclic Graphs (DAGs).
+-   **Pipelines**: High-level workflow containers and scheduling configurations.
+-   **Versions**: Immutable snapshots of DAG configurations.
+-   **Nodes & Edges**: The functional vertices and data flow relationships of the graph.
 
-Almost all tables in SynqX inherit from these base mixins to ensure consistent auditing.
+### 3. Runtime & Execution
+Tracks the lifecycle of asynchronous jobs and granular task progress.
+-   **Jobs**: Distributed execution units triggered by users or the scheduler.
+-   **Pipeline Runs**: Aggregated metrics and status for a single job execution.
+-   **Step Runs**: Node-level telemetry (I/O throughput, duration, resource usage).
 
-### `TimestampMixin`
-Automatically tracks creation and update times.
--   `created_at`: `DateTime` (Immutable)
--   `updated_at`: `DateTime` (Auto-update)
+### 4. Observability & Forensic
+Maintains the audit trail and real-time event history.
+-   **Job & Step Logs**: Persistent records of internal engine operations.
+-   **Alerts**: Log of sent and pending notifications based on system triggers.
 
-### `UserTrackingMixin`
-Tracks the actor responsible for changes.
--   `created_by`: `String`
--   `updated_by`: `String`
+---
 
-### `TenantMixin`
-Enforces security. **Every critical query must filter by `user_id`.**
--   `user_id`: `String(64)` (Indexed)
+## Architectural Mixins
 
-### `SoftDeleteMixin`
-Allows for safe deletion and recovery.
--   `deleted_at`: `DateTime` (Nullable)
--   `deleted_by`: `String`
--   `is_deleted`: `property` (Checks if `deleted_at` is not null)
+SynqX implements standardized behavior across all models through a set of reusable mixins:
+
+| Mixin | Functionality |
+| :--- | :--- |
+| `AuditMixin` | Automatically tracks `created_at`, `updated_at`, and the associated `user_id`. |
+| `SoftDeleteMixin` | Enables safe record removal via `deleted_at` timestamps, preventing data loss. |
+| `OwnerMixin` | Enforces multi-tenant isolation by scoping queries to specific user identities. |

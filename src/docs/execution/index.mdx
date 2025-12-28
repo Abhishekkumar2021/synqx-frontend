@@ -1,62 +1,62 @@
 ---
-title: "Execution Engine: Under the Hood"
-description: "How SynqX orchestrates distributed data processing with Celery and Pandas."
+title: "Execution Runtime"
+description: "Technical deep dive into the SynqX distributed orchestration engine."
 ---
 
+# Execution Runtime
 
-# Execution Runtime Deep Dive
+The SynqX runtime is engineered for high-availability distributed data processing. It leverages **Celery** for asynchronous task orchestration and **Pandas** for vectorized, high-performance data transformation.
 
-The SynqX execution engine is designed for reliability, micro-batch efficiency, and high-fidelity observability. It leverages **Celery** for distributed task management and **Pandas** for high-performance data manipulation.
+## 1. Job Orchestration Lifecycle
 
-## 1. The Physical Trigger (Celery)
+Execution begins when a pipeline is triggered via the API, the distributed scheduler, or an external event.
 
-When a pipeline is triggered (manually or by the scheduler), a `Job` record is created, and an `execute_pipeline_task` is dispatched to Redis.
-
-### Worker Lifecycle
-1.  **Job Acquisition**: A worker pulls the task. It immediately marks the `Job` as `RUNNING` and captures the `worker_id`.
-2.  **Environment Setup**: The worker fetches the **Immutable Pipeline Version** and the **Active Watermarks**.
-3.  **Runner Initialization**: The worker instantiates a `PipelineRunner`, which is responsible for the DAG execution logic.
-
----
-
-## 2. DAG Orchestration (PipelineRunner)
-
-The `PipelineRunner` is the core logic unit that traverses the DAG.
-
-### Topological Sorting
-Before execution, the runner uses a Kahn's algorithm variant to perform a **Topological Sort** of all nodes. This ensures that every node only executes after its upstream dependencies have completed successfully.
-
-### DataFrame Streaming
-To manage memory effectively, SynqX operators use a **Streaming Iterator** pattern:
--   **Extraction**: Source nodes return a `Generator[pd.DataFrame]`, reading data in batches (e.g., 10,000 rows at a time).
--   **Transformation**: Transform nodes consume the iterator, apply logic, and yield a new `pd.DataFrame`.
--   **Loading**: Destination nodes consume the final iterator and perform batch inserts or bulk copies.
-
-<Callout type="info" title="Memory Management">
-    This iterator pattern prevents the worker from loading the entire dataset into RAM, allowing SynqX to process gigabytes of data on lightweight worker nodes.
-</Callout>
+### The Worker Handshake
+1.  **Job Enqueue**: A job payload is pushed to the Redis message broker.
+2.  **Acquisition**: An available worker claims the task, transition the `Job` to a `RUNNING` state and assigning a `correlation_id` for end-to-end tracing.
+3.  **Context Resolution**: The worker resolves the specific **Immutable Pipeline Version** and retrieves active **Watermarks** for incremental data processing.
 
 ---
 
-## 3. Real-time Telemetry (DBLogger)
+## 2. DAG Traversal & Execution
 
-Every operation within the runner is wrapped in a telemetry layer.
+The `PipelineRunner` acts as the primary orchestrator within the worker process.
 
--   **Step Runs**: For every node in the DAG, a `StepRun` record tracks `records_in`, `records_out`, and `duration_seconds`.
--   **Structured Logging**: Operators use `DBLogger.log_step()`. This service performs two critical actions:
-    1.  **Persistent Storage**: Writes the log entry to the `step_logs` table.
-    2.  **Real-time Broadcast**: Publishes the log entry to a **Redis Channel** (`step:{id}` or `job:{id}`).
+### Topological Sequencing
+Prior to execution, the runner validates the graph and calculates a **Topological Sort**. This ensures that every node is processed only after its dependencies have successfully completed. Nodes with no inter-dependencies are grouped into **Parallel Layers** to maximize throughput.
 
-The **FastAPI WebSocket Manager** subscribes to these Redis channels and pushes the logs to the **Console UI** instantly.
+### High-Performance Streaming
+To maintain a low memory footprint, SynqX utilizes a **Generator-based Streaming** pattern:
+-   **Extraction**: Source nodes yield `pd.DataFrame` chunks (defaulting to 10,000 rows).
+-   **Transformation**: Logic is applied to each chunk in-memory before being yielded to downstream nodes.
+-   **Loading**: Destination nodes consume the final data stream, performing optimized batch writes to the target system.
 
 ---
 
-## 4. Resilience & Error Handling
+## 3. Real-time Observability Stack
 
-### Node-Level Retries
-If an operator raises an exception, the worker consults the node's `retry_strategy`. 
--   **Exponential Backoff**: Calculated as `base_delay * (2 ** retry_count)`.
--   **Jitter**: Added to prevent "Thundering Herd" issues on upstream databases.
+SynqX provides a "Glass Box" experience for data operations.
 
-### Transactional Integrity
-Watermarks are updated **atomically** after the successful completion of a Load node. If a Load fails, the watermark remains at its previous position, ensuring that the next run will re-process the missing data.
+### Granular Telemetry
+Each node execution generates a `StepRun` record, capturing:
+-   **I/O Metrics**: Exact counts of records extracted, transformed, and loaded.
+-   **Performance**: Precision microsecond timing.
+-   **Forensics**: Sample snapshots of data at the node boundaries for rapid debugging.
+
+### Live Forensic Streaming
+Internal engine operations utilize the `DBLogger` service, which performs a dual-action dispatch:
+1.  **Persistence**: Writes structured logs to the PostgreSQL `step_logs` table.
+2.  **Broadcast**: Publishes logs to localized Redis Pub/Sub channels.
+The FastAPI WebSocket manager handles real-time delivery of these logs to the Console terminal.
+
+---
+
+## 4. Fault Tolerance & Integrity
+
+### Node-Level Resiliency
+Operators support configurable retry strategies:
+-   **Linear/Exponential Backoff**: Delays calculated to reduce pressure on upstream systems.
+-   **Execution TTL**: Enforces strict time limits on individual tasks to prevent resource contention.
+
+### State Consistency (Watermarks)
+SynqX manages incremental synchronization state via the **Watermark** model. Watermarks are updated only after a successful `LOAD` operation, guaranteeing "at-least-once" delivery and exactly-once processing when combined with upsert strategies.

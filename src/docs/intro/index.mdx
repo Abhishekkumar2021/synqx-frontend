@@ -1,68 +1,51 @@
 ---
 title: "Introduction"
-description: "The philosophy and capability overview of the SynqX ETL Engine."
+description: "Core philosophy and architectural overview of the SynqX ETL Engine."
 ---
-
 
 # Introduction
 
-**SynqX** addresses the chaos of modern data engineering by enforcing structure, strict typing, and immutability on data pipelines. It is not just a job runner; it is a **Data Reliability Platform**.
+**SynqX** is a high-performance ETL orchestration platform engineered to handle complex data delivery with precision and deep observability. Unlike traditional script-based workflows, SynqX formalizes data movement as a series of versioned, immutable Directed Acyclic Graphs (DAGs).
 
-## The Problem with Traditional ETL
+## Design Philosophy
 
-| Traditional Approach | The SynqX Way |
+The platform is built on four architectural pillars:
+
+| Pillar | Principle |
 | :--- | :--- |
-| **Scripts as Pipelines**<br/>Pipelines are often loose Python/SQL scripts that are hard to version and rollback. | **Pipelines as Code-Objects**<br/>Pipelines are stored as versioned DAGs (`PipelineVersion`). Every run is tied to a specific immutable snapshot. |
-| **Opaque Execution**<br/>"The job failed" is often all the info you get. Debugging requires SSH-ing into workers. | **Deep Observability**<br/>Execution is tracked at the `Job`, `PipelineRun`, and `StepRun` levels with structured JSON logs and metrics. |
-| **Silent Schema Drift**<br/>Upstream schema changes break pipelines silently or cause data corruption. | **Schema Intelligence**<br/>SynqX fingerprints assets (`AssetSchemaVersion`) and detects drift *before* it breaks the pipeline. |
-| **State Management Hell**<br/>Managing "last_updated" timestamps manually in scripts is error-prone. | **Managed Watermarks**<br/>The engine handles incremental state (`Watermark`) automatically, ensuring exactly-once processing semantics. |
+| **Immutability** | Pipelines are never edited in place. Every change creates a new, versioned snapshot, ensuring 100% reproducibility. |
+| **Observability** | Granular execution tracking at the job and step level provides a "Glass Box" experience for debugging. |
+| **Intelligence** | Automated schema inference and drift detection prevent structural changes from causing downstream corruption. |
+| **Resiliency** | Built-in retry mechanisms, concurrency controls, and high-watermark state management ensure reliability at scale. |
 
-## Key Capabilities
+## Why SynqX?
 
-### 1. Universal Connectivity
-SynqX abstracts data sources into **Connections** and **Assets**. Whether it's a Postgres table, an S3 parquet file, or a Salesforce API endpoint, SynqX treats them uniformly.
+Data engineering teams frequently struggle with opaque failures, unversioned logic, and silent schema drift. SynqX resolves these challenges through:
 
-### 2. Immutable Versioning
-When you publish a pipeline, SynqX creates a `PipelineVersion`.
--   **Traceability**: You know exactly which configuration produced a specific dataset.
--   **Rollback**: Revert to a previous version instantly if a new deployment introduces bugs.
--   **Audit**: Every change is tracked via the `AuditMixin` (who, when, what).
+### 1. Unified Logical Abstraction
+SynqX abstracts diverse physical systems (Postgres, S3, REST APIs) into a consistent logical model of **Connections** and **Assets**. This allow developers to define logic once and apply it across different infrastructures.
 
-### 3. Resilient Execution
+### 2. Native Schema Intelligence
+Every data asset is fingerprinted. The engine detects breaking changes in source systems before they reach your production data warehouse, enabling proactive incident management.
 
-The runtime is built for failure.
-
--   **Retries**: Configurable strategies (Fixed, Exponential) per node.
-
--   **Timeouts**: Prevent zombie processes from consuming resources.
-
--   **Live Forensic**: Real-time log streaming via the high-performance forensic terminal.
-
-
-
-### 4. Command Center
-
-SynqX provides a unified control plane for your entire data estate.
-
--   **Command Palette (⌘K)**: Instant access to pipelines, executions, and forensic search.
--   **Real-time Alerts**: Global WebSocket push notifications for immediate incident awareness.
--   **Security**: All resources are securely scoped and filtered by `user_id`.
+### 3. Real-time Forensic Orchestration
+Utilizing a distributed worker architecture powered by Celery and Redis, SynqX streams execution telemetry in real-time. Engineers can monitor row-level progress and resource utilization via a modern, unified console.
 
 ---
 
-## Next Steps
+## Getting Started
 
-Ready to dive in?
+Explore the technical reference to start building reliable data pipelines.
 
 <Cards>
   <Card 
-    title="Building Your First Pipeline" 
+    title="Quickstart Guide" 
     href="/docs/guides/first-pipeline" 
-    description="Learn how to sync data from Postgres to Snowflake in 5 minutes."
+    description="Deploy your first production-ready pipeline in minutes."
   />
   <Card 
-    title="Explore Architecture" 
+    title="System Architecture" 
     href="/docs/architecture" 
-    description="Understand the engine internals and execution hierarchy."
+    description="Deep dive into the control plane and distributed worker engine."
   />
 </Cards>

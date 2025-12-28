@@ -5,42 +5,50 @@ description: "How SynqX abstracts data sources into versioned Assets and Schemas
 
 # Connectors & Schema Intelligence
 
-SynqX abstracts physical infrastructure into a three-tier hierarchy: **Connections**, **Assets**, and **Schemas**. This allows the engine to treat a PostgreSQL table, an S3 bucket, and a REST API with the same logical consistency.
+SynqX abstracts physical infrastructure into a three-tier hierarchy: **Connections**, **Assets**, and **Schemas**. This abstraction allows the engine to handle diverse data sources—from RDBMS to REST APIs—with a unified logical interface.
 
 ## 1. Connections: The Physical Layer
 
-A `Connection` contains the technical details required to authenticate with a system.
+A `Connection` represents the physical infrastructure and the credentials required to authenticate with it.
 
 ### Security & The Vault Service
-SynqX implements a zero-trust credential strategy:
--   **AES-256 GCM**: All credentials (passwords, API keys, service accounts) are encrypted at the API layer before hitting the database.
--   **In-Memory Decryption**: Decryption keys are never stored in the database. Workers only decrypt credentials in RAM during the `RUNNING` phase.
--   **Health Checks**: The backend provides on-demand connectivity testing to validate credentials instantly.
+SynqX utilizes a dedicated **Vault Service** to ensure high-security credential management:
+-   **AES-256 Fernet Encryption**: All sensitive configuration parameters (passwords, tokens, keys) are encrypted at the application layer before being persisted to the metadata database.
+-   **In-Memory Resolution**: Decryption keys are never stored alongside encrypted data. Credentials are resolved in RAM only during the execution phase within the worker process.
+-   **Connectivity Validation**: The system provides real-time health checks, allowing users to verify credentials and network paths instantly.
 
 ---
 
 ## 2. Assets: The Logical Layer
 
-An `Asset` represents a specific subset of data (e.g., a specific table or a specific S3 prefix).
+An `Asset` is a specific data entity within a connection. SynqX distinguishes between the **Display Name** and the **Technical Identifier**.
+
+### Asset Identification Standard
+To ensure consistency across heterogeneous systems, assets use two primary identifiers:
+-   **Name**: A human-friendly display label (e.g., `Production Users`).
+-   **Fully Qualified Name (FQN)**: The technical path used by the engine to locate the data.
+    -   *SQL*: `schema_name.table_name` (e.g., `public.users`).
+    -   *REST API*: The endpoint path (e.g., `/api/v1/orders`).
+    -   *Files/S3*: The relative path or object key (e.g., `exports/daily_report.csv`).
 
 ### Automated Asset Discovery
-SynqX can scan physical connections to populate assets automatically:
--   **RDBMS**: Queries `information_schema.tables` to find all available objects.
--   **Object Storage**: Scans bucket prefixes to identify distinct datasets.
--   **APIs**: Discovers endpoints defined in the connector configuration.
+The discovery engine can introspect connections to identify potential assets:
+-   **Relational**: Scans system catalogs to find tables and views.
+-   **Object Storage**: Iterates through bucket prefixes to identify dataset boundaries.
+-   **APIs**: Maps pre-configured or discovered endpoints to individual assets.
 
 ---
 
 ## 3. Schema Intelligence: The Structural Layer
 
-Every asset in SynqX is fingerprinted via **Schema Inference**.
+Every asset is "fingerprinted" via an automated **Schema Inference** process.
 
 ### The Inference Engine
-1.  **Sampling**: The engine reads a small sample of records (default: 1,000).
-2.  **Type Detection**: Automatically identifies data types (String, Integer, Timestamp, JSON).
-3.  **Versioning**: Generates an immutable `AssetSchemaVersion`.
+1.  **Stochastic Sampling**: The engine retrieves a representative sample of records (default: 1,000).
+2.  **Type Resolution**: Automatically maps native system types to a unified SynqX type system (String, Integer, Decimal, Timestamp, Boolean, JSON).
+3.  **Versioning**: Generates an immutable `AssetSchemaVersion` representing the structural state of the data at a point in time.
 
-### Drift Detection Logic
-SynqX calculates a `schema_hash` for every version. 
--   **Consistency Check**: Before a pipeline starts, it compares the current physical schema with the version used when the pipeline was designed.
--   **Breaking Change Protection**: If a mandatory column is deleted upstream, SynqX flags it as a breaking change and can pause affected pipelines to prevent data corruption.
+### Drift Detection & Protection
+SynqX calculates a unique `schema_hash` for every version. 
+-   **Contract Enforcement**: Before execution, the engine compares the upstream physical schema with the expected version defined in the pipeline.
+-   **Breaking Change Protection**: If structural drift is detected (e.g., a dropped column), the engine can trigger alerts or pause the pipeline to prevent downstream data corruption.

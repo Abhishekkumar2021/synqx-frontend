@@ -122,6 +122,17 @@ const AppRoutes = () => (
       <Route path="/register" element={<RegisterPage />} />
     </Route>
 
+    {/* Public Docs (Accessible without login) */}
+    <Route element={
+      <Layout>
+        <Suspense fallback={<FullPageLoader />}>
+          <Outlet />
+        </Suspense>
+      </Layout>
+    }>
+      <Route path="/docs/*" element={<DocsPage />} />
+    </Route>
+
     {/* Secured Application Area */}
     <Route element={<ProtectedRoute />}>
       <Route path="/dashboard" element={<DashboardPage />} />
@@ -136,7 +147,6 @@ const AppRoutes = () => (
       <Route path="/jobs/:id?" element={<JobsPage />} />
       <Route path="/alerts" element={<AlertsPage />} />
       <Route path="/operators" element={<OperatorsPage />} />
-      <Route path="/docs/*" element={<DocsPage />} />
       <Route path="/settings" element={<SettingsPage />} />
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

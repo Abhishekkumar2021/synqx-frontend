@@ -34,7 +34,7 @@ export function LandingPage() {
                             {item}
                         </a>
                     ))}
-                    <a href="http://localhost:3000" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Docs</a>
+                    <Link to="/docs" className="hover:text-primary transition-colors">Docs</Link>
                 </nav>
 
                 <div className="flex items-center gap-4">
@@ -95,12 +95,12 @@ export function LandingPage() {
                                     <ArrowRight className="ml-2 h-4 w-4" />
                                 </Button>
                             </Link>
-                            <a href="http://localhost:3000" target="_blank" rel="noopener noreferrer">
+                            <Link to="/docs">
                                 <Button variant="outline" size="lg" className="h-14 px-8 text-base rounded-full glass-card hover:bg-secondary/50 transition-all border-border/50">
                                     <Code2 className="mr-2 h-4 w-4" />
                                     Read Documentation
                                 </Button>
-                            </a>
+                            </Link>
                         </div>
 
                         {/* Interactive Hero Graphic: Glass Window */}

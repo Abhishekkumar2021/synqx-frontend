@@ -1,53 +1,59 @@
 ---
 title: "Operators"
-description: "The building blocks of SynqX pipelines."
+description: "Technical reference for built-in extraction, transformation, and loading logic."
 ---
 
 # Operator Reference
 
-SynqX comes with a library of built-in operators.
+Operators are the functional building blocks of a SynqX pipeline. Each node in your DAG is an instance of an operator, configured to perform a specific data operation.
 
-## Common Telemetry
-All built-in operators automatically capture the following metrics for the **Execution Forensic** logs:
--   `records_in`: Number of records read from the source.
--   `records_out`: Number of records successfully processed/loaded.
--   `execution_time_ms`: Precision duration of the specific node's execution.
+## Telemetry & Monitoring
+Every built-in operator provides standardized telemetry:
+-   **Throughput**: `records_in` vs `records_out`.
+-   **Performance**: Microsecond-precision execution timing.
+-   **Resource Usage**: CPU and Memory footprint captured during the run.
 
-## Extract (Source)
+---
 
-| Operator | Description | Capabilities |
+## Connectivity Operators
+
+### Extract (Source)
+Extraction operators pull data from external systems into the SynqX engine.
+
+| Class | Type | Features |
 | :--- | :--- | :--- |
-| `PostgresSource` | Reads from PostgreSQL. | Incremental (Timestamp/ID), Full Load. |
-| `MySQLSource` | Reads from MySQL/MariaDB. | Incremental, Binlog (CDC planned). |
-| `SnowflakeSource` | Reads from Snowflake tables/queries. | Batch Export. |
-| `S3Source` | Reads files (CSV, Parquet, JSON) from S3. | Prefix matching, File tracking. |
-| `SalesforceSource` | Queries Salesforce Objects (SOQL). | Incremental, Bulk API. |
-| `RestApiSource` | Generic HTTP GET wrapper. | Pagination, Auth handling. |
+| `PostgresConnector` | Relational | High-watermark incremental loading, batch fetching. |
+| `RestApiConnector` | API | Dot-notation JSON parsing, adaptive pagination, multi-auth. |
+| `S3Connector` | Object Storage | Prefix filtering, support for Parquet, CSV, and JSONL. |
+| `MongoDBConnector` | NoSQL | BSON-to-DataFrame normalization, projection support. |
 
-## Transform
+### Load (Destination)
+Loading operators push processed data from the engine into target systems.
 
-| Operator | Description |
-| :--- | :--- |
-| `FieldMapper` | Renames, drops, or casts columns. |
-| `PythonTransform` | Executes arbitrary Python code (Pandas/Polars). |
-| `SqlTransform` | Executes SQL on a warehouse (ELT mode). |
-| `DbtRunner` | Triggers a dbt job or cloud run. |
-| `Filter` | Drops rows based on conditions. |
-
-## Load (Destination)
-
-| Operator | Description | Capabilities |
+| Class | Type | Strategies |
 | :--- | :--- | :--- |
-| `PostgresLoader` | Writes to Postgres. | Insert, Upsert, Replace. |
-| `SnowflakeLoader` | Writes to Snowflake. | COPY INTO, Merge. |
-| `S3Sink` | Writes files to S3. | Partitioning, Compression. |
-| `RestApiSink` | HTTP POST/PUT for each record/batch. | Batching, Rate limiting. |
+| `PostgresConnector` | Relational | Append, Overwrite (Truncate), Upsert (Merge). |
+| `RestApiConnector` | API | Batch HTTP requests, configurable verbs (POST/PUT/PATCH). |
+| `LocalFileConnector` | Filesystem | Multi-format support, automated directory management. |
 
-## Utility
+---
 
-| Operator | Description |
-| :--- | :--- |
-| `EmailOperator` | Sends an email notification. |
-| `SlackOperator` | Sends a message to a Slack channel. |
-| `TriggerPipeline` | Kicks off another pipeline execution. |
-| `Sensor` | Waits for an external condition (file arrival, API status). |
+## Transformation Operators
+
+Transformation nodes modify data in-flight between extraction and loading.
+
+### 1. Schema & Structure
+-   **Rename Columns**: Map upstream names to standardized downstream identifiers.
+-   **Type Cast**: Enforce data types (e.g., String to Decimal) to ensure warehouse compatibility.
+-   **Drop Columns**: Prune unnecessary fields to optimize performance and security.
+
+### 2. Logic & Computation
+-   **Aggregate**: Powerful grouping and summarization (Sum, Mean, Count, etc.).
+-   **Join**: Perform horizontal merges between multiple data streams (Inner, Left, Outer).
+-   **Code Transform**: Execute arbitrary Python logic using Pandas for complex, custom requirements.
+-   **Filter**: Apply boolean predicates to include or exclude specific records.
+
+### 3. Data Quality
+-   **Deduplicate**: Remove redundant records based on unique key subsets.
+-   **Fill Nulls**: Handle missing data through statistical imputation or static constants.
+-   **Validate**: Enforce structural contracts and data quality rules.

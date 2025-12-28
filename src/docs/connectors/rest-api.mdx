@@ -1,61 +1,63 @@
 ---
 title: REST API Connector
-description: Learn how to use the Generic REST API Connector in SynqX.
+description: High-performance connectivity for JSON-based RESTful services.
 ---
 
 # REST API Connector
 
-The **REST API Connector** allows you to connect to any HTTP-based API to read data (GET) or write data (POST/PUT). It is a versatile connector suitable for fetching data from SaaS platforms, internal microservices, or public datasets.
+The **REST API Connector** is a production-grade interface designed to interact with any HTTP-based service. It handles the complexities of modern API interaction, including multi-tier authentication, dynamic pagination, and nested JSON normalization.
 
 ## Configuration
 
-The connector requires the following configuration parameters:
+Connector settings are defined at the **Connection** level and can be overridden at the **Asset** level.
 
 ```json
 {
   "base_url": "https://api.example.com/v1",
-  "auth": {
-    "type": "bearer",
-    "token": "YOUR_API_TOKEN"
-  },
+  "auth_type": "bearer",
+  "auth_token": "YOUR_SECURE_TOKEN",
   "headers": {
-    "Accept": "application/json"
+    "Accept": "application/json",
+    "X-Platform": "SynqX"
   },
-  "timeout": 30
+  "pagination_type": "limit_offset",
+  "page_size": 100
 }
 ```
 
-### Parameters
+### Core Parameters
 
-| Parameter | Type | Required | Description |
-| :--- | :--- | :--- | :--- |
-| `base_url` | string | Yes | The root URL of the API. |
-| `auth` | object | No | Authentication configuration. |
-| `headers` | object | No | Custom HTTP headers to include in every request. |
-| `timeout` | number | No | Request timeout in seconds (default: 30). |
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `base_url` | string | The root URL for all requests. |
+| `auth_type` | enum | `none`, `basic`, `bearer`, or `api_key`. |
+| `data_key` | string | Dot-notation path to the record array (e.g., `data.results`). |
+| `pagination_type` | enum | `none`, `limit_offset`, or `page_number`. |
 
-### Authentication Types
+---
 
-Supported `auth.type` values:
+## Usage Patterns
 
-- **`basic`**: Requires `username` and `password`.
-- **`bearer`**: Requires `token`.
-- **`api_key`**: Requires `key_name`, `key_value`, and `in` ("header" or "query").
+### As a Source (Extraction)
+Assets represent specific endpoints. The `fully_qualified_name` should be the endpoint path relative to the `base_url`.
 
-## Usage
+-   **Asset FQN**: `/users` or `orders/search`.
+-   **Incremental Loading**: Supports high-watermark filtering if the API provides a sortable field (e.g., `updated_at`).
+-   **Schema Inference**: The engine automatically flattens nested JSON structures into a relational format for transformation nodes.
 
-### Reading Data (Source)
+### As a Destination (Loading)
+Data is transmitted as JSON payloads.
 
-When used as a source, you specify the endpoint path as the asset.
+-   **Write Method**: Configurable per asset (`POST`, `PUT`, or `PATCH`).
+-   **Batching**: Optimized for high-volume loading by grouping records into single HTTP requests if supported by the target API.
+-   **Upsert Logic**: When the `upsert` strategy is selected, the connector utilizes `PUT` or `PATCH` based on the existence of a primary identifier.
 
-- **Asset**: `/users` (appended to `base_url`)
-- **Method**: `GET`
-- **Pagination**: The connector attempts to handle standard pagination parameters (`limit`, `offset`) if passed by the execution engine.
+## Advanced Features
 
-### Writing Data (Destination)
+### Dot-Notation Record Extraction
+If an API wraps its data in a response envelope, use the `data_key` property to point the engine to the record array:
+*   Response: `{ "meta": {...}, "data": { "items": [...] } }`
+*   Config: `data_key: "data.items"`
 
-When used as a destination, data is sent as a JSON body.
-
-- **Asset**: `/users`
-- **Method**: `POST` (default) or `PUT` (if mode is `replace`).
-- **Batching**: Records are sent individually or in batches depending on the pipeline configuration.
+### Adaptive Pagination
+The connector automatically manages cursor or offset state across multiple batches to ensure complete dataset extraction without memory overflow.
