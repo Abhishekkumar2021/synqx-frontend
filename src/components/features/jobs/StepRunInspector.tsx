@@ -321,7 +321,7 @@ export const StepRunInspector: React.FC<StepRunInspectorProps> = ({
                     {/* --- DATA SNIFF VIEW --- */}
                     <TabsContent value="data" className="flex-1 min-h-0 m-0 focus-visible:outline-none animate-in fade-in duration-500 flex flex-col overflow-hidden">
                         <Tabs defaultValue="egress" className="flex-1 flex flex-col min-h-0">
-                            <div className="px-6 py-2 bg-muted/10 border-b border-border/10 shrink-0">
+                            <div className="px-6 py-2 bg-muted/10 border-b border-border/10 shrink-0 flex items-center justify-between">
                                 <TabsList className="h-10 bg-background/50 p-1 rounded-xl">
                                     {!isSource && (
                                         <TabsTrigger value="ingress" className="text-[9px] h-8 px-4 gap-2">
@@ -332,6 +332,29 @@ export const StepRunInspector: React.FC<StepRunInspectorProps> = ({
                                         <ArrowUpFromLine size={12} /> Egress
                                     </TabsTrigger>
                                 </TabsList>
+
+                                <div className="flex items-center gap-2">
+                                    <TabsContent value="ingress" className="m-0 p-0 border-0 shadow-none bg-transparent">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="h-8 rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary hover:bg-primary/10 transition-all" 
+                                            onClick={() => setMaximizedDirection('in')}
+                                        >
+                                            <Maximize2 size={12} /> Maximize
+                                        </Button>
+                                    </TabsContent>
+                                    <TabsContent value="egress" className="m-0 p-0 border-0 shadow-none bg-transparent">
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            className="h-8 rounded-lg gap-2 text-[10px] font-black uppercase tracking-widest text-primary/60 hover:text-primary hover:bg-primary/10 transition-all" 
+                                            onClick={() => setMaximizedDirection('out')}
+                                        >
+                                            <Maximize2 size={12} /> Maximize
+                                        </Button>
+                                    </TabsContent>
+                                </div>
                             </div>
 
                             <div className="flex-1 min-h-0 relative">
@@ -344,9 +367,6 @@ export const StepRunInspector: React.FC<StepRunInspectorProps> = ({
                                             description="First 100 records retrieved from source"
                                         />
                                     </div>
-                                    <Button variant="ghost" size="icon" className="absolute top-3 right-3 z-60 h-7 w-7 rounded-lg text-primary/60 hover:text-primary" onClick={() => setMaximizedDirection('in')}>
-                                        <Maximize2 size={14} />
-                                    </Button>
                                 </TabsContent>
 
                                 <TabsContent value="egress" className="absolute inset-0 m-0 flex flex-col overflow-hidden">
@@ -358,9 +378,6 @@ export const StepRunInspector: React.FC<StepRunInspectorProps> = ({
                                             description="First 100 records emitted to downstream"
                                         />
                                     </div>
-                                    <Button variant="ghost" size="icon" className="absolute top-3 right-3 z-60 h-7 w-7 rounded-lg text-primary/60 hover:text-primary" onClick={() => setMaximizedDirection('out')}>
-                                        <Maximize2 size={14} />
-                                    </Button>
                                 </TabsContent>
                             </div>
                         </Tabs>
