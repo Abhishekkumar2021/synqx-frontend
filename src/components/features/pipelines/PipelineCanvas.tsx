@@ -215,10 +215,8 @@ export const PipelineCanvas: React.FC = () => {
             type: mapOperatorToNodeType(n.operator_type),
             operator_class: n.operator_class,
             status: 'idle',
-            // Populate Asset IDs
             source_asset_id: n.source_asset_id,
             destination_asset_id: n.destination_asset_id,
-            // Also map to connection_id if stored in config or derived from asset
             connection_id: n.connection_id || n.config?.connection_id
         },
         position: n.config?.ui?.position || { x: 0, y: 0 },
@@ -572,68 +570,59 @@ export const PipelineCanvas: React.FC = () => {
             colorMode={flowTheme}
             minZoom={0.1}
             maxZoom={4}
-            defaultEdgeOptions={{ 
-                type: 'glow', 
-                style: { strokeWidth: 2 } 
-            }}
-            proOptions={{ hideAttribution: true }}
-            className="transition-colors duration-500"
-          >
-            <Background 
-                variant={BackgroundVariant.Lines} 
-                gap={40} 
-                size={1} 
-                color={theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)'}
-            />
-            <Background 
-                variant={BackgroundVariant.Dots} 
-                gap={20} 
-                size={1} 
-                color={theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}
-            />
-            
-            <Controls className="bg-background/80! backdrop-blur-xl! border-border/40! shadow-lg! rounded-xl! overflow-hidden m-2 md:m-4 border fill-foreground text-foreground" showInteractive={false} />
-            
-            <MiniMap 
-                className="hidden md:block bg-background/80! backdrop-blur-xl! border-border/40! shadow-lg! rounded-xl! overflow-hidden m-4 border" 
-                nodeColor={(node) => {
-                    if (node.type === 'source') return 'var(--color-chart-1)';
-                    if (node.type === 'sink') return 'var(--color-chart-2)';
-                    if (node.type === 'validate') return 'var(--color-chart-4)';
-                    if (['join', 'union', 'merge'].includes(node.type || '')) return 'var(--color-chart-5)';
-                    if (node.type === 'transform' || node.type === 'noop') return 'var(--color-chart-3)';
-                    return 'var(--muted)';
-                }}
-                maskColor="var(--color-background)"
-                style={{ opacity: 0.7 }}
-                position="bottom-right"
-            />
-
+                        defaultEdgeOptions={{
+                            type: 'glow',
+                            style: { strokeWidth: 3 }
+                        }}
+                        proOptions={{ hideAttribution: true }}
+                        className="transition-colors duration-500"
+                      >
+                        <Background 
+                            variant={BackgroundVariant.Lines} 
+                            gap={40} 
+                            size={1} 
+                            color={theme === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'}
+                        />
+                        
+                        <Controls className="bg-background/60! backdrop-blur-2xl! border-border/20! shadow-2xl! rounded-2xl! overflow-hidden m-6 border fill-foreground text-foreground transition-all hover:scale-105" showInteractive={false} />
+                        
+                        <MiniMap 
+                            className="hidden md:block bg-background/40! backdrop-blur-2xl! border-border/20! shadow-2xl! rounded-3xl! overflow-hidden m-8 border" 
+                            nodeColor={(node) => {
+                                if (node.type === 'source') return 'oklch(0.55 0.25 240)';
+                                if (node.type === 'sink') return 'oklch(0.62 0.19 145)';
+                                if (node.type === 'validate') return 'oklch(0.55 0.2 300)';
+                                return 'oklch(0.7 0.18 55)';
+                            }}
+                            maskColor="rgba(0,0,0,0.1)"
+                            style={{ opacity: 0.9, height: 140, width: 200 }}
+                            position="bottom-right"
+                        />
             {/* FLOATING TOOLBOX PANEL */}
-            <Panel position="top-center" className="mt-6 pointer-events-none">
-                <div className="flex items-center p-1.5 gap-1.5 glass-panel rounded-2xl shadow-[0_8px_32px_-8px_rgba(0,0,0,0.2)] pointer-events-auto border-border/40 bg-background/60 backdrop-blur-xl ring-1 ring-white/10 transition-all hover:scale-[1.02] hover:shadow-[0_12px_40px_-10px_rgba(0,0,0,0.3)]">
+            <Panel position="top-center" className="mt-8 pointer-events-none">
+                <div className="flex items-center p-2 gap-2 glass-panel !rounded-[1.75rem] shadow-2xl pointer-events-auto border-border/20 bg-background/60 backdrop-blur-3xl transition-all hover:scale-[1.02] hover:shadow-primary/5 ring-1 ring-white/5">
                     
                     {/* Primary Controls Group */}
-                    <div className="flex items-center gap-1 pr-2 border-r border-border/20 mr-1">
+                    <div className="flex items-center gap-1.5 pr-3 border-r border-border/10 mr-1">
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={() => setSelectedNodeId(null)}>
-                                        <MousePointer2 className="h-4 w-4" />
+                                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl hover:bg-primary/10 hover:text-primary transition-all group" onClick={() => setSelectedNodeId(null)}>
+                                        <MousePointer2 className="h-5 w-5 group-active:scale-90" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Select Mode</TooltipContent>
+                                <TooltipContent>Selection Tool</TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
 
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" onClick={onLayout}>
-                                        <Layout className="h-4 w-4" />
+                                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl hover:bg-primary/10 hover:text-primary transition-all group" onClick={onLayout}>
+                                        <Layout className="h-5 w-5 group-active:scale-90" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Auto Layout</TooltipContent>
+                                <TooltipContent>Auto-Layout Canvas</TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
                     </div>
@@ -642,58 +631,63 @@ export const PipelineCanvas: React.FC = () => {
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button 
-                                className="h-9 rounded-xl px-4 gap-2 bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all"
+                                className="h-10 rounded-2xl px-5 gap-2.5 bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all hover:-translate-y-0.5"
                             >
-                                <Plus className="h-4 w-4" /> Add Operator
+                                <Plus className="h-4 w-4 stroke-[3]" /> Add Operator
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent 
                             align="center" 
-                            sideOffset={10}
-                            className="w-72 bg-background/80 backdrop-blur-3xl border-border/20 shadow-2xl rounded-2xl p-2 ring-1 ring-white/5"
+                            sideOffset={15}
+                            className="w-80 bg-background/60 backdrop-blur-3xl border-border/20 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] rounded-[2rem] p-3 ring-1 ring-white/10"
                         >
-                            <div className="px-2 py-2 mb-2 border-b border-border/10">
+                            <div className="px-3 py-3 mb-3">
                                 <div className="relative group">
-                                    <Plus className="z-20 absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                    <Plus className="z-20 absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                     <Input 
-                                        placeholder="Search operators..." 
+                                        placeholder="Search pipeline operators..." 
                                         value={opSearch}
                                         onChange={(e) => setOpSearch(e.target.value)}
-                                        className="h-9 pl-8 rounded-xl bg-muted/30 border-none text-xs focus-visible:ring-1 focus-visible:ring-primary/20"
+                                        className="h-10 pl-10 rounded-xl bg-muted/30 border-none text-xs focus-visible:ring-2 focus-visible:ring-primary/20 transition-all"
                                         autoFocus
                                     />
                                 </div>
                             </div>
-                            <div className="max-h-[350px] overflow-y-auto custom-scrollbar px-1">
+                            <div className="max-h-[400px] overflow-y-auto custom-scrollbar px-1 space-y-4 pb-2">
                                 {filteredDefinitions.length === 0 ? (
-                                    <div className="py-8 text-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-50">
-                                        No results matching "{opSearch}"
+                                    <div className="py-12 text-center flex flex-col items-center gap-3">
+                                        <div className="h-12 w-12 rounded-full bg-muted/20 flex items-center justify-center text-muted-foreground/30">
+                                            <Plus className="h-6 w-6 rotate-45" />
+                                        </div>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">No matching operators</span>
                                     </div>
                                 ) : (
                                     filteredDefinitions.map((category, idx) => (
-                                        <div key={idx} className="mb-2 last:mb-0">
-                                            <div className="px-2 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
+                                        <div key={idx} className="space-y-1.5">
+                                            <div className="px-3 py-1 text-[9px] font-black uppercase tracking-[0.25em] text-primary/50 flex items-center gap-2">
+                                                <div className="h-px flex-1 bg-primary/10" />
                                                 {category.category}
+                                                <div className="h-px flex-1 bg-primary/10" />
                                             </div>
                                             {category.items.map((item, i) => (
                                                 <DropdownMenuItem 
                                                     key={i}
-                                                    className="group flex items-center gap-3 p-2 rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer transition-colors"
+                                                    className="group flex items-center gap-4 p-3 rounded-[1.25rem] focus:bg-primary/10 focus:text-primary cursor-pointer transition-all duration-300"
                                                     onClick={() => onAddNode(item.type, (item as any).opClass, item.label)}
                                                 >
                                                     <div className={cn(
-                                                        "p-1.5 rounded-lg border shadow-sm transition-colors group-hover:border-primary/30",
+                                                        "h-10 w-10 shrink-0 rounded-xl flex items-center justify-center border transition-all duration-500 group-hover:scale-110 group-hover:shadow-lg",
                                                         item.type === 'source' ? "bg-chart-1/10 border-chart-1/20 text-chart-1" :
                                                         item.type === 'sink' ? "bg-chart-2/10 border-chart-2/20 text-chart-2" :
                                                         item.type === 'validate' ? "bg-chart-4/10 border-chart-4/20 text-chart-4" :
                                                         ['join', 'union', 'merge'].includes(item.type) ? "bg-chart-5/10 border-chart-5/20 text-chart-5" :
                                                         "bg-chart-3/10 border-chart-3/20 text-chart-3"
                                                     )}>
-                                                        <item.icon className="h-3.5 w-3.5" />
+                                                        <item.icon className="h-5 w-5" />
                                                     </div>
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <span className="text-xs font-semibold">{item.label}</span>
-                                                        <span className="text-[9px] text-muted-foreground group-hover:text-primary/70">{item.desc}</span>
+                                                    <div className="flex flex-col gap-0.5 overflow-hidden">
+                                                        <span className="text-xs font-bold tracking-tight">{item.label}</span>
+                                                        <span className="text-[9px] text-muted-foreground/70 group-hover:text-primary/60 truncate leading-tight">{item.desc}</span>
                                                     </div>
                                                 </DropdownMenuItem>
                                             ))}
@@ -710,7 +704,7 @@ export const PipelineCanvas: React.FC = () => {
 
           {/* Properties Inspector */}
           <div className={cn(
-              "absolute top-0 right-0 w-full md:w-[400px] h-full glass-panel shadow-2xl flex flex-col overflow-hidden z-50 transition-all duration-500 cubic-bezier(0.32, 0.72, 0, 1) rounded-none",
+              "absolute top-0 right-0 w-full md:w-[450px] h-full glass-panel !rounded-none shadow-[0_0_100px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden z-[100] transition-all duration-700 cubic-bezier(0.32, 0.72, 0, 1) border-l border-border/20",
               selectedNode ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"
           )}>
               {selectedNode && (
