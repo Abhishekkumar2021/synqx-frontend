@@ -26,7 +26,8 @@ import {
     Key, Server, Settings2, 
     MoreVertical, Trash2, Pencil, 
     CheckCircle2, Download, Plus,
-    Sparkles, Terminal, Cpu, FileCode
+    Sparkles, Terminal, Cpu, FileCode,
+    LayoutGrid, List, Copy, Wifi, Globe, Shield
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -56,6 +57,8 @@ import {
 } from "@/components/ui/dialog";
 import { CreateConnectionDialog } from '@/components/features/connections/CreateConnectionDialog';
 import { AssetTableRow } from '@/components/features/connections/AssetTableRow';
+import { AssetGridItem } from '@/components/features/connections/AssetGridItem';
+import { DiscoveredAssetCard } from '@/components/features/connections/DiscoveredAssetCard';
 import { PageMeta } from '@/components/common/PageMeta';
 import { CreateAssetsDialog } from '@/components/features/connections/CreateAssetsDialog';
 import { useMemo, useState } from 'react';
@@ -160,199 +163,263 @@ const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
     };
 
     return (
-        <div className="rounded-2xl border border-border/40 bg-background/40 backdrop-blur-xl shadow-sm overflow-hidden flex flex-col md:flex-row h-[500px]">
-            {/* Sidebar */}
-            <div className="w-full md:w-48 border-b md:border-b-0 md:border-r border-border/40 bg-muted/10 p-2 flex flex-row md:flex-col gap-1 overflow-x-auto md:overflow-visible">
-                <button
-                    onClick={() => setActiveTab('general')}
-                    className={cn(
-                        "flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-lg transition-all w-full text-left",
-                        activeTab === 'general' ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/20"
-                    )}
-                >
-                    <Terminal className="h-3.5 w-3.5" />
-                    General Info
-                </button>
-                <button
-                    onClick={() => setActiveTab('python')}
-                    className={cn(
-                        "flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-lg transition-all w-full text-left",
-                        activeTab === 'python' ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/20"
-                    )}
-                >
-                    <FileCode className="h-3.5 w-3.5" />
-                    Python
-                    {initializedLangs.has('python') && (
-                        <Badge variant="secondary" className="ml-auto text-[9px] h-4 px-1">{Object.keys(installedPackages).length}</Badge>
-                    )}
-                </button>
-                {envInfo.node_version && (
-                    <button
-                        onClick={() => setActiveTab('node')}
+        <div className="h-full flex flex-col rounded-2xl border border-border/40 bg-background/40 backdrop-blur-xl shadow-xl overflow-hidden relative">
+            <div className="p-4 md:p-5 border-b border-border/40 bg-muted/10 flex flex-col md:flex-row items-center justify-between shrink-0 gap-4 md:gap-6">
+                <div className="space-y-0.5 relative z-10">
+                    <h3 className="text-base font-bold flex items-center gap-2 text-foreground">
+                        <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                            <Terminal className="h-3.5 w-3.5" />
+                        </div>
+                        Isolated Environment
+                    </h3>
+                    <p className="text-[10px] text-muted-foreground font-bold tracking-tight pl-1">
+                        MANAGE RUNTIME DEPENDENCIES • {envInfo.platform || 'LINUX'}
+                    </p>
+                </div>
+
+                <div className="flex items-center gap-1.5 bg-background/50 border border-border/40 rounded-xl p-1">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setActiveTab('general')}
                         className={cn(
-                            "flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-lg transition-all w-full text-left",
-                            activeTab === 'node' ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/20"
+                            "h-8 px-4 text-xs font-bold rounded-lg transition-all",
+                            activeTab === 'general' ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:bg-muted"
                         )}
                     >
-                        <FileCode className="h-3.5 w-3.5" />
-                        Node.js
-                        {initializedLangs.has('node') && (
-                            <Badge variant="secondary" className="ml-auto text-[9px] h-4 px-1">{Object.keys(npmPackages).length}</Badge>
+                        General
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setActiveTab('python')}
+                        className={cn(
+                            "h-8 px-4 text-xs font-bold rounded-lg transition-all",
+                            activeTab === 'python' ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:bg-muted"
                         )}
-                    </button>
-                )}
-                <button
-                    onClick={() => setActiveTab('shell')}
-                    className={cn(
-                        "flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-lg transition-all w-full text-left",
-                        activeTab === 'shell' ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/20"
+                    >
+                        Python
+                        {initializedLangs.has('python') && (
+                            <Badge variant="secondary" className="ml-2 text-[9px] h-4 px-1">{Object.keys(installedPackages).length}</Badge>
+                        )}
+                    </Button>
+                    {envInfo.node_version && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setActiveTab('node')}
+                            className={cn(
+                                "h-8 px-4 text-xs font-bold rounded-lg transition-all",
+                                activeTab === 'node' ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:bg-muted"
+                            )}
+                        >
+                            Node.js
+                            {initializedLangs.has('node') && (
+                                <Badge variant="secondary" className="ml-2 text-[9px] h-4 px-1">{Object.keys(npmPackages).length}</Badge>
+                            )}
+                        </Button>
                     )}
-                >
-                    <Cpu className="h-3.5 w-3.5" />
-                    Shell
-                    <Badge variant="secondary" className="ml-auto text-[9px] h-4 px-1">{Object.keys(availableTools).length}</Badge>
-                </button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setActiveTab('shell')}
+                        className={cn(
+                            "h-8 px-4 text-xs font-bold rounded-lg transition-all",
+                            activeTab === 'shell' ? "bg-background text-primary shadow-sm" : "text-muted-foreground hover:bg-muted"
+                        )}
+                    >
+                        Shell
+                    </Button>
+                </div>
             </div>
 
-            {/* Content */}
             <div className="flex-1 p-6 overflow-y-auto scrollbar-thin scrollbar-thumb-border/50 hover:scrollbar-thumb-border/80 scrollbar-track-transparent">
-                {activeTab === 'general' && (
-                    <div className="space-y-6">
-                        <div>
-                            <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-                                <Terminal className="h-4 w-4 text-primary" />
-                                Environment Overview
-                            </h3>
-                            <div className="grid gap-6 md:grid-cols-2">
-                                {envInfo.python_version && (
-                                    <ConfigField 
-                                        label="Python Runtime" 
-                                        value={envInfo.python_version.split(' ')[0]} 
-                                    />
-                                )}
-                                {envInfo.node_version && (
-                                    <ConfigField 
-                                        label="Node.js Runtime" 
-                                        value={envInfo.node_version} 
-                                    />
-                                )}
-                                {envInfo.platform && (
-                                    <ConfigField 
-                                        label="OS Platform" 
-                                        value={envInfo.platform} 
-                                    />
-                                )}
-                                {envInfo.base_path && (
-                                    <ConfigField label="Script Base Path" value={envInfo.base_path} copyable />
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'python' && renderTabContent('python', (
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between gap-2">
-                            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                                <FileCode className="h-4 w-4 text-primary" />
-                                Installed Packages
-                            </h3>
-                            <div className="flex items-center gap-2 w-full max-w-sm">
-                                <PackageAutocomplete 
-                                    value={pkgName}
-                                    onChange={setPkgName}
-                                    onSelect={(val) => setPkgName(val)}
-                                    options={PYTHON_PACKAGES}
-                                    placeholder="Search python package..."
-                                    className="h-8 text-xs"
-                                    leftIcon={FileCode}
-                                />
-                                <Button 
-                                    size="sm" 
-                                    className="h-8 px-3 text-xs shrink-0" 
-                                    onClick={() => handleInstall('python')}
-                                    disabled={installing || !pkgName}
-                                >
-                                    {installing ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                            {Object.entries(installedPackages).sort((a, b) => a[0].localeCompare(b[0])).map(([pkg, ver]) => (
-                                <div key={pkg} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-muted/5 border border-border/20 hover:bg-muted/10 transition-colors group">
-                                    <span className="font-medium truncate mr-2 text-foreground/80 group-hover:text-foreground" title={pkg}>{pkg}</span>
-                                    <Badge variant="outline" className="text-[10px] font-mono bg-background/50 text-muted-foreground h-5 border-border/30">
-                                        {String(ver)}
-                                    </Badge>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                ))}
-
-                {activeTab === 'node' && renderTabContent('node', (
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between gap-2">
-                            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                                <FileCode className="h-4 w-4 text-primary" />
-                                NPM Packages
-                            </h3>
-                            <div className="flex items-center gap-2 w-full max-w-sm">
-                                <PackageAutocomplete 
-                                    value={pkgName}
-                                    onChange={setPkgName}
-                                    onSelect={(val) => setPkgName(val)}
-                                    options={NODE_PACKAGES}
-                                    placeholder="Search npm package..."
-                                    className="h-8 text-xs"
-                                    leftIcon={FileCode}
-                                />
-                                <Button 
-                                    size="sm" 
-                                    className="h-8 px-3 text-xs shrink-0" 
-                                    onClick={() => handleInstall('node')}
-                                    disabled={installing || !pkgName}
-                                >
-                                    {installing ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                            {Object.entries(npmPackages).sort((a, b) => a[0].localeCompare(b[0])).map(([pkg, ver]) => (
-                                <div key={pkg} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg bg-muted/5 border border-border/20 hover:bg-muted/10 transition-colors group">
-                                    <span className="font-medium truncate mr-2 text-foreground/80 group-hover:text-foreground" title={pkg}>{pkg}</span>
-                                    <Badge variant="outline" className="text-[10px] font-mono bg-background/50 text-muted-foreground h-5 border-border/30">
-                                        {String(ver)}
-                                    </Badge>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                ))}
-
-                {activeTab === 'shell' && (
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-                            <Cpu className="h-4 w-4 text-primary" />
-                            Available Shell Tools
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {Object.entries(availableTools).map(([tool, path]) => (
-                                <div key={tool} className="flex flex-col text-xs px-3 py-2 rounded-lg bg-muted/5 border border-border/20 hover:bg-muted/10 transition-colors">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <span className="font-bold text-foreground uppercase tracking-wider">{tool}</span>
-                                        <Badge variant="outline" className="text-[9px] bg-emerald-500/5 text-emerald-600 border-emerald-500/20 h-4 px-1.5">
-                                            Available
-                                        </Badge>
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeTab}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        {activeTab === 'general' && (
+                            <div className="space-y-8">
+                                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                    {envInfo.python_version && (
+                                        <div className="p-4 rounded-2xl bg-muted/20 border border-border/30 flex flex-col gap-2">
+                                            <div className="flex items-center gap-2 text-primary">
+                                                <FileCode className="h-4 w-4" />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest">Python Version</span>
+                                            </div>
+                                            <span className="text-xl font-black">{envInfo.python_version.split(' ')[0]}</span>
+                                        </div>
+                                    )}
+                                    {envInfo.node_version && (
+                                        <div className="p-4 rounded-2xl bg-muted/20 border border-border/30 flex flex-col gap-2">
+                                            <div className="flex items-center gap-2 text-emerald-500">
+                                                <FileCode className="h-4 w-4" />
+                                                <span className="text-[10px] font-bold uppercase tracking-widest">Node.js Version</span>
+                                            </div>
+                                            <span className="text-xl font-black">{envInfo.node_version}</span>
+                                        </div>
+                                    )}
+                                    <div className="p-4 rounded-2xl bg-muted/20 border border-border/30 flex flex-col gap-2">
+                                        <div className="flex items-center gap-2 text-amber-500">
+                                            <Cpu className="h-4 w-4" />
+                                            <span className="text-[10px] font-bold uppercase tracking-widest">Architecture</span>
+                                        </div>
+                                        <span className="text-xl font-black">{envInfo.platform || 'x86_64'}</span>
                                     </div>
-                                    <code className="text-[10px] text-muted-foreground font-mono bg-background/30 px-1.5 py-0.5 rounded truncate" title={String(path)}>
-                                        {String(path)}
-                                    </code>
                                 </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
+
+                                {envInfo.base_path && (
+                                    <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                                                <Database className="h-4 w-4 text-primary" />
+                                                Working Directory
+                                            </h4>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                className="h-8 gap-2 text-[10px] font-bold"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(envInfo.base_path);
+                                                    toast.success("Path copied");
+                                                }}
+                                            >
+                                                <Copy className="h-3 w-3" /> Copy Path
+                                            </Button>
+                                        </div>
+                                        <code className="block p-4 rounded-xl bg-background/50 border border-border/40 text-xs font-mono text-primary break-all">
+                                            {envInfo.base_path}
+                                        </code>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'python' && renderTabContent('python', (
+                            <div className="space-y-6">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-muted/10 p-4 rounded-2xl border border-border/40">
+                                    <div className="space-y-1">
+                                        <h4 className="text-sm font-bold flex items-center gap-2">
+                                            <Plus className="h-4 w-4 text-primary" />
+                                            Install New Package
+                                        </h4>
+                                        <p className="text-[10px] text-muted-foreground font-medium">Add dependencies to your isolated Python environment.</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 w-full md:w-auto md:min-w-[300px]">
+                                        <PackageAutocomplete 
+                                            value={pkgName}
+                                            onChange={setPkgName}
+                                            onSelect={(val) => setPkgName(val)}
+                                            options={PYTHON_PACKAGES}
+                                            placeholder="e.g. pandas, requests..."
+                                            className="h-9"
+                                        />
+                                        <Button 
+                                            className="h-9 px-4 font-bold" 
+                                            onClick={() => handleInstall('python')}
+                                            disabled={installing || !pkgName}
+                                        >
+                                            {installing ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+                                            Install
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                                    {Object.entries(installedPackages).sort((a, b) => a[0].localeCompare(b[0])).map(([pkg, ver]) => (
+                                        <div key={pkg} className="group flex items-center justify-between p-3 rounded-xl bg-background border border-border/40 hover:border-primary/40 hover:shadow-md transition-all">
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="text-xs font-bold truncate group-hover:text-primary transition-colors">{pkg}</span>
+                                                <span className="text-[9px] text-muted-foreground font-mono">{String(ver)}</span>
+                                            </div>
+                                            <Badge variant="outline" className="h-5 text-[9px] bg-muted/50 font-bold border-border/50">
+                                                pypi
+                                            </Badge>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+
+                        {activeTab === 'node' && renderTabContent('node', (
+                            <div className="space-y-6">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-muted/10 p-4 rounded-2xl border border-border/40">
+                                    <div className="space-y-1">
+                                        <h4 className="text-sm font-bold flex items-center gap-2">
+                                            <Plus className="h-4 w-4 text-emerald-500" />
+                                            Install NPM Package
+                                        </h4>
+                                        <p className="text-[10px] text-muted-foreground font-medium">Add dependencies to your isolated Node.js environment.</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 w-full md:w-auto md:min-w-[300px]">
+                                        <PackageAutocomplete 
+                                            value={pkgName}
+                                            onChange={setPkgName}
+                                            onSelect={(val) => setPkgName(val)}
+                                            options={NODE_PACKAGES}
+                                            placeholder="e.g. lodash, axios..."
+                                            className="h-9"
+                                        />
+                                        <Button 
+                                            className="h-9 px-4 font-bold bg-emerald-600 hover:bg-emerald-700" 
+                                            onClick={() => handleInstall('node')}
+                                            disabled={installing || !pkgName}
+                                        >
+                                            {installing ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+                                            Install
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                                    {Object.entries(npmPackages).sort((a, b) => a[0].localeCompare(b[0])).map(([pkg, ver]) => (
+                                        <div key={pkg} className="group flex items-center justify-between p-3 rounded-xl bg-background border border-border/40 hover:border-emerald-500/40 hover:shadow-md transition-all">
+                                            <div className="flex flex-col min-w-0">
+                                                <span className="text-xs font-bold truncate group-hover:text-emerald-600 transition-colors">{pkg}</span>
+                                                <span className="text-[9px] text-muted-foreground font-mono">{String(ver)}</span>
+                                            </div>
+                                            <Badge variant="outline" className="h-5 text-[9px] bg-muted/50 font-bold border-border/50">
+                                                npm
+                                            </Badge>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+
+                        {activeTab === 'shell' && (
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {Object.entries(availableTools).map(([tool, path]) => (
+                                        <div key={tool} className="flex flex-col gap-3 p-4 rounded-2xl bg-background border border-border/40 hover:border-amber-500/40 transition-all shadow-sm">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600">
+                                                        <Cpu className="h-4 w-4" />
+                                                    </div>
+                                                    <span className="text-sm font-black uppercase tracking-wider">{tool}</span>
+                                                </div>
+                                                <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] font-bold">
+                                                    System
+                                                </Badge>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-tight">Binary Path</span>
+                                                <code className="block p-2 rounded-lg bg-muted/30 text-[10px] font-mono truncate text-muted-foreground" title={String(path)}>
+                                                    {String(path)}
+                                                </code>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </motion.div>
+                </AnimatePresence>
             </div>
         </div>
     );
@@ -378,6 +445,7 @@ const AssetsTabContent = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [selectedDiscovered, setSelectedDiscovered] = useState<Set<string>>(new Set());
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
     
     const queryClient = useQueryClient();
 
@@ -487,6 +555,32 @@ const AssetsTabContent = ({
                     </div>
                     
                     <div className="flex items-center gap-1.5">
+                        <div className="flex items-center bg-background/50 border border-border/40 rounded-lg p-0.5 mr-2">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn(
+                                    "h-7 w-7 rounded-md transition-all",
+                                    viewMode === 'list' ? "bg-primary/10 text-primary shadow-sm" : "text-muted-foreground hover:bg-muted"
+                                )}
+                                onClick={() => setViewMode('list')}
+                                title="List View"
+                            >
+                                <List className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn(
+                                    "h-7 w-7 rounded-md transition-all",
+                                    viewMode === 'grid' ? "bg-primary/10 text-primary shadow-sm" : "text-muted-foreground hover:bg-muted"
+                                )}
+                                onClick={() => setViewMode('grid')}
+                                title="Grid View"
+                            >
+                                <LayoutGrid className="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
                         <Button
                             onClick={onDiscover}
                             size="icon"
@@ -525,7 +619,7 @@ const AssetsTabContent = ({
                             exit={{ opacity: 0, height: 0 }}
                             className="border-b border-border/40 rounded-none relative z-20"
                         >
-                            <div className="sticky top-0 z-30 px-6 py-2.5 bg-muted/90 backdrop-blur-md border-b border-border/40 flex items-center justify-between gap-2 shadow-sm">
+                            <div className="px-6 py-2.5 bg-muted/30 border-b border-border/40 flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2.5">
                                     <div className="p-1 rounded-lg bg-amber-500/20 text-amber-600 dark:text-amber-500">
                                         <Sparkles className="h-3.5 w-3.5" />
@@ -578,64 +672,77 @@ const AssetsTabContent = ({
                                     </Badge>
                                 )}
                             </div>
-                            <Table wrapperClassName="rounded-none border-none shadow-none">
-                                <TableHeader className="bg-muted/30 border-b border-border/20">
-                                    <TableRow className="hover:bg-transparent border-none">
-                                        <TableHead className="w-12 pl-6">
-                                            <Checkbox
-                                                checked={selectedDiscovered.size > 0 && selectedDiscovered.size === filteredDiscovered.length}
-                                                onCheckedChange={(checked) => handleSelectAllDiscovered(Boolean(checked))}
-                                                className="border-amber-500/50 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
-                                            />
-                                        </TableHead>
-                                        <TableHead className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Asset Name</TableHead>
-                                        <TableHead className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70 text-right pr-6">Type</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredDiscovered.map((asset, idx) => (
-                                        <TableRow 
-                                            key={idx} 
-                                            className={cn(
-                                                "hover:bg-amber-500/5 transition-colors border-b border-amber-500/10 group",
-                                                selectedDiscovered.has(asset.name) && "bg-amber-500/5"
-                                            )}
-                                        >
-                                            <TableCell className="pl-6 py-2.5">
+                            {viewMode === 'list' ? (
+                                <Table wrapperClassName="rounded-none border-none shadow-none">
+                                    <TableHeader className="bg-muted/30 border-b border-border/20">
+                                        <TableRow className="hover:bg-transparent border-none">
+                                            <TableHead className="w-12 pl-6">
                                                 <Checkbox
-                                                    checked={selectedDiscovered.has(asset.name)}
-                                                    onCheckedChange={(checked) => handleSelectDiscovered(asset.name, Boolean(checked))}
-                                                    className="border-amber-500/30 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                                                    checked={selectedDiscovered.size > 0 && selectedDiscovered.size === filteredDiscovered.length}
+                                                    onCheckedChange={(checked) => handleSelectAllDiscovered(Boolean(checked))}
+                                                    className="border-amber-500/50 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
                                                 />
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col">
-                                                    <span className="font-bold text-sm text-foreground/80 group-hover:text-amber-700 dark:group-hover:text-amber-500 transition-colors">
-                                                        {asset.name}
-                                                    </span>
-                                                    {asset.fully_qualified_name && asset.fully_qualified_name !== asset.name && (
-                                                        <span className="text-[10px] text-muted-foreground/60 font-mono truncate max-w-[300px]">
-                                                            {asset.fully_qualified_name}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-right pr-6 py-2.5">
-                                                <Badge variant="outline" className="capitalize text-[9px] font-bold tracking-widest bg-muted/50 border-amber-500/20 text-muted-foreground">
-                                                    {asset.type || asset.asset_type}
-                                                </Badge>
-                                            </TableCell>
+                                            </TableHead>
+                                            <TableHead className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Asset Name</TableHead>
+                                            <TableHead className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70 text-right pr-6">Type</TableHead>
                                         </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredDiscovered.map((asset, idx) => (
+                                            <TableRow 
+                                                key={idx} 
+                                                className={cn(
+                                                    "hover:bg-amber-500/5 transition-colors border-b border-amber-500/10 group",
+                                                    selectedDiscovered.has(asset.name) && "bg-amber-500/5"
+                                                )}
+                                            >
+                                                <TableCell className="pl-6 py-2.5">
+                                                    <Checkbox
+                                                        checked={selectedDiscovered.has(asset.name)}
+                                                        onCheckedChange={(checked) => handleSelectDiscovered(asset.name, Boolean(checked))}
+                                                        className="border-amber-500/30 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                                                    />
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-sm text-foreground/80 group-hover:text-amber-700 dark:group-hover:text-amber-500 transition-colors">
+                                                            {asset.name}
+                                                        </span>
+                                                        {asset.fully_qualified_name && asset.fully_qualified_name !== asset.name && (
+                                                            <span className="text-[10px] text-muted-foreground/60 font-mono truncate max-w-[300px]">
+                                                                {asset.fully_qualified_name}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-right pr-6 py-2.5">
+                                                    <Badge variant="outline" className="capitalize text-[9px] font-bold tracking-widest bg-muted/50 border-amber-500/20 text-muted-foreground">
+                                                        {asset.type || asset.asset_type}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6 bg-amber-500/5">
+                                    {filteredDiscovered.map((asset, idx) => (
+                                        <DiscoveredAssetCard 
+                                            key={idx} 
+                                            asset={asset} 
+                                            selected={selectedDiscovered.has(asset.name)}
+                                            onSelect={(checked) => handleSelectDiscovered(asset.name, checked)}
+                                        />
                                     ))}
-                                </TableBody>
-                            </Table>
+                                </div>
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>
 
                 {/* Managed Assets Section */}
                 <div className="relative z-10">
-                    <div className="sticky top-0 z-30 px-6 py-2.5 bg-muted/90 backdrop-blur-md border-b border-border/40 font-bold text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-2 shadow-sm">
+                    <div className="px-6 py-2.5 bg-muted/30 border-b border-border/40 font-bold text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                         <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
                         Active Managed Assets
                     </div>
@@ -656,22 +763,30 @@ const AssetsTabContent = ({
                             ))}
                         </div>
                     ) : filteredAssets.length > 0 ? (
-                        <Table wrapperClassName="rounded-none border-none shadow-none">
-                            <TableHeader className="bg-muted/20 border-b border-border/20">
-                                <TableRow className="hover:bg-transparent border-none">
-                                    <TableHead className="pl-6 font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Asset</TableHead>
-                                    <TableHead className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Type</TableHead>
-                                    <TableHead className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Schema</TableHead>
-                                    <TableHead className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Sync Status</TableHead>
-                                    <TableHead className="text-right pr-6 font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody className="divide-y divide-border/30">
+                        viewMode === 'list' ? (
+                            <Table wrapperClassName="rounded-none border-none shadow-none">
+                                <TableHeader className="bg-muted/20 border-b border-border/20">
+                                    <TableRow className="hover:bg-transparent border-none">
+                                        <TableHead className="pl-6 font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Asset</TableHead>
+                                        <TableHead className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Type</TableHead>
+                                        <TableHead className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Schema</TableHead>
+                                        <TableHead className="font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Sync Status</TableHead>
+                                        <TableHead className="text-right pr-6 font-bold text-[10px] uppercase tracking-wider text-muted-foreground/70">Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody className="divide-y divide-border/30">
+                                    {filteredAssets.map((asset) => (
+                                        <AssetTableRow key={asset.id} asset={asset} connectionId={connectionId} />
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
                                 {filteredAssets.map((asset) => (
-                                    <AssetTableRow key={asset.id} asset={asset} connectionId={connectionId} />
+                                    <AssetGridItem key={asset.id} asset={asset} connectionId={connectionId} />
                                 ))}
-                            </TableBody>
-                        </Table>
+                            </div>
+                        )
                     ) : (
                         <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
                             <motion.div
@@ -730,184 +845,233 @@ const ConfigurationTabContent = ({
 }) => {
     const config = connection.config || {};
     
-    const mainFields = ['host', 'port', 'database', 'username', 'database_path', 'url', 'account', 'warehouse', 'schema', 'role', 'bucket', 'region'];
-    const sensitiveKeys = ['password', 'secret', 'token', 'key', 'api_key', 'access_key'];
+    // Grouping logic
+    const connectivityFields = ['host', 'port', 'url', 'account', 'region'];
+    const storageFields = ['database', 'database_path', 'warehouse', 'schema', 'role', 'bucket'];
+    const sensitiveKeys = ['password', 'secret', 'token', 'key', 'api_key', 'access_key', 'private_key'];
     
-    const configEntries = Object.entries(config).filter(
-        ([key]) => !mainFields.includes(key.toLowerCase()) && !sensitiveKeys.some(sk => key.toLowerCase().includes(sk))
+    const otherEntries = Object.entries(config).filter(
+        ([key]) => !connectivityFields.includes(key.toLowerCase()) && 
+                  !storageFields.includes(key.toLowerCase()) && 
+                  !sensitiveKeys.some(sk => key.toLowerCase().includes(sk))
     );
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-border/50 hover:scrollbar-thumb-border/80 scrollbar-track-transparent">
-            {/* Config Details */}
-            <div className="lg:col-span-3 space-y-6 pb-20">
-                <div className="rounded-2xl border border-border/40 bg-background/40 backdrop-blur-xl shadow-sm overflow-hidden">
-                    <div className="p-5 border-b border-border/40 bg-muted/10 flex items-center justify-between">
-                        <div className="space-y-0.5">
-                            <h3 className="text-sm font-bold flex items-center gap-2 text-foreground">
-                                <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                                    <Settings2 className="h-3.5 w-3.5" />
-                                </div>
-                                Technical Parameters
-                            </h3>
+        <div className="h-full flex flex-col rounded-3xl border border-border/40 bg-background/40 backdrop-blur-xl shadow-xl overflow-hidden relative">
+            {/* Header */}
+            <div className="p-5 md:p-6 border-b border-border/40 bg-muted/10 flex flex-col md:flex-row items-center justify-between shrink-0 gap-4">
+                <div className="space-y-1 relative z-10">
+                    <h3 className="text-lg font-bold flex items-center gap-2 text-foreground">
+                        <div className="p-2 rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
+                            <Settings2 className="h-4 w-4" />
                         </div>
-                        <Badge variant="outline" className="text-[10px] font-bold bg-primary/5 text-primary border-primary/20 tracking-widest px-2 py-0.5">
-                            CONFIG ID: {connection.id}
-                        </Badge>
-                    </div>
-                    
-                    <div className="p-6 space-y-6">
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            <ConfigField label="Display Name" value={connection.name} copyable />
-                            <ConfigField 
-                                label="Connector Engine" 
-                                value={
-                                    <Badge variant="outline" className="capitalize font-bold bg-muted/50 text-foreground/70 border-border/50 tracking-wider text-[10px]">
-                                        {connection.connector_type}
-                                    </Badge>
-                                } 
-                            />
-                            {config.host && <ConfigField label="Hostname" value={config.host} copyable />}
-                            {config.port && <ConfigField label="Port" value={String(config.port)} />}
-                            {config.database && <ConfigField label="Database" value={config.database} copyable />}
-                            {config.username && <ConfigField label="Username" value={config.username} copyable />}
-                            {config.database_path && <ConfigField label="Path" value={config.database_path} copyable />}
-                            {config.account && <ConfigField label="Account" value={config.account} copyable />}
-                            {config.warehouse && <ConfigField label="Warehouse" value={config.warehouse} />}
-                            {config.schema && <ConfigField label="Schema" value={config.schema} />}
-                            {config.bucket && <ConfigField label="Bucket" value={config.bucket} copyable />}
-                            {config.region && <ConfigField label="Region" value={config.region} />}
-                        </div>
-
-                        {configEntries.length > 0 && (
-                            <>
-                                <div className="h-px bg-linear-to-r from-transparent via-border/30 to-transparent" />
-                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                    {configEntries.map(([key, value]) => (
-                                        <ConfigField 
-                                            key={key} 
-                                            label={key.replace(/_/g, ' ')} 
-                                            value={typeof value === 'object' ? JSON.stringify(value) : String(value)} 
-                                            copyable 
-                                        />
-                                    ))}
-                                </div>
-                            </>
-                        )}
-
-                        <div className="h-px bg-linear-to-r from-transparent via-border/30 to-transparent" />
-
-                        <div className="space-y-3">
-                            <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground/70 flex items-center gap-2">
-                                <Key className="h-3 w-3 text-primary/70" /> 
-                                Security & Authentication
-                            </h4>
-                            <div className="rounded-xl border border-border/40 bg-muted/5 p-4 flex items-center justify-between shadow-inner">
-                                <div className="space-y-1">
-                                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Storage Status</p>
-                                    <div className="font-mono text-xs tracking-[0.4em] text-foreground/20">••••••••••••••••</div>
-                                </div>
-                                <Badge variant="outline" className="text-[9px] bg-emerald-500/5 text-emerald-600 dark:text-emerald-500 border-emerald-500/20 font-bold px-2 py-0.5 uppercase tracking-widest">
-                                    <ShieldCheck className="h-3 w-3 mr-1" />
-                                    Encrypted
-                                </Badge>
-                            </div>
-                        </div>
-
-                        {connection.description && (
-                            <ConfigField label="Administrative Description" value={connection.description} />
-                        )}
-                        
-                        <div className="h-px bg-linear-to-r from-transparent via-border/30 to-transparent" />
-
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <ConfigField label="Created On" value={format(new Date(connection.created_at || ''), 'PPP')} />
-                            <ConfigField label="Last Updated" value={format(new Date(connection.updated_at || ''), 'PPP')} />
-                        </div>
-                    </div>
+                        Connectivity & Parameters
+                    </h3>
+                    <p className="text-[10px] text-muted-foreground font-bold tracking-widest pl-1 uppercase opacity-70">
+                        TECHNICAL SPECIFICATIONS • CONFIG ID: {connection.id}
+                    </p>
                 </div>
-
-                <EnvironmentInfo connectionId={connection.id} />
+                <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 tracking-widest px-3 py-1 font-black rounded-lg text-[9px]">
+                        {connection.connector_type.toUpperCase()} ENGINE
+                    </Badge>
+                </div>
             </div>
 
-            {/* Side Panel Info */}
-            <div className="space-y-6 h-fit">
-                {/* Usage Stats Section */}
-                <div className="rounded-2xl border border-border/40 bg-background/40 backdrop-blur-xl shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-border/40 bg-muted/10 flex items-center gap-2">
-                        <Activity className="h-4 w-4 text-primary" />
-                        <h4 className="text-xs font-bold text-foreground uppercase tracking-widest">
-                            Usage Statistics
-                        </h4>
-                    </div>
-                    <div className="p-4 space-y-4">
-                        {loadingUsageStats ? (
-                            <div className="space-y-3">
-                                <Skeleton className="h-12 w-full rounded-xl" />
-                                <Skeleton className="h-12 w-full rounded-xl" />
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="p-3 rounded-xl bg-muted/20 border border-border/30 text-center">
-                                    <div className="text-xl font-black text-primary">
-                                        {usageStats?.last_24h_runs || 0}
-                                    </div>
-                                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">
-                                        24h Runs
-                                    </div>
+            {/* Scrollable Content */}
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-border/50 hover:scrollbar-thumb-border/80 scrollbar-track-transparent">
+                <div className="p-6 md:p-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        {/* Main Configuration Details */}
+                        <div className="lg:col-span-3 space-y-10">
+                            {/* Connectivity Group */}
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-px flex-1 bg-linear-to-r from-transparent via-border/40 to-transparent" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/80 flex items-center gap-2 whitespace-nowrap">
+                                        <Wifi className="h-3 w-3" /> Connectivity
+                                    </h4>
+                                    <div className="h-px flex-1 bg-linear-to-r from-transparent via-border/40 to-transparent" />
                                 </div>
-                                <div className="p-3 rounded-xl bg-muted/20 border border-border/30 text-center">
-                                    <div className="text-xl font-black text-emerald-500">
-                                        {usageStats?.sync_success_rate ? `${usageStats.sync_success_rate.toFixed(0)}%` : '100%'}
-                                    </div>
-                                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">
-                                        Success Rate
-                                    </div>
+                                <div className="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                                    <ConfigField label="Display Name" value={connection.name} copyable />
+                                    {config.host && <ConfigField label="Hostname" value={config.host} copyable />}
+                                    {config.port && <ConfigField label="Port" value={String(config.port)} />}
+                                    {config.url && <ConfigField label="Endpoint URL" value={config.url} copyable />}
+                                    {config.account && <ConfigField label="Account ID" value={config.account} copyable />}
+                                    {config.region && <ConfigField label="Cloud Region" value={config.region} />}
                                 </div>
                             </div>
-                        )}
-                        <div className="pt-2">
-                            <div className="flex justify-between items-center text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 px-1">
-                                <span>Total (7d)</span>
-                                <span>{usageStats?.last_7d_runs || 0} runs</span>
-                            </div>
-                            <div className="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden border border-border/20">
-                                <div 
-                                    className="h-full bg-primary rounded-full transition-all duration-500" 
-                                    style={{ width: `${usageStats?.sync_success_rate || 100}%` }} 
-                                />
-                            </div>
-                        </div>
-                        <div className="flex items-center justify-between text-[10px] font-bold px-1">
-                            <span className="text-muted-foreground uppercase tracking-widest">Avg Latency</span>
-                            <span className="text-foreground">{usageStats?.average_latency_ms ? `${usageStats.average_latency_ms.toFixed(0)}ms` : 'N/A'}</span>
-                        </div>
-                    </div>
-                </div>
 
-                <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 backdrop-blur-xl shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-amber-500/20 bg-amber-500/10 flex items-center gap-2">
-                        <AlertTriangle className="h-4 w-4 text-amber-600" />
-                        <h4 className="text-xs font-bold text-amber-700 dark:text-amber-500 uppercase tracking-widest">
-                            Impact Analysis
-                        </h4>
-                    </div>
-                    <div className="p-4 space-y-4">
-                        <div className="text-xs text-amber-900/70 dark:text-amber-200/70 leading-relaxed font-semibold">
-                            {loadingImpact ? (
-                                <div className="space-y-3">
-                                    <Skeleton className="h-4 w-full bg-amber-500/10" />
-                                    <Skeleton className="h-4 w-[85%] bg-amber-500/10" />
+                            {/* Storage/Database Group */}
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-px flex-1 bg-linear-to-r from-transparent via-border/40 to-transparent" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500/80 flex items-center gap-2 whitespace-nowrap">
+                                        <Database className="h-3 w-3" /> Storage & Workspace
+                                    </h4>
+                                    <div className="h-px flex-1 bg-linear-to-r from-transparent via-border/40 to-transparent" />
                                 </div>
-                            ) : (
-                                <>
-                                    Actively utilized by{' '}
-                                    <span className="text-amber-700 dark:text-amber-500 font-black">
-                                        {impactData?.pipeline_count || 0} pipelines
-                                    </span>.
-                                    Parameter changes will disrupt scheduled syncs.
-                                </>
+                                <div className="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                                    {config.database && <ConfigField label="Database" value={config.database} copyable />}
+                                    {config.database_path && <ConfigField label="File System Path" value={config.database_path} copyable />}
+                                    {config.warehouse && <ConfigField label="Warehouse" value={config.warehouse} />}
+                                    {config.schema && <ConfigField label="Default Schema" value={config.schema} />}
+                                    {config.role && <ConfigField label="Assigned Role" value={config.role} />}
+                                    {config.bucket && <ConfigField label="S3/GCS Bucket" value={config.bucket} copyable />}
+                                </div>
+                            </div>
+
+                            {/* Security Section */}
+                            <div className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-px flex-1 bg-linear-to-r from-transparent via-border/40 to-transparent" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground flex items-center gap-2 whitespace-nowrap">
+                                        <Shield className="h-3 w-3" /> Security & Identity
+                                    </h4>
+                                    <div className="h-px flex-1 bg-linear-to-r from-transparent via-border/40 to-transparent" />
+                                </div>
+                                <div className="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 px-1">Access Credentials</label>
+                                        <div className="h-[44px] flex items-center justify-between px-4 rounded-xl border border-border/40 bg-muted/5 backdrop-blur-sm">
+                                            <div className="font-mono text-xs tracking-[0.4em] text-foreground/20">••••••••</div>
+                                            <Badge variant="outline" className="text-[8px] bg-emerald-500/5 text-emerald-600 dark:text-emerald-500 border-emerald-500/20 font-black px-1.5 py-0 uppercase">
+                                                Encrypted
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                    {config.username && <ConfigField label="Identity" value={config.username} copyable />}
+                                    <ConfigField label="Storage Status" value="Vault Protected" className="opacity-80" />
+                                </div>
+                            </div>
+
+                            {otherEntries.length > 0 && (
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-px flex-1 bg-linear-to-r from-transparent via-border/40 to-transparent" />
+                                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500/80 flex items-center gap-2 whitespace-nowrap">
+                                            <Globe className="h-3 w-3" /> Extended Properties
+                                        </h4>
+                                        <div className="h-px flex-1 bg-linear-to-r from-transparent via-border/40 to-transparent" />
+                                    </div>
+                                    <div className="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                                        {otherEntries.map(([key, value]) => (
+                                            <ConfigField 
+                                                key={key} 
+                                                label={key.replace(/_/g, ' ')} 
+                                                value={typeof value === 'object' ? JSON.stringify(value) : String(value)} 
+                                                copyable 
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
                             )}
+
+                            {/* Metadata Section */}
+                            <div className="space-y-6 pt-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="h-px flex-1 bg-linear-to-r from-transparent via-border/40 to-transparent" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 flex items-center gap-2 whitespace-nowrap">
+                                        Metadata
+                                    </h4>
+                                    <div className="h-px flex-1 bg-linear-to-r from-transparent via-border/40 to-transparent" />
+                                </div>
+                                <div className="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                                    <ConfigField label="Created On" value={format(new Date(connection.created_at || ''), 'PPP')} />
+                                    <ConfigField label="Last Updated" value={format(new Date(connection.updated_at || ''), 'PPP')} />
+                                    {connection.description && (
+                                        <ConfigField label="Administrative Note" value={connection.description} className="lg:col-span-1" />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Side Panel Info */}
+                        <div className="space-y-6 lg:border-l lg:border-border/20 lg:pl-8">
+                            <div className="space-y-2 mb-4">
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 px-1">Health & Activity</h4>
+                            </div>
+                            {/* Usage Stats Section */}
+                            <div className="rounded-2xl border border-border/40 bg-background/40 backdrop-blur-xl shadow-sm overflow-hidden">
+                                <div className="p-4 border-b border-border/40 bg-muted/10 flex items-center gap-2 text-primary">
+                                    <Activity className="h-3.5 w-3.5" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest">
+                                        Usage Statistics
+                                    </h4>
+                                </div>
+                                <div className="p-5 space-y-5">
+                                    {loadingUsageStats ? (
+                                        <div className="space-y-3">
+                                            <Skeleton className="h-12 w-full rounded-xl" />
+                                            <Skeleton className="h-12 w-full rounded-xl" />
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="p-3 rounded-xl bg-muted/20 border border-border/30 text-center">
+                                                <div className="text-xl font-black text-primary">
+                                                    {usageStats?.last_24h_runs || 0}
+                                                </div>
+                                                <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5 opacity-60">
+                                                    24h Runs
+                                                </div>
+                                            </div>
+                                            <div className="p-3 rounded-xl bg-muted/20 border border-border/30 text-center">
+                                                <div className="text-xl font-black text-emerald-500">
+                                                    {usageStats?.sync_success_rate ? `${usageStats.sync_success_rate.toFixed(0)}%` : '100%'}
+                                                </div>
+                                                <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5 opacity-60">
+                                                    Success
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="space-y-3 pt-1">
+                                        <div className="flex justify-between items-center text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">
+                                            <span>Weekly Volume</span>
+                                            <span className="text-foreground">{usageStats?.last_7d_runs || 0} runs</span>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-muted/30 rounded-full overflow-hidden border border-border/20">
+                                            <div 
+                                                className="h-full bg-primary rounded-full transition-all duration-700" 
+                                                style={{ width: `${usageStats?.sync_success_rate || 100}%` }} 
+                                            />
+                                        </div>
+                                        <div className="flex items-center justify-between text-[10px] font-bold px-1">
+                                            <span className="text-muted-foreground/60 uppercase tracking-widest">Avg Latency</span>
+                                            <span className="text-foreground font-mono">{usageStats?.average_latency_ms ? `${usageStats.average_latency_ms.toFixed(0)}ms` : 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 backdrop-blur-sm shadow-sm overflow-hidden">
+                                <div className="p-4 border-b border-amber-500/20 bg-amber-500/10 flex items-center gap-2 text-amber-600">
+                                    <AlertTriangle className="h-3.5 w-3.5" />
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest">
+                                        Impact Analysis
+                                    </h4>
+                                </div>
+                                <div className="p-5">
+                                    <div className="text-[11px] text-amber-900/70 dark:text-amber-200/70 leading-relaxed font-bold">
+                                        {loadingImpact ? (
+                                            <div className="space-y-3">
+                                                <Skeleton className="h-3 w-full bg-amber-500/10" />
+                                                <Skeleton className="h-3 w-[85%] bg-amber-500/10" />
+                                            </div>
+                                        ) : (
+                                            <>
+                                                This connection is actively utilized by{' '}
+                                                <span className="text-amber-700 dark:text-amber-500 font-black underline decoration-amber-500/30 underline-offset-4">
+                                                    {impactData?.pipeline_count || 0} pipelines
+                                                </span>.
+                                                <br /><br />
+                                                Any parameter changes will immediately disrupt scheduled synchronizations.
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -915,7 +1079,6 @@ const ConfigurationTabContent = ({
         </div>
     );
 };
-
 const ConnectionConfigStats = ({ connection, connectionId }: { connection: any; connectionId: number }) => {
     const {
         data: impactData,
@@ -956,6 +1119,17 @@ export const ConnectionDetailsPage: React.FC = () => {
     const [discoveredAssets, setDiscoveredAssets] = useState<any[]>([]);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+    const { data: envInfo } = useQuery({
+        queryKey: ['connectionEnvironment', connectionId],
+        queryFn: () => getConnectionEnvironment(connectionId),
+        enabled: !!connectionId
+    });
+
+    const hasEnvironment = useMemo(() => {
+        if (!envInfo) return false;
+        return !!(envInfo.python_version || (envInfo.available_tools && Object.keys(envInfo.available_tools).length > 0));
+    }, [envInfo]);
 
     const {
         data: connection,
@@ -1219,10 +1393,23 @@ export const ConnectionDetailsPage: React.FC = () => {
                             <Server className="h-3.5 w-3.5" />
                             Configuration
                         </TabsTrigger>
+
+                        {hasEnvironment && (
+                            <TabsTrigger
+                                value="environment"
+                                className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-1.5 text-xs font-bold ring-offset-background transition-all focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
+                            >
+                                <Terminal className="h-3.5 w-3.5" />
+                                Environment
+                            </TabsTrigger>
+                        )}
                     </TabsList>
                 </div>
 
-                <div className="flex-1 min-h-0">
+                <div className={cn(
+                    "flex-1 min-h-0",
+                    isZenMode ? "h-[calc(100vh-10rem)]" : "h-[calc(100vh-16rem)]"
+                )}>
                     <TabsContent value="assets" className="h-full mt-0 focus-visible:outline-none">
                         <AssetsTabContent
                             connectionId={connectionId}
@@ -1241,7 +1428,13 @@ export const ConnectionDetailsPage: React.FC = () => {
                             connectionId={connectionId}
                         />
                     </TabsContent>
-                                </div>
+
+                    {hasEnvironment && (
+                        <TabsContent value="environment" className="h-full mt-0 focus-visible:outline-none">
+                            <EnvironmentInfo connectionId={connectionId} />
+                        </TabsContent>
+                    )}
+                </div>
                             </Tabs>
                 
                             <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

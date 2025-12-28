@@ -166,7 +166,7 @@ const AssetsTabContent = ({
                                 exit={{ opacity: 0, y: -10 }}
                                 className="relative"
                             >
-                                <div className="sticky top-0 z-10 px-6 py-3 bg-linear-to-r from-amber-500/10 via-amber-500/5 to-transparent border-y border-amber-500/20 backdrop-blur-md flex items-center justify-between gap-2">
+                                <div className="px-6 py-3 bg-linear-to-r from-amber-500/10 via-amber-500/5 to-transparent border-y border-amber-500/20 flex items-center justify-between gap-2">
                                     <div className="flex items-center gap-2.5">
                                         <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-500">
                                             <Sparkles className="h-4 w-4" />
