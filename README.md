@@ -1,73 +1,55 @@
-# React + TypeScript + Vite
+# SynqX Console - Premium ETL Orchestration UI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The SynqX Console is a high-fidelity, React-based management interface for the SynqX ETL Engine. It provides a "Glass Box" experience for designing, monitoring, and debugging complex data pipelines.
 
-Currently, two official plugins are available:
+## ✨ High-Level Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 1. Visual DAG Orchestrator
+- **Visual Editor**: Drag-and-drop node interface powered by React Flow.
+- **Real-time Validation**: Instant feedback on DAG circularity and operator configuration requirements.
+- **Version Control**: Manage immutable snapshots and perform instant rollbacks.
 
-## React Compiler
+### 2. Forensic Terminal
+- **Live Logs**: Watch execution logs stream in real-time via WebSockets.
+- **Data Sniffing**: Inspect sample data snapshots at each node boundary to identify transformation bugs.
+- **Resource Monitoring**: Track CPU and Memory utilization for every task in the graph.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 3. Connection Registry
+- **Discovery Engine**: Automated scanning of remote systems to identify tables, files, and API endpoints.
+- **FQN Standard**: Unified handling of technical identifiers (Paths, Schemas, Prefixes) across different systems.
+- **Dependency Management**: Manage isolated Python/Node environments for custom script execution directly from the UI.
 
-## Expanding the ESLint configuration
+### 4. Knowledge Base
+- **Integrated Docs**: MDX-based technical reference accessible publicly.
+- **Command Palette (⌘K)**: Global search for pipelines, connections, and documentation.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🚀 Tech Stack
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **Framework**: React 18+ with TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS with Radix UI primitives
+- **State Management**: React Query (TanStack) for server state
+- **Visualization**: React Flow for DAG orchestration
+- **Observability**: WebSocket-driven real-time updates
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## 🛠️ Development
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Setup
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Configure API endpoint in `.env`:
+   ```env
+   VITE_API_BASE_URL=http://localhost:8000/api/v1
+   ```
+3. Run development server:
+   ```bash
+   npm run dev
+   ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+### Project Structure
+- `src/components/features`: Domain-specific components (Pipelines, Connections, Jobs).
+- `src/docs`: MDX technical documentation.
+- `src/hooks`: Custom hooks for Auth, WebSockets, and real-time state.
+- `src/lib`: API clients and type definitions.
