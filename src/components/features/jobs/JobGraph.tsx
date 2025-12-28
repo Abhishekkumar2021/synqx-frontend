@@ -37,11 +37,11 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
     dagreGraph.setGraph({ 
         rankdir: 'LR',
         align: 'UL',
-        ranksep: 160,
-        nodesep: 100
+        ranksep: 400,
+        nodesep: 200
     });
     
-    nodes.forEach((node) => dagreGraph.setNode(node.id, { width: 280, height: 100 }));
+    nodes.forEach((node) => dagreGraph.setNode(node.id, { width: 340, height: 200 }));
     edges.forEach((edge) => dagreGraph.setEdge(edge.source, edge.target));
     dagre.layout(dagreGraph);
 
@@ -115,6 +115,10 @@ export const JobGraph: React.FC<JobGraphProps> = ({ run }) => {
             const sr = stepRunDataMap[n.node_id];
             const existingNode = nodes.find(en => en.id === n.node_id);
             
+            const throughput = (sr?.records_out && sr?.duration_seconds && sr.duration_seconds > 0) 
+                ? Math.round(sr.records_out / sr.duration_seconds) 
+                : undefined;
+
             return {
                 id: n.node_id,
                 type: mapOperatorToNodeType(n.operator_type),
@@ -124,6 +128,8 @@ export const JobGraph: React.FC<JobGraphProps> = ({ run }) => {
                     operator_class: n.operator_class,
                     status: status,
                     rowsProcessed: sr?.records_out,
+                    duration: sr?.duration_seconds ? sr.duration_seconds * 1000 : undefined, // to ms
+                    throughput: throughput,
                     error: sr?.error_message,
                     readOnly: true
                 },
@@ -138,16 +144,15 @@ export const JobGraph: React.FC<JobGraphProps> = ({ run }) => {
             const isSourceSuccess = sourceStatus === 'success' || sourceStatus === 'completed';
             const isSourceFailed = sourceStatus === 'failed' || sourceStatus === 'error';
             
-            let strokeColor = 'var(--color-border)';
-            let strokeWidth = 1.5;
-            let opacity = 0.3;
+            let strokeColor = 'var(--color-primary)';
+            let strokeWidth = 2;
+            let opacity = 0.4;
             let filter = 'none';
             let animated = false;
 
             if (isSourceSuccess) {
                 strokeColor = 'var(--color-chart-2)';
                 opacity = 0.8;
-                strokeWidth = 2;
             } else if (isSourceRunning) {
                 strokeColor = 'var(--color-primary)';
                 opacity = 1;
@@ -157,7 +162,6 @@ export const JobGraph: React.FC<JobGraphProps> = ({ run }) => {
             } else if (isSourceFailed) {
                 strokeColor = 'var(--color-destructive)';
                 opacity = 0.8;
-                strokeWidth = 2;
             }
 
             return {
@@ -170,13 +174,9 @@ export const JobGraph: React.FC<JobGraphProps> = ({ run }) => {
             };
         });
 
-        // Apply layout if this is the first load
-        if (nodes.length === 0) {
-            const layouted = getLayoutedElements(newNodes, newEdges);
-            setNodes(layouted);
-        } else {
-            setNodes(newNodes);
-        }
+        // Always apply layout on load to ensure spacious separation
+        const layouted = getLayoutedElements(newNodes, newEdges);
+        setNodes(layouted);
         setEdges(newEdges);
     }, [run.id, run.step_runs]); // Re-run when ID or steps change
 
@@ -213,8 +213,21 @@ export const JobGraph: React.FC<JobGraphProps> = ({ run }) => {
                     selectionOnDrag={false}
                     zoomOnPinch
                     proOptions={{ hideAttribution: true }}
+                    minZoom={0.1}
+                    maxZoom={4}
                 >
-                    <Background variant={BackgroundVariant.Dots} gap={40} size={1.5} className="opacity-20" />
+                    <Background 
+                        variant={BackgroundVariant.Lines} 
+                        gap={40} 
+                        size={1} 
+                        color={theme === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)'}
+                    />
+                    <Background 
+                        variant={BackgroundVariant.Dots} 
+                        gap={20} 
+                        size={1} 
+                        color={theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}
+                    />
                     <Panel position="top-right" className="flex gap-2">
                         <div className="flex bg-background/80 backdrop-blur-md p-1 rounded-xl border border-border/40 shadow-xl">
                             <Button 

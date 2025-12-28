@@ -142,10 +142,17 @@ export const AssetTableRow: React.FC<AssetTableRowProps> = ({ asset, connectionI
         <TableRow className="group transition-colors border-b border-border/40 hover:bg-muted/30">
             <TableCell className="pl-6 py-2.5 font-medium">
                 <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary ring-1 ring-primary/20 shadow-sm">
+                    <div className="p-2 rounded-xl bg-muted/30 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all shadow-sm ring-1 ring-border/20">
                         {getAssetIcon(asset.asset_type || 'table')}
                     </div>
-                    <span className="text-foreground font-semibold">{asset.name}</span>
+                    <div className="flex flex-col">
+                        <span className="text-foreground font-semibold">{asset.name}</span>
+                        {asset.fully_qualified_name && asset.fully_qualified_name !== asset.name && (
+                            <span className="text-[10px] text-muted-foreground/60 font-mono truncate max-w-[200px]">
+                                {asset.fully_qualified_name}
+                            </span>
+                        )}
+                    </div>
                 </div>
             </TableCell>
             <TableCell className="px-6 py-2.5 capitalize text-muted-foreground text-xs font-medium">{asset.asset_type}</TableCell>

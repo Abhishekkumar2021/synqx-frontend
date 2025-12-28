@@ -25,6 +25,7 @@ export interface OperatorField {
     options?: { label: string; value: string }[];
     configKey: string; // The key in the JSON config
     description?: string;
+    tooltip?: string;
 }
 
 export interface OperatorDefinition {
@@ -45,7 +46,37 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                 type: "source", 
                 opClass: "extractor", 
                 icon: Database, 
-                desc: "Ingest data from a source connection" 
+                desc: "Ingest data from a source connection",
+                fields: [
+                    {
+                        name: 'batch_size', label: 'Batch Size', type: 'number', configKey: 'batch_size', 
+                        placeholder: '1000', 
+                        tooltip: 'Number of rows to fetch per chunk. Adjust based on memory availability.' 
+                    }
+                ]
+            },
+            {
+                label: "REST API Extractor",
+                type: "source",
+                opClass: "rest_api",
+                icon: Database,
+                desc: "Ingest data from a REST API endpoint",
+                fields: [
+                    {
+                        name: 'data_key', label: 'Response Data Key', type: 'text', configKey: 'data_key', 
+                        placeholder: 'data.items', 
+                        tooltip: 'Dot-notation path to the array of records in the JSON response. E.g., if response is { "result": { "users": [...] } }, use "result.users".' 
+                    },
+                    {
+                        name: 'pagination_type', label: 'Pagination', type: 'select', configKey: 'pagination_type', 
+                        options: [
+                            { label: 'None', value: 'none' },
+                            { label: 'Limit/Offset', value: 'limit_offset' },
+                            { label: 'Page Number', value: 'page_number' }
+                        ],
+                        tooltip: 'The method used by the API to navigate through large datasets.'
+                    }
+                ]
             },
             {
                 label: "Loader (Sink)", 
@@ -53,6 +84,20 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                 opClass: "loader", 
                 icon: HardDriveUpload, 
                 desc: "Load data into a destination connection" 
+            },
+            {
+                label: "PostgreSQL Loader",
+                type: "sink",
+                opClass: "postgresql",
+                icon: HardDriveUpload,
+                desc: "Load data into a PostgreSQL table",
+                fields: [
+                    {
+                        name: 'db_schema', label: 'Target Schema', type: 'text', configKey: 'db_schema', 
+                        placeholder: 'public',
+                        tooltip: 'The database schema where the target table resides. Defaults to "public".'
+                    }
+                ]
             }
         ]
     },
@@ -66,7 +111,11 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                 icon: Layers, 
                 desc: "Merge data based on keys",
                 fields: [
-                    { name: 'on', label: 'Join Key', type: 'text', configKey: 'on', placeholder: 'id' },
+                    {
+                        name: 'on', label: 'Join Key', type: 'text', configKey: 'on', 
+                        placeholder: 'id',
+                        tooltip: 'The column name common to both datasets used to align records.'
+                    },
                     {
                         name: 'how', label: 'Join Type', type: 'select', configKey: 'how', 
                         options: [
@@ -74,7 +123,8 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                             { label: 'Left', value: 'left' },
                             { label: 'Right', value: 'right' },
                             { label: 'Outer', value: 'outer' }
-                        ] 
+                        ],
+                        tooltip: 'Inner: intersection only. Left: all from left dataset + matches from right. Outer: all from both.'
                     }
                 ]
             },
@@ -104,7 +154,11 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                 icon: Filter, 
                 desc: "Filter based on predicates",
                 fields: [
-                    { name: 'condition', label: 'Filter Condition', type: 'text', configKey: 'condition', placeholder: "status == 'active'" }
+                    {
+                        name: 'condition', label: 'Filter Condition', type: 'text', configKey: 'condition', 
+                        placeholder: "status == 'active'",
+                        tooltip: 'Python-style boolean expression. Use column names directly. Example: (age > 21) & (country == "US")'
+                    }
                 ]
             },
             {
@@ -114,8 +168,16 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                 icon: ArrowRightLeft, 
                 desc: "Group by and summarize",
                 fields: [
-                    { name: 'group_by', label: 'Group By', type: 'text', configKey: 'group_by', description: 'Comma separated columns' },
-                    { name: 'aggregates', label: 'Aggregates', type: 'json', configKey: 'aggregates', placeholder: '{ "val": "sum" }' }
+                    {
+                        name: 'group_by', label: 'Group By', type: 'text', configKey: 'group_by', 
+                        description: 'Comma separated columns',
+                        tooltip: 'List of columns to group the data by. E.g., "department, region".'
+                    },
+                    {
+                        name: 'aggregates', label: 'Aggregates', type: 'json', configKey: 'aggregates', 
+                        placeholder: '{ "salary": "mean", "id": "count" }',
+                        tooltip: 'Map of column names to aggregation functions. Available: sum, count, mean, median, min, max, std, var.'
+                    }
                 ]
             },
             {
@@ -125,13 +187,18 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                 icon: SortAsc, 
                 desc: "Order data by columns",
                 fields: [
-                    { name: 'columns', label: 'Sort Columns', type: 'text', configKey: 'columns', description: 'Comma separated columns' },
+                    {
+                        name: 'columns', label: 'Sort Columns', type: 'text', configKey: 'columns', 
+                        description: 'Comma separated columns',
+                        tooltip: 'Primary and secondary columns to sort by.'
+                    },
                     {
                         name: 'ascending', label: 'Direction', type: 'select', configKey: 'ascending',
                         options: [
                             { label: 'Ascending', value: 'true' },
                             { label: 'Descending', value: 'false' }
-                        ]
+                        ],
+                        tooltip: 'Choose whether to sort in increasing (A-Z) or decreasing (Z-A) order.'
                     }
                 ]
             },
@@ -142,9 +209,21 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                 icon: ArrowRightLeft, 
                 desc: "Custom Pandas operations",
                 fields: [
-                    { name: 'filter_query', label: 'Filter Query', type: 'text', configKey: 'filter_query', placeholder: "col > 10" },
-                    { name: 'rename_columns', label: 'Rename Mapping', type: 'json', configKey: 'rename_columns', placeholder: '{"old": "new"}' },
-                    { name: 'drop_columns', label: 'Drop Columns', type: 'text', configKey: 'drop_columns', description: 'Comma separated' }
+                    {
+                        name: 'filter_query', label: 'Filter Query', type: 'text', configKey: 'filter_query', 
+                        placeholder: "col > 10",
+                        tooltip: 'Pandas .query() string. High performance filtering for large dataframes.'
+                    },
+                    {
+                        name: 'rename_columns', label: 'Rename Mapping', type: 'json', configKey: 'columns', 
+                        placeholder: '{"old": "new"}',
+                        tooltip: 'JSON object mapping old column names to new ones. Unmapped columns are kept as is.'
+                    },
+                    {
+                        name: 'drop_columns', label: 'Drop Columns', type: 'text', configKey: 'drop_columns', 
+                        description: 'Comma separated',
+                        tooltip: 'List of columns to remove from the dataset completely.'
+                    }
                 ]
             }
         ]
@@ -159,7 +238,11 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                 icon: ShieldCheck, 
                 desc: "Enforce schema & rules",
                 fields: [
-                    { name: 'schema', label: 'Validation Rules', type: 'json', configKey: 'schema', placeholder: '[ { "column": "id", "check": "not_null" } ]' }
+                    {
+                        name: 'schema', label: 'Validation Rules', type: 'json', configKey: 'schema', 
+                        placeholder: '[ { "column": "id", "check": "not_null" } ]',
+                        tooltip: 'List of validation rules to apply. Ensures data integrity before reaching downstream sinks.'
+                    }
                 ]
             },
             {
@@ -169,14 +252,19 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                 icon: Square, 
                 desc: "Remove duplicate records",
                 fields: [
-                    { name: 'subset', label: 'Subset Columns', type: 'text', configKey: 'subset', description: 'Comma separated' },
+                    {
+                        name: 'subset', label: 'Subset Columns', type: 'text', configKey: 'subset', 
+                        description: 'Comma separated',
+                        tooltip: 'Only consider these columns when identifying duplicates. If empty, all columns are checked.'
+                    },
                     {
                         name: 'keep', label: 'Keep', type: 'select', configKey: 'keep',
                         options: [
                             { label: 'First', value: 'first' },
                             { label: 'Last', value: 'last' },
                             { label: 'None (Drop All)', value: 'false' }
-                        ]
+                        ],
+                        tooltip: 'Which occurrence to keep when duplicates are found.'
                     }
                 ]
             },
@@ -196,10 +284,19 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                             { label: 'Mode', value: 'mode' },
                             { label: 'Forward Fill', value: 'ffill' },
                             { label: 'Backward Fill', value: 'bfill' }
-                        ]
+                        ],
+                        tooltip: 'Mean/Median/Mode: statistical imputation. FFill/BFill: carry previous/next value forward/backward.'
                     },
-                    { name: 'value', label: 'Constant Value', type: 'text', configKey: 'value', description: 'Used if strategy is empty' },
-                    { name: 'subset', label: 'Columns', type: 'text', configKey: 'subset', description: 'Comma separated (optional)' }
+                    {
+                        name: 'value', label: 'Constant Value', type: 'text', configKey: 'value', 
+                        description: 'Used if strategy is empty',
+                        tooltip: 'Static value to replace NULLs with when no statistical strategy is selected.'
+                    },
+                    {
+                        name: 'subset', label: 'Columns', type: 'text', configKey: 'subset', 
+                        description: 'Comma separated (optional)',
+                        tooltip: 'Specific columns to apply the fill logic to.'
+                    }
                 ]
             }
         ]
@@ -214,7 +311,11 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                 icon: FileType, 
                 desc: "Convert column types",
                 fields: [
-                    { name: 'casts', label: 'Type Mapping', type: 'json', configKey: 'casts', placeholder: '{ "col": "int" }' }
+                    {
+                        name: 'casts', label: 'Type Mapping', type: 'json', configKey: 'casts', 
+                        placeholder: '{ "id": "int", "price": "float", "is_active": "bool" }',
+                        tooltip: 'Map of columns to their target data types. Use "int", "float", "str", "bool", or "datetime".'
+                    }
                 ]
             },
             {
@@ -224,7 +325,11 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                 icon: Type, 
                 desc: "Rename dataset columns",
                 fields: [
-                    { name: 'rename_map', label: 'Rename Mapping', type: 'json', configKey: 'rename_map', placeholder: '{ "old": "new" }' }
+                    {
+                        name: 'rename_map', label: 'Rename Mapping', type: 'json', configKey: 'columns', 
+                        placeholder: '{ "old_name": "new_name" }',
+                        tooltip: 'A dictionary where keys are original names and values are new names. Unmapped columns are kept as is.'
+                    }
                 ]
             },
             {
@@ -234,7 +339,11 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                 icon: Trash2, 
                 desc: "Remove specific columns",
                 fields: [
-                    { name: 'columns', label: 'Target Columns', type: 'text', configKey: 'columns', description: 'Comma separated' }
+                    {
+                        name: 'columns', label: 'Target Columns', type: 'text', configKey: 'columns', 
+                        description: 'Comma separated',
+                        tooltip: 'List of column names to be excluded from the data stream.'
+                    }
                 ]
             },
             {
@@ -244,14 +353,18 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                 icon: Regex, 
                 desc: "Pattern based replacement",
                 fields: [
-                    { name: 'column', label: 'Column', type: 'text', configKey: 'column' },
-                    { name: 'pattern', label: 'Pattern', type: 'text', configKey: 'pattern' },
-                    { name: 'replacement', label: 'Replacement', type: 'text', configKey: 'replacement' }
+                    { name: 'column', label: 'Column', type: 'text', configKey: 'column', tooltip: 'The column to apply regex on.' },
+                    { name: 'pattern', label: 'Pattern', type: 'text', configKey: 'pattern', placeholder: '\\d+', tooltip: 'Regular expression pattern to search for.' },
+                    { name: 'replacement', label: 'Replacement', type: 'text', configKey: 'replacement', tooltip: 'String to replace the matches with.' }
                 ]
             },
-            { label: "Python Code", type: "transform", opClass: "code", icon: PlayCircle, desc: "Arbitrary Python execution",
+            { label: "Python Code", type: "transform", opClass: "code_transform", icon: PlayCircle, desc: "Arbitrary Python execution",
                 fields: [
-                    { name: 'code', label: 'Python Code', type: 'textarea', configKey: 'code', placeholder: "def transform(df):\n    return df" }
+                    {
+                        name: 'code', label: 'Python Code', type: 'textarea', configKey: 'code', 
+                        placeholder: "def transform(df):\n    # Custom logic here\n    return df",
+                        tooltip: 'Must define a "transform(df)" function that accepts and returns a Pandas DataFrame.'
+                    }
                 ]
             },
             { label: "No-Op", type: "noop", opClass: "noop", icon: Square, desc: "Pass-through (Testing)" }

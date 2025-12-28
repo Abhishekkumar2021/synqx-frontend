@@ -88,8 +88,8 @@ const dagreGraph = new dagre.graphlib.Graph();
 dagreGraph.setDefaultEdgeLabel(() => ({}));
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
-    dagreGraph.setGraph({ rankdir: 'LR', align: 'UL', ranksep: 120, nodesep: 60 });
-    nodes.forEach((node) => dagreGraph.setNode(node.id, { width: 280, height: 100 }));
+    dagreGraph.setGraph({ rankdir: 'LR', align: 'UL', ranksep: 180, nodesep: 80 });
+    nodes.forEach((node) => dagreGraph.setNode(node.id, { width: 340, height: 200 }));
     edges.forEach((edge) => dagreGraph.setEdge(edge.source, edge.target));
     dagre.layout(dagreGraph);
 
@@ -218,8 +218,8 @@ export const PipelineCanvas: React.FC = () => {
             // Populate Asset IDs
             source_asset_id: n.source_asset_id,
             destination_asset_id: n.destination_asset_id,
-            // Also map to connection_id if stored in config or inferable
-            connection_id: n.config?.connection_id
+            // Also map to connection_id if stored in config or derived from asset
+            connection_id: n.connection_id || n.config?.connection_id
         },
         position: n.config?.ui?.position || { x: 0, y: 0 },
     }));
@@ -233,16 +233,11 @@ export const PipelineCanvas: React.FC = () => {
         style: { strokeWidth: 2 },
     }));
 
-    const needsLayout = flowNodes.length > 0 && flowNodes.every(n => n.position.x === 0 && n.position.y === 0);
+    // Always apply layout on initial mount to ensure clean structure
+    const layouted = getLayoutedElements(flowNodes, flowEdges);
+    setNodes(layouted.nodes);
+    setEdges(layouted.edges);
     
-    if (needsLayout) {
-        const layouted = getLayoutedElements(flowNodes, flowEdges);
-        setNodes(layouted.nodes);
-        setEdges(layouted.edges);
-    } else {
-        setNodes(flowNodes);
-        setEdges(flowEdges);
-    }
     setTimeout(() => window.requestAnimationFrame(() => fitView({ padding: 0.2 })), 100);
   }, [pipeline, specificVersion, setNodes, setEdges, fitView]);
 

@@ -31,6 +31,8 @@ interface EditAssetDialogProps {
 }
 
 type FormValues = {
+    name: string;
+    fully_qualified_name?: string;
     description?: string;
     is_incremental_capable: boolean;
     watermark_column?: string;
@@ -58,6 +60,8 @@ export const EditAssetDialog: React.FC<EditAssetDialogProps> = ({ connectionId, 
             }
 
             reset({
+                name: asset.name,
+                fully_qualified_name: asset.fully_qualified_name || '',
                 description: asset.description || '',
                 is_incremental_capable: asset.is_incremental_capable,
                 watermark_column: watermark_column,
@@ -106,6 +110,8 @@ export const EditAssetDialog: React.FC<EditAssetDialogProps> = ({ connectionId, 
         }
 
         const payload: AssetUpdate = {
+            name: data.name,
+            fully_qualified_name: data.fully_qualified_name,
             description: data.description,
             is_incremental_capable: data.is_incremental_capable,
             config: config
@@ -138,6 +144,29 @@ export const EditAssetDialog: React.FC<EditAssetDialogProps> = ({ connectionId, 
                 <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col">
                     <div className="p-8 pt-6 space-y-6">
                         
+                        {/* Identifiers */}
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Display Name</Label>
+                                <Input
+                                    {...register("name", { required: true })}
+                                    placeholder="e.g. User Activity Feed"
+                                    className="bg-background/50 border-border/40 text-sm h-10 rounded-xl"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                                    Technical Identifier
+                                    <span className="text-[8px] font-mono opacity-50">FQN</span>
+                                </Label>
+                                <Input
+                                    {...register("fully_qualified_name")}
+                                    placeholder="e.g. public.users"
+                                    className="bg-background/50 border-border/40 font-mono text-xs h-10 rounded-xl"
+                                />
+                            </div>
+                        </div>
+
                         {/* Description */}
                         <div className="space-y-2">
                             <Label className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Description</Label>

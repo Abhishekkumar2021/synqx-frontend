@@ -40,6 +40,7 @@ const AssetsTabContent = ({
     const filteredDiscovered = useMemo(() => {
         return discoveredAssets.filter(asset =>
             asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (asset.fully_qualified_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
             (asset.type || asset.asset_type)?.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [discoveredAssets, searchQuery]);
@@ -60,18 +61,22 @@ const AssetsTabContent = ({
         if (checked) {
             setSelectedDiscovered(new Set(filteredDiscovered.map(a => a.name)));
         } else {
-            setSelectedDiscovered(new Set());
+            setSelectedDiscovered(newSet());
         }
     };
 
     const bulkImportMutation = useMutation({
         mutationFn: async ({ assetNames, asDestination }: { assetNames: string[], asDestination: boolean }) => {
-            const assetsToCreate = assetNames.map(name => ({
-                name,
-                asset_type: 'table',
-                is_source: !asDestination,
-                is_destination: asDestination,
-            }));
+            const assetsToCreate = assetNames.map(name => {
+                const discovered = discoveredAssets.find(a => a.name === name);
+                return {
+                    name,
+                    fully_qualified_name: discovered?.fully_qualified_name || name,
+                    asset_type: discovered?.type || discovered?.asset_type || 'table',
+                    is_source: !asDestination,
+                    is_destination: asDestination,
+                };
+            });
             return bulkCreateAssets(connectionId, { assets: assetsToCreate });
         },
         onSuccess: (data) => {
@@ -238,7 +243,16 @@ const AssetsTabContent = ({
                                                         className="border-amber-500/30"
                                                     />
                                                 </TableCell>
-                                                <TableCell className="font-medium text-sm">{asset.name}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium text-sm">{asset.name}</span>
+                                                        {asset.fully_qualified_name && asset.fully_qualified_name !== asset.name && (
+                                                            <span className="text-[10px] text-muted-foreground/60 font-mono truncate max-w-[250px]">
+                                                                {asset.fully_qualified_name}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
                                                 <TableCell>
                                                     <Badge variant="outline" className="capitalize text-[10px] font-semibold bg-muted/50 border-border/40">
                                                         {asset.type || asset.asset_type}

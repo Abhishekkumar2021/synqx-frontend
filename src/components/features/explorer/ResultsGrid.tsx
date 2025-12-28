@@ -288,58 +288,62 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({
 
             {/* Header Control Bar */}
             {!hideHeader && (
-                <div className="flex items-center justify-between px-5 py-3 bg-muted/20 border-b border-border/40 shrink-0 z-50 gap-4">
-                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 bg-muted/20 border-b border-border/40 shrink-0 z-50 gap-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
                         {title && (
-                            <div className="flex flex-col mr-4 shrink-0">
-                                <span className="text-xs font-black uppercase tracking-widest text-foreground">{title}</span>
-                                {description && <span className="text-[10px] text-muted-foreground font-medium">{description}</span>}
+                            <div className="flex flex-col mr-2 shrink-0">
+                                <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-foreground truncate max-w-[120px] sm:max-w-none">{title}</span>
+                                {description && <span className="text-[9px] text-muted-foreground font-medium truncate max-w-[120px] sm:max-w-none hidden xs:block">{description}</span>}
                             </div>
                         )}
-                        <div className="relative w-64 group shrink-0">
+                        <div className="relative flex-1 max-w-[240px] group">
                             <ListFilter className={cn(
-                                "z-20 absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors",
+                                "z-20 absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 transition-colors",
                                 globalFilter ? "text-primary" : "text-muted-foreground group-focus-within:text-primary"
                             )} />
                             <Input
-                                placeholder="Global search..."
-                                className="h-9 pl-10 rounded-xl bg-background/50 border-border/40 text-xs font-bold focus:ring-4 focus:ring-primary/10 transition-all shadow-none"
+                                placeholder="Search..."
+                                className="h-8 pl-9 rounded-xl bg-background/50 border-border/40 text-[11px] font-bold focus:ring-4 focus:ring-primary/10 transition-all shadow-none"
                                 value={globalFilter ?? ''}
                                 onChange={(e) => setGlobalFilter(e.target.value)}
                             />
                         </div>
-                         <div className="flex items-center gap-2">
-                             <Badge variant="outline" className="h-6 px-3 rounded-full border-border/50 text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 bg-muted/20 whitespace-nowrap">
-                                {formatNumber(table.getFilteredRowModel().rows.length)} Results
+                         <div className="flex items-center gap-1.5 shrink-0">
+                             <Badge variant="outline" className="h-5 px-2 rounded-full border-border/50 text-[9px] font-black uppercase tracking-tight text-muted-foreground/60 bg-muted/20 whitespace-nowrap">
+                                {formatNumber(table.getFilteredRowModel().rows.length)}
                             </Badge>
                             {activeFilterCount > 0 && (
-                                <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    onClick={clearAllFilters}
-                                    className="h-6 px-2 text-[10px] text-destructive hover:text-destructive hover:bg-destructive/10 gap-1 rounded-full"
-                                >
-                                    <X size={10} />
-                                    Clear Filters
-                                </Button>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="icon" 
+                                            onClick={clearAllFilters}
+                                            className="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full"
+                                        >
+                                            <X size={12} />
+                                        </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Clear Filters</TooltipContent>
+                                </Tooltip>
                             )}
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                        {/* Density */}
+                    <div className="flex items-center gap-1.5 shrink-0 ml-auto sm:ml-0">
+                        {/* Density & Settings */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/5 text-muted-foreground hover:text-primary">
-                                    <Settings2 size={16} />
+                                    <Settings2 size={15} />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-48 glass-panel border-border/40 rounded-2xl shadow-2xl p-1 z-[10000]" align="end">
                                 <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest opacity-40 px-3 py-2">Density</DropdownMenuLabel>
                                 <DropdownMenuRadioGroup value={density} onValueChange={(v) => setDensity(v as Density)}>
-                                    <DropdownMenuRadioItem value="compact" className="text-xs font-medium">Compact</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="standard" className="text-xs font-medium">Standard</DropdownMenuRadioItem>
-                                    <DropdownMenuRadioItem value="comfortable" className="text-xs font-medium">Comfortable</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="compact" className="text-xs font-medium rounded-lg">Compact</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="standard" className="text-xs font-medium rounded-lg">Standard</DropdownMenuRadioItem>
+                                    <DropdownMenuRadioItem value="comfortable" className="text-xs font-medium rounded-lg">Comfortable</DropdownMenuRadioItem>
                                 </DropdownMenuRadioGroup>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -347,9 +351,9 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({
                         {/* Columns */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 rounded-xl gap-2 text-xs font-medium bg-muted/30 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-all">
+                                <Button variant="ghost" size="sm" className="h-8 rounded-xl gap-2 text-xs font-medium bg-muted/30 hover:bg-primary/5 text-muted-foreground hover:text-primary transition-all px-2 md:px-3">
                                     <Columns size={14} />
-                                    <span className="hidden sm:inline">Columns</span>
+                                    <span className="hidden md:inline">Columns</span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent className="w-56 glass-panel border-border/40 rounded-2xl shadow-2xl p-1 max-h-96 overflow-y-auto custom-scrollbar z-[10000]" align="end">
@@ -374,9 +378,9 @@ export const ResultsGrid: React.FC<ResultsGridProps> = ({
                          {/* Export */}
                          <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 rounded-xl gap-2 font-black uppercase text-[10px] tracking-widest bg-primary/5 hover:bg-primary/10 text-primary transition-all">
+                                <Button variant="ghost" size="sm" className="h-8 rounded-xl gap-2 font-black uppercase text-[10px] tracking-widest bg-primary/5 hover:bg-primary/10 text-primary transition-all px-2 md:px-3">
                                     <Download size={14} />
-                                    Export
+                                    <span className="hidden md:inline">Export</span>
                                 </Button>
                             </DropdownMenuTrigger>
                              <DropdownMenuContent className="w-56 glass-panel border-border/40 rounded-2xl shadow-2xl p-2 z-[10000]" align="end">
@@ -610,22 +614,19 @@ const DataTableColumnHeader = ({ column, title }: { column: Column<any, unknown>
     const isFiltered = column.getIsFiltered();
     
     return (
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-2">
              <div 
-                className="flex items-center gap-2 cursor-pointer flex-1 min-w-0"
+                className="flex items-center gap-2 cursor-pointer flex-1 min-w-0 group/h"
                 onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             >
-                 <div className="p-1.5 rounded-lg bg-primary/5 hover:bg-primary/10 transition-colors shrink-0">
-                    <Database size={12} className="text-primary" />
-                </div>
                 <span className={cn(
-                    "text-[11px] font-black uppercase tracking-widest text-foreground/80 italic truncate",
+                    "text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-colors group-hover/h:text-foreground",
                     column.getIsSorted() && "text-primary"
                 )}>{title}</span>
             </div>
             
              <div className="flex items-center gap-1 shrink-0">
-                {isFiltered && <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />}
+                {isFiltered && <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                          <Button 

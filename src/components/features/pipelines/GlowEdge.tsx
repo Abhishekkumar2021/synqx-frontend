@@ -42,8 +42,9 @@ const GlowEdge = ({
                 style={{
                     ...style,
                     strokeWidth: 2,
-                    stroke: isError ? 'var(--color-destructive)' : (selected ? 'var(--color-primary)' : 'var(--color-border)'),
-                    transition: 'stroke 0.3s ease',
+                    stroke: isError ? 'var(--color-destructive)' : 'var(--color-primary)',
+                    opacity: selected ? 1 : 0.4,
+                    transition: 'opacity 0.3s ease, stroke 0.3s ease',
                 }}
             />
 

@@ -158,13 +158,14 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                 if (asset.usageType === 'destination') {
                     config.write_mode = asset.write_mode;
                 }
-                return {
+                const asset_payload: any = {
                     name: finalName,
+                    fully_qualified_name: asset.fully_qualified_name?.trim() || finalName,
                     asset_type: asset.asset_type,
                     is_source: asset.usageType === 'source',
                     is_destination: asset.usageType === 'destination',
                     is_incremental_capable: asset.is_incremental_capable,
-                    config: Object.keys(config).length > 0 ? config : undefined
+                    config: config
                 };
             }),
         };
@@ -192,16 +193,16 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-5xl h-[85vh] flex flex-col p-0 gap-0 overflow-hidden rounded-[2rem] border-border/60 glass-panel shadow-2xl backdrop-blur-3xl">
-                <DialogHeader className="p-8 pb-6 border-b border-border/40 bg-muted/20 shrink-0">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 rounded-2xl bg-primary/10 text-primary ring-1 ring-border/50 shadow-sm">
-                            <Sparkles className="h-6 w-6" />
+            <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-[2.5rem] border-border/60 glass-panel shadow-2xl backdrop-blur-3xl">
+                <DialogHeader className="p-10 pb-6 border-b border-border/40 bg-linear-to-b from-muted/20 to-transparent shrink-0">
+                    <div className="flex items-center gap-5">
+                        <div className="p-4 rounded-3xl bg-primary/10 text-primary ring-1 ring-border/50 shadow-sm">
+                            <Sparkles className="h-7 w-7" />
                         </div>
                         <div className="space-y-1">
-                            <DialogTitle className="text-2xl font-bold tracking-tight">Manual Asset Registration</DialogTitle>
+                            <DialogTitle className="text-3xl font-bold tracking-tight">Manual Asset Registration</DialogTitle>
                             <DialogDescription className="text-sm font-medium text-muted-foreground">
-                                Add physical data entities or define query-based assets.
+                                Define multiple data entities or script-based assets for your connection.
                             </DialogDescription>
                         </div>
                     </div>
@@ -209,12 +210,13 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
 
                 <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col min-h-0">
                     <ScrollArea className="flex-1">
-                        <div className="p-8 pt-6 space-y-4">
-                            <div className="grid grid-cols-12 gap-4 px-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                                <div className="col-span-4">Asset Name / Identifier</div>
-                                <div className="col-span-3">Type</div>
-                                <div className="col-span-2">Sync Usage</div>
-                                <div className="col-span-2">Strategy</div>
+                        <div className="p-10 pt-6 space-y-4">
+                            <div className="grid grid-cols-12 gap-4 px-4 mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">
+                                <div className="col-span-3">Display Name</div>
+                                <div className="col-span-3">Technical Identifier (FQN)</div>
+                                <div className="col-span-2">Object Type</div>
+                                <div className="col-span-2 text-center">Sync Direction</div>
+                                <div className="col-span-1 text-center">Strategy</div>
                                 <div className="col-span-1"></div>
                             </div>
 
@@ -223,42 +225,53 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                                     const assetType = watchedAssets?.[index]?.asset_type;
                                     const isQuery = QUERY_SCRIPT_TYPES.includes(assetType as AssetType);
                                     const isIncremental = watchedAssets?.[index]?.is_incremental_capable;
+                                    const usageType = watchedAssets?.[index]?.usageType;
 
                                     return (
                                         <motion.div
                                             key={field.id}
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, scale: 0.95 }}
-                                            className="flex flex-col gap-3 bg-muted/5 hover:bg-muted/20 p-3 rounded-2xl border border-border/20 transition-all"
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.98 }}
+                                            className="group flex flex-col bg-muted/5 hover:bg-muted/10 rounded-3xl border border-border/30 hover:border-primary/20 transition-all p-1"
                                         >
-                                            <div className="grid grid-cols-12 gap-3 items-center w-full">
-                                                <div className="col-span-4 relative">
-                                                    <Database className="z-20 absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
+                                            <div className="grid grid-cols-12 gap-3 items-center p-3">
+                                                {/* Name */}
+                                                <div className="col-span-3">
                                                     <Input
                                                         {...register(`assets.${index}.name`, { required: true })}
-                                                        placeholder={
-                                                            isQuery ? "Name..." : 
-                                                            connectorType === ConnectorType.REST_API ? "Endpoint (e.g. /users)..." :
-                                                            "Table or file name..."
-                                                        }
-                                                        className="pl-9 h-10 rounded-xl bg-background/50 border-border/40 text-sm font-medium"
+                                                        placeholder="e.g. Users Feed"
+                                                        className="h-10 rounded-2xl bg-background/50 border-border/40 focus:bg-background transition-all text-xs font-semibold"
                                                     />
                                                 </div>
+
+                                                {/* FQN */}
                                                 <div className="col-span-3">
+                                                    <Input
+                                                        {...register(`assets.${index}.fully_qualified_name`)}
+                                                        placeholder="e.g. public.users"
+                                                        className="h-10 rounded-2xl bg-background/30 border-border/30 font-mono text-[10px] focus:bg-background transition-all"
+                                                    />
+                                                </div>
+
+                                                {/* Type */}
+                                                <div className="col-span-2">
                                                     <Controller
                                                         control={control}
                                                         name={`assets.${index}.asset_type`}
                                                         render={({ field: f }) => (
-                                                            <Select onValueChange={(val) => { f.onChange(val); if (QUERY_SCRIPT_TYPES.includes(val as AssetType)) setValue(`assets.${index}.usageType`, 'source'); }} defaultValue={f.value}>
-                                                                <SelectTrigger className="h-10 rounded-xl bg-background/50 border-border/40 text-sm font-medium">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <SelectValue />
-                                                                    </div>
+                                                            <Select onValueChange={(val) => { 
+                                                                f.onChange(val); 
+                                                                if (QUERY_SCRIPT_TYPES.includes(val as AssetType)) {
+                                                                    setValue(`assets.${index}.usageType`, 'source');
+                                                                }
+                                                            }} defaultValue={f.value}>
+                                                                <SelectTrigger className="h-10 rounded-2xl bg-background/50 border-border/40 text-xs font-bold">
+                                                                    <SelectValue />
                                                                 </SelectTrigger>
-                                                                <SelectContent className="rounded-xl max-h-60">
+                                                                <SelectContent className="rounded-2xl shadow-2xl">
                                                                     {availableAssetTypes.map(type => (
-                                                                        <SelectItem key={type} value={type}>
+                                                                        <SelectItem key={type} value={type} className="rounded-xl">
                                                                             <div className="flex items-center gap-2">
                                                                                 {React.createElement(ASSET_META[type].icon, { className: "h-3.5 w-3.5 opacity-70" })}
                                                                                 {ASSET_META[type].name}
@@ -270,30 +283,51 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                                                         )}
                                                     />
                                                 </div>
+
+                                                {/* Usage */}
                                                 <div className="col-span-2">
                                                     <Controller
                                                         control={control}
                                                         name={`assets.${index}.usageType`}
                                                         render={({ field: f }) => (
                                                             <Select onValueChange={f.onChange} value={f.value} disabled={isQuery}>
-                                                                <SelectTrigger className="h-10 rounded-xl bg-background/50 border-border/40 text-sm font-medium">
-                                                                    <div className="flex items-center gap-2"><ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" /><SelectValue /></div>
+                                                                <SelectTrigger className="h-10 rounded-2xl bg-background/50 border-border/40 text-xs font-bold uppercase tracking-wider">
+                                                                    <div className="flex items-center justify-center w-full gap-2">
+                                                                        <ArrowRightLeft className="h-3.5 w-3.5 text-primary/60" />
+                                                                        <SelectValue />
+                                                                    </div>
                                                                 </SelectTrigger>
-                                                                <SelectContent className="rounded-xl"><SelectItem value="source">Source</SelectItem><SelectItem value="destination">Destination</SelectItem></SelectContent>
+                                                                <SelectContent className="rounded-2xl shadow-xl">
+                                                                    <SelectItem value="source" className="rounded-xl">Source</SelectItem>
+                                                                    <SelectItem value="destination" className="rounded-xl">Destination</SelectItem>
+                                                                </SelectContent>
                                                             </Select>
                                                         )}
                                                     />
                                                 </div>
-                                                <div className="col-span-2 flex items-center gap-2">
-                                                    {watchedAssets?.[index]?.usageType === 'source' ? (
+
+                                                {/* Strategy */}
+                                                <div className="col-span-1">
+                                                    {usageType === 'source' ? (
                                                         <Controller
                                                             control={control}
                                                             name={`assets.${index}.is_incremental_capable`}
                                                             render={({ field: f }) => (
-                                                                <div className="flex items-center gap-2 bg-background/50 border border-border/40 rounded-xl px-3 h-10 w-full">
-                                                                    <Switch checked={f.value} onCheckedChange={f.onChange} className="scale-75 data-[state=checked]:bg-primary" />
-                                                                    <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">{f.value ? 'Incr.' : 'Full'}</span>
-                                                                </div>
+                                                                <Select 
+                                                                    onValueChange={(val) => f.onChange(val === 'incremental')} 
+                                                                    value={f.value ? 'incremental' : 'full'}
+                                                                >
+                                                                    <SelectTrigger className={cn(
+                                                                        "h-10 rounded-2xl text-[10px] font-black uppercase tracking-tighter transition-all",
+                                                                        f.value ? "bg-primary/10 border-primary/30 text-primary" : "bg-background/50 border-border/40 text-muted-foreground"
+                                                                    )}>
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent className="rounded-2xl">
+                                                                        <SelectItem value="full" className="rounded-xl text-[10px] font-bold">FULL</SelectItem>
+                                                                        <SelectItem value="incremental" className="rounded-xl text-[10px] font-bold">INCR</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
                                                             )}
                                                         />
                                                     ) : (
@@ -302,37 +336,85 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                                                             name={`assets.${index}.write_mode`}
                                                             render={({ field: f }) => (
                                                                 <Select onValueChange={f.onChange} value={f.value}>
-                                                                    <SelectTrigger className="h-10 rounded-xl bg-background/50 border-border/40 text-[10px] font-bold uppercase"><SelectValue /></SelectTrigger>
-                                                                    <SelectContent className="rounded-xl"><SelectItem value="append">Append</SelectItem><SelectItem value="replace">Replace</SelectItem><SelectItem value="upsert">Upsert</SelectItem></SelectContent>
+                                                                    <SelectTrigger className="h-10 rounded-2xl bg-background/50 border-border/40 text-[9px] font-black uppercase tracking-tighter">
+                                                                        <SelectValue />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent className="rounded-2xl">
+                                                                        <SelectItem value="append" className="rounded-xl text-[10px] font-bold">APPEND</SelectItem>
+                                                                        <SelectItem value="replace" className="rounded-xl text-[10px] font-bold">REPLACE</SelectItem>
+                                                                        <SelectItem value="upsert" className="rounded-xl text-[10px] font-bold">UPSERT</SelectItem>
+                                                                    </SelectContent>
                                                                 </Select>
                                                             )}
                                                         />
                                                     )}
                                                 </div>
-                                                <div className="col-span-1 flex justify-center">
-                                                    <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive" onClick={() => remove(index)} disabled={fields.length <= 1}><X className="h-4 w-4" /></Button>
+
+                                                {/* Remove */}
+                                                <div className="col-span-1 flex justify-end">
+                                                    <Button 
+                                                        type="button" 
+                                                        variant="ghost" 
+                                                        size="icon" 
+                                                        className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" 
+                                                        onClick={() => remove(index)} 
+                                                        disabled={fields.length <= 1}
+                                                    >
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
                                                 </div>
                                             </div>
 
-                                            {isIncremental && (
-                                                <div className="w-full pb-2 px-1">
-                                                    <div className="flex items-center gap-3 bg-primary/5 border border-primary/10 rounded-xl p-3">
-                                                        <TrendingUp className="h-4 w-4 text-primary" />
-                                                        <Label className="text-xs font-semibold whitespace-nowrap">Watermark Column:</Label>
-                                                        <Input {...register(`assets.${index}.watermark_column`, { required: isIncremental })} placeholder="e.g. updated_at" className="h-8 text-xs bg-background/80 border-border/50" />
-                                                    </div>
-                                                </div>
-                                            )}
+                                            {/* Advanced Config Section */}
+                                            <AnimatePresence>
+                                                {(isIncremental || isQuery) && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, height: 0 }}
+                                                        animate={{ opacity: 1, height: 'auto' }}
+                                                        exit={{ opacity: 0, height: 0 }}
+                                                        className="overflow-hidden border-t border-border/20 bg-primary/5"
+                                                    >
+                                                        <div className="p-4 space-y-4">
+                                                            {isIncremental && (
+                                                                <div className="flex items-center gap-4 bg-background/60 border border-primary/20 rounded-2xl p-3 shadow-inner">
+                                                                    <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                                                                        <TrendingUp className="h-4 w-4" />
+                                                                    </div>
+                                                                    <div className="flex-1 flex items-center gap-3">
+                                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-primary/70">Watermark Column</Label>
+                                                                        <Input 
+                                                                            {...register(`assets.${index}.watermark_column`, { required: isIncremental })} 
+                                                                            placeholder="e.g. updated_at or id" 
+                                                                            className="h-8 text-xs bg-transparent border-none shadow-none focus-visible:ring-0 px-0 font-mono" 
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            )}
 
-                                            {isQuery && (
-                                                <div className="w-full pb-1">
-                                                    <div className="relative">
-                                                        <Code className="z-20 absolute left-3 top-3 h-4 w-4 text-muted-foreground/50" />
-                                                        <Textarea {...register(`assets.${index}.query`, { required: isQuery })} placeholder={getPlaceholder(assetType)} className="min-h-20 font-mono text-xs pl-9 bg-background/30" />
-                                                    </div>
-                                                    <p className="text-[10px] text-muted-foreground mt-1.5 ml-1">{getQueryHelp(assetType)}</p>
-                                                </div>
-                                            )}
+                                                            {isQuery && (
+                                                                <div className="space-y-2">
+                                                                    <div className="flex items-center justify-between px-1">
+                                                                        <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                                                            <Code className="h-3 w-3 text-primary" /> Logic Definition
+                                                                        </Label>
+                                                                        <span className="text-[9px] font-bold text-primary/60 bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">
+                                                                            {getQueryHelp(assetType)}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="relative group">
+                                                                        <div className="absolute inset-0 bg-primary/5 rounded-2xl blur-xl group-focus-within:bg-primary/10 transition-all" />
+                                                                        <Textarea 
+                                                                            {...register(`assets.${index}.query`, { required: isQuery })} 
+                                                                            placeholder={getPlaceholder(assetType)} 
+                                                                            className="min-h-32 font-mono text-[11px] leading-relaxed p-4 rounded-2xl bg-background/80 border-border/40 focus:border-primary/30 relative z-10 shadow-sm" 
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
                                         </motion.div>
                                     );
                                 })}
@@ -341,19 +423,38 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="w-full h-12 rounded-2xl border-dashed border-border/60 bg-background/20 hover:bg-background/50 transition-all font-bold text-muted-foreground gap-2 mt-2"
-                                onClick={() => append({ name: '', asset_type: defaultAssetType, usageType: 'source', query: '', is_incremental_capable: false, watermark_column: 'timestamp', write_mode: 'append' })}
+                                className="w-full h-14 rounded-3xl border-dashed border-border/60 bg-background/20 hover:bg-primary/5 hover:border-primary/30 transition-all font-black uppercase tracking-widest text-muted-foreground hover:text-primary gap-3 mt-4 text-[10px]"
+                                onClick={() => append({ 
+                                    name: '', 
+                                    asset_type: defaultAssetType, 
+                                    usageType: 'source', 
+                                    query: '', 
+                                    is_incremental_capable: false, 
+                                    watermark_column: 'timestamp', 
+                                    write_mode: 'append' 
+                                })}
                             >
-                                <Plus className="h-4 w-4" /> Add Row
+                                <Plus className="h-4 w-4" /> Add Another Asset
                             </Button>
                         </div>
                     </ScrollArea>
 
-                    <DialogFooter className="p-8 border-t border-border/40 bg-muted/10 gap-3">
-                        <Button type="button" variant="ghost" className="rounded-xl h-11 px-6 font-bold" onClick={() => onOpenChange(false)}>Cancel</Button>
-                        <Button type="submit" className="rounded-xl h-11 px-8 font-bold shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 gap-2" disabled={mutation.isPending}>
-                            {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                            Save {fields.length} Asset{fields.length !== 1 ? 's' : ''}
+                    <DialogFooter className="p-10 border-t border-border/40 bg-muted/10 gap-4 shrink-0">
+                        <Button 
+                            type="button" 
+                            variant="ghost" 
+                            className="rounded-2xl h-12 px-8 font-bold text-muted-foreground hover:bg-background" 
+                            onClick={() => onOpenChange(false)}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            type="submit" 
+                            className="rounded-2xl h-12 px-10 font-bold shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] gap-3" 
+                            disabled={mutation.isPending}
+                        >
+                            {mutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+                            Register {fields.length} Asset{fields.length !== 1 ? 's' : ''}
                         </Button>
                     </DialogFooter>
                 </form>

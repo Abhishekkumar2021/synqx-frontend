@@ -8,7 +8,8 @@ import { useQuery } from '@tanstack/react-query';
 import {
     X, Trash2, Save, Code, Sliders,
     Database, HardDriveUpload,
-    Info
+    Info, HelpCircle, Activity,
+    ShieldCheck, Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,12 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { type Node } from '@xyflow/react';
 import { toast } from 'sonner';
+import { 
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { 
     Select, 
     SelectContent, 
@@ -50,6 +57,29 @@ interface NodePropertiesProps {
     onUpdate: (id: string, data: any) => void;
     onDelete: (id: string) => void;
 }
+
+const HelpIcon = ({ content }: { content?: string }) => {
+    if (!content) return null;
+    return (
+        <TooltipProvider delayDuration={200}>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <HelpCircle className="h-3 w-3 text-muted-foreground/50 hover:text-primary cursor-help transition-colors ml-1.5" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-[220px] text-[10px] leading-relaxed p-3 rounded-xl border-border/40 bg-background/95 backdrop-blur-md shadow-2xl z-50">
+                    <div className="space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-primary/80 font-bold uppercase tracking-widest text-[9px]">
+                            <Info className="h-3 w-3" /> Information
+                        </div>
+                        <p className="text-foreground/90 font-medium">
+                            {content}
+                        </p>
+                    </div>
+                </TooltipContent>
+            </Tooltip>
+        </TooltipProvider>
+    );
+};
 
 export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, onUpdate, onDelete }) => {
     const { register, handleSubmit, setValue, watch, reset, control, formState: { errors } } = useForm<any>();
@@ -98,6 +128,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                 config: JSON.stringify(config, null, 2),
                 connection_id: String(node.data.connection_id || ''),
                 asset_id: String(node.data.asset_id || node.data.source_asset_id || node.data.destination_asset_id || ''),
+                write_strategy: config.write_strategy || 'append',
                 max_retries: node.data.max_retries ?? 3,
                 retry_strategy: (node.data as any).retry_strategy || 'fixed',
                 retry_delay_seconds: node.data.retry_delay_seconds ?? 60,
@@ -108,6 +139,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
             if (def?.fields) {
                 def.fields.forEach(field => {
                     const val = config[field.configKey];
+                    // IMPORTANT: Use field.name as the key for react-hook-form
                     if (field.type === 'json') {
                         formValues[field.name] = val ? JSON.stringify(val, null, 2) : '';
                     } else if (Array.isArray(val)) {
@@ -135,7 +167,7 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
             // Map dynamic fields back to config
             if (opDef?.fields) {
                 opDef.fields.forEach(field => {
-                    const val = data[field.name];
+                    const val = data[field.name]; // Retrieve from form using field.name
                     if (field.type === 'json') {
                         try { 
                             if (val && val.trim()) {
@@ -159,7 +191,11 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                 description: data.description,
                 type: data.operator_type,
                 operator_class: data.operator_class,
-                config: { ...baseConfig, ...dynamicConfig },
+                config: { 
+                    ...baseConfig, 
+                    ...dynamicConfig,
+                    write_strategy: data.operator_type === 'sink' ? data.write_strategy : undefined
+                },
                 connection_id: data.connection_id ? parseInt(data.connection_id) : undefined,
                 asset_id: data.asset_id ? parseInt(data.asset_id) : undefined,
                 max_retries: data.max_retries,
@@ -189,7 +225,10 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                         name={field.name}
                         render={({ field: selectField }) => (
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-bold">{field.label}</Label>
+                                <div className="flex items-center">
+                                    <Label className="text-[10px] font-bold">{field.label}</Label>
+                                    <HelpIcon content={field.tooltip} />
+                                </div>
                                 <Select onValueChange={selectField.onChange} value={selectField.value}>
                                     <SelectTrigger className="h-9 rounded-lg bg-background/50">
                                         <SelectValue placeholder={`Select ${field.label}`} />
@@ -208,7 +247,10 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
             case 'textarea':
                 return (
                     <div key={field.name} className="space-y-2">
-                        <Label className="text-[10px] font-bold">{field.label}</Label>
+                        <div className="flex items-center">
+                            <Label className="text-[10px] font-bold">{field.label}</Label>
+                            <HelpIcon content={field.tooltip} />
+                        </div>
                         <Textarea 
                             {...register(field.name)} 
                             placeholder={field.placeholder}
@@ -220,7 +262,10 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
             default:
                 return (
                     <div key={field.name} className="space-y-2">
-                        <Label className="text-[10px] font-bold">{field.label}</Label>
+                        <div className="flex items-center">
+                            <Label className="text-[10px] font-bold">{field.label}</Label>
+                            <HelpIcon content={field.tooltip} />
+                        </div>
                         <Input 
                             {...register(field.name)} 
                             type={field.type} 
@@ -287,7 +332,10 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">IO Mapping</span>
                                             </div>
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-bold">Connection</Label>
+                                                <div className="flex items-center">
+                                                    <Label className="text-[10px] font-bold">Connection</Label>
+                                                    <HelpIcon content="Choose an external system to communicate with." />
+                                                </div>
                                                 <Controller
                                                     control={control}
                                                     name="connection_id"
@@ -304,7 +352,10 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                                 />
                                             </div>
                                             <div className="space-y-2">
-                                                <Label className="text-[10px] font-bold">Target Asset</Label>
+                                                <div className="flex items-center">
+                                                    <Label className="text-[10px] font-bold">Target Asset</Label>
+                                                    <HelpIcon content="Select the specific table, file, or endpoint within the connection." />
+                                                </div>
                                                 <Controller
                                                     control={control}
                                                     name="asset_id"
@@ -320,6 +371,32 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                                     )}
                                                 />
                                             </div>
+
+                                            {nodeType === 'sink' && (
+                                                <div className="space-y-2 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                                    <div className="flex items-center">
+                                                        <Label className="text-[10px] font-bold">Write Strategy</Label>
+                                                        <HelpIcon content="Append: keep existing. Overwrite: wipe and replace. Upsert: update matching, insert new." />
+                                                    </div>
+                                                    <Controller
+                                                        control={control}
+                                                        name="write_strategy"
+                                                        render={({ field }) => (
+                                                            <Select onValueChange={field.onChange} value={field.value}>
+                                                                <SelectTrigger className="h-9 rounded-lg bg-background/50 border-primary/20">
+                                                                    <SelectValue placeholder="Select strategy" />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    <SelectItem value="append">Append (Add rows)</SelectItem>
+                                                                    <SelectItem value="overwrite">Overwrite (Truncate & Load)</SelectItem>
+                                                                    <SelectItem value="upsert">Upsert (Match & Update)</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        )}
+                                                    />
+                                                    <p className="text-[9px] text-muted-foreground italic">Defines how data is committed to the target.</p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
@@ -341,7 +418,10 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Orchestration & Reliability</Label>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] font-bold">Retry Logic</Label>
+                                            <div className="flex items-center">
+                                                <Label className="text-[10px] font-bold">Retry Logic</Label>
+                                                <HelpIcon content="Control how the engine behaves when this specific task fails." />
+                                            </div>
                                             <Controller
                                                 control={control}
                                                 name="retry_strategy"
@@ -361,7 +441,10 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                         </div>
                                         {watch('retry_strategy') !== 'none' && (
                                             <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                                                <Label className="text-[10px] font-bold">Max Retries</Label>
+                                                <div className="flex items-center">
+                                                    <Label className="text-[10px] font-bold">Max Retries</Label>
+                                                    <HelpIcon content="Number of times to attempt the task before marking it as FAILED." />
+                                                </div>
                                                 <Input type="number" {...register('max_retries', { valueAsNumber: true })} className="h-9 bg-background/50" />
                                             </div>
                                         )}
@@ -370,12 +453,18 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                                     <div className="grid grid-cols-2 gap-4">
                                         {watch('retry_strategy') !== 'none' && (
                                             <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                                                <Label className="text-[10px] font-bold">Retry Delay (sec)</Label>
+                                                <div className="flex items-center">
+                                                    <Label className="text-[10px] font-bold">Retry Delay (sec)</Label>
+                                                    <HelpIcon content="Time to wait between retry attempts." />
+                                                </div>
                                                 <Input type="number" {...register('retry_delay_seconds', { valueAsNumber: true })} className="h-9 bg-background/50" />
                                             </div>
                                         )}
                                         <div className="space-y-2">
-                                            <Label className="text-[10px] font-bold">Execution TTL (sec)</Label>
+                                            <div className="flex items-center">
+                                                <Label className="text-[10px] font-bold">Execution TTL (sec)</Label>
+                                                <HelpIcon content="Maximum time this task is allowed to run before being killed." />
+                                            </div>
                                             <Input type="number" {...register('timeout_seconds', { valueAsNumber: true })} placeholder="3600" className="h-9 bg-background/50" />
                                         </div>
                                     </div>

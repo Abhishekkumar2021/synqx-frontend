@@ -385,6 +385,7 @@ const AssetsTabContent = ({
         if (!assets) return [];
         return assets.filter(asset =>
             asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (asset.fully_qualified_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
             asset.asset_type?.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [assets, searchQuery]);
@@ -392,6 +393,7 @@ const AssetsTabContent = ({
     const filteredDiscovered = useMemo(() => {
         return discoveredAssets.filter(asset =>
             asset.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (asset.fully_qualified_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
             (asset.type || asset.asset_type)?.toLowerCase().includes(searchQuery.toLowerCase())
         );
     }, [discoveredAssets, searchQuery]);
@@ -418,12 +420,16 @@ const AssetsTabContent = ({
 
     const bulkImportMutation = useMutation({
         mutationFn: async ({ assetNames, asDestination }: { assetNames: string[], asDestination: boolean }) => {
-            const assetsToCreate = assetNames.map(name => ({
-                name,
-                asset_type: 'table',
-                is_source: !asDestination,
-                is_destination: asDestination,
-            }));
+            const assetsToCreate = assetNames.map(name => {
+                const discovered = discoveredAssets.find(a => a.name === name);
+                return {
+                    name,
+                    fully_qualified_name: discovered?.fully_qualified_name || name,
+                    asset_type: discovered?.type || discovered?.asset_type || 'table',
+                    is_source: !asDestination,
+                    is_destination: asDestination,
+                };
+            });
             return bulkCreateAssets(connectionId, { assets: assetsToCreate });
         },
         onSuccess: (data) => {
@@ -602,8 +608,17 @@ const AssetsTabContent = ({
                                                     className="border-amber-500/30 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
                                                 />
                                             </TableCell>
-                                            <TableCell className="font-bold text-sm text-foreground/80 group-hover:text-amber-700 dark:group-hover:text-amber-500 transition-colors">
-                                                {asset.name}
+                                            <TableCell>
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-sm text-foreground/80 group-hover:text-amber-700 dark:group-hover:text-amber-500 transition-colors">
+                                                        {asset.name}
+                                                    </span>
+                                                    {asset.fully_qualified_name && asset.fully_qualified_name !== asset.name && (
+                                                        <span className="text-[10px] text-muted-foreground/60 font-mono truncate max-w-[300px]">
+                                                            {asset.fully_qualified_name}
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell className="text-right pr-6 py-2.5">
                                                 <Badge variant="outline" className="capitalize text-[9px] font-bold tracking-widest bg-muted/50 border-amber-500/20 text-muted-foreground">
