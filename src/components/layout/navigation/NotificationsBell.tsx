@@ -17,15 +17,17 @@ import { useNotifications } from '@/hooks/useNotifications';
 export const NotificationsBell: React.FC = () => {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
+    const { token } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     
-    // Enable real-time notifications via WebSocket
+    // Enable real-time notifications via WebSocket only for authenticated users
     useNotifications();
 
     const { data, isLoading } = useQuery({
         queryKey: ['alerts-history'],
         queryFn: () => getAlertHistory(0, 5),
         refetchInterval: 10000,
+        enabled: !!token, // Disable if not logged in
     });
 
     const alerts = data?.items || [];

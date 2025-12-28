@@ -166,50 +166,59 @@ export const Layout: React.FC<LayoutProps> = () => {
 
                     {/* User Footer */}
                     <div className="p-4 mx-2 mb-2 mt-auto">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <button className={cn(
-                                    // Theme-aware hover, background, and border
-                                    "flex items-center rounded-2xl transition-all duration-300 w-full outline-none h-14 border border-border/50 hover:border-primary/30 hover:bg-primary/5",
-                                    isSidebarCollapsed
-                                        ? "justify-center px-0 gap-0"
-                                        : "justify-start px-2 gap-3 bg-muted/20 border-border/50"
-                                )}>
-                                    {/* Theme-aware Avatar ring and border */}
-                                    <Avatar className="h-9 w-9 border border-border/40 shrink-0 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
-                                        <AvatarImage src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || 'synqx'}`} />
-                                        <AvatarFallback>{user?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}</AvatarFallback>
-                                    </Avatar>
+                        {!user ? (
+                            <Link to="/login" className="w-full">
+                                <Button className="w-full rounded-2xl h-14 font-bold uppercase tracking-widest gap-2">
+                                    <LogOut className="h-4 w-4 rotate-180" />
+                                    {!isSidebarCollapsed && "Sign In"}
+                                </Button>
+                            </Link>
+                        ) : (
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button className={cn(
+                                        // Theme-aware hover, background, and border
+                                        "flex items-center rounded-2xl transition-all duration-300 w-full outline-none h-14 border border-border/50 hover:border-primary/30 hover:bg-primary/5",
+                                        isSidebarCollapsed
+                                            ? "justify-center px-0 gap-0"
+                                            : "justify-start px-2 gap-3 bg-muted/20 border-border/50"
+                                    )}>
+                                        {/* Theme-aware Avatar ring and border */}
+                                        <Avatar className="h-9 w-9 border border-border/40 shrink-0 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
+                                            <AvatarImage src={`https://api.dicebear.com/7.x/notionists/svg?seed=${user?.email || 'synqx'}`} />
+                                            <AvatarFallback>{user?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}</AvatarFallback>
+                                        </Avatar>
 
-                                    <motion.div
-                                        animate={{ opacity: isSidebarCollapsed ? 0 : 1, width: isSidebarCollapsed ? 0 : "auto" }}
-                                        className="flex flex-col items-start overflow-hidden whitespace-nowrap"
-                                    >
-                                        <span className="text-sm font-semibold truncate w-32 text-left">{user?.full_name || 'User'}</span>
-                                        <span className="text-[11px] text-muted-foreground truncate w-32 text-left">{user?.email || 'guest@synqx.dev'}</span>
-                                    </motion.div>
-                                </button>
-                            </DropdownMenuTrigger>
-                            {/* Theme-aware Dropdown Content */}
-                            <DropdownMenuContent align="start" className="w-56 rounded-2xl glass-card shadow-2xl ml-4 mb-2" side="right" sideOffset={15}>
-                                <DropdownMenuLabel className="font-bold text-xs uppercase tracking-widest text-muted-foreground/70">My Account</DropdownMenuLabel>
-                                {/* Theme-aware separator and hover background */}
-                                <DropdownMenuSeparator className="bg-border/40" />
-                                <DropdownMenuItem className="rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer transition-colors font-medium">
-                                    <User className="mr-2 h-4 w-4" /> Profile
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer transition-colors font-medium">
-                                    <CreditCard className="mr-2 h-4 w-4" /> Billing
-                                </DropdownMenuItem>
-                                <DropdownMenuItem className="rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer transition-colors font-medium">
-                                    <Users className="mr-2 h-4 w-4" /> Team
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-border/40" />
-                                <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10 rounded-xl cursor-pointer transition-colors font-bold" onClick={() => logout()}>
-                                    <LogOut className="mr-2 h-4 w-4" /> Log out
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                                        <motion.div
+                                            animate={{ opacity: isSidebarCollapsed ? 0 : 1, width: isSidebarCollapsed ? 0 : "auto" }}
+                                            className="flex flex-col items-start overflow-hidden whitespace-nowrap"
+                                        >
+                                            <span className="text-sm font-semibold truncate w-32 text-left">{user?.full_name || 'User'}</span>
+                                            <span className="text-[11px] text-muted-foreground truncate w-32 text-left">{user?.email || 'guest@synqx.dev'}</span>
+                                        </motion.div>
+                                    </button>
+                                </DropdownMenuTrigger>
+                                {/* Theme-aware Dropdown Content */}
+                                <DropdownMenuContent align="start" className="w-56 rounded-2xl glass-card shadow-2xl ml-4 mb-2" side="right" sideOffset={15}>
+                                    <DropdownMenuLabel className="font-bold text-xs uppercase tracking-widest text-muted-foreground/70">My Account</DropdownMenuLabel>
+                                    {/* Theme-aware separator and hover background */}
+                                    <DropdownMenuSeparator className="bg-border/40" />
+                                    <DropdownMenuItem className="rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer transition-colors font-medium">
+                                        <User className="mr-2 h-4 w-4" /> Profile
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer transition-colors font-medium">
+                                        <CreditCard className="mr-2 h-4 w-4" /> Billing
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="rounded-xl focus:bg-primary/10 focus:text-primary cursor-pointer transition-colors font-medium">
+                                        <Users className="mr-2 h-4 w-4" /> Team
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator className="bg-border/40" />
+                                    <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10 rounded-xl cursor-pointer transition-colors font-bold" onClick={() => logout()}>
+                                        <LogOut className="mr-2 h-4 w-4" /> Log out
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        )}
                     </div>
                                     </div>
                                 </motion.aside>
@@ -320,7 +329,7 @@ export const Layout: React.FC<LayoutProps> = () => {
                         <div className="h-8 w-px bg-border/30 mx-1 hidden sm:block"></div>
                         
                         <ModeToggle />
-                        <NotificationsBell />
+                        {user && <NotificationsBell />}
                     </div>
                         </motion.header>
                     )}

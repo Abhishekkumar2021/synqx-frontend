@@ -5,7 +5,7 @@
     "description": "Universal ETL Engine",
     "version": "1.0.0"
   },
-    "servers": [
+  "servers": [
     {
       "url": "http://localhost:8000",
       "description": "Local server"
@@ -28,9 +28,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-
-                }
+                "schema": {}
               }
             }
           }
@@ -70,12 +68,13 @@
         "operationId": "login_access_token_api_v1_auth_login_post",
         "requestBody": {
           "content": {
-            "application/json": {
+            "application/x-www-form-urlencoded": {
               "schema": {
-                "$ref": "#/components/schemas/UserLogin"
+                "$ref": "#/components/schemas/Body_login_access_token_api_v1_auth_login_post"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -679,7 +678,7 @@
           "alerts"
         ],
         "summary": "List Alerts",
-        "description": "List individual alerts.",
+        "description": "List individual alerts with pagination.",
         "operationId": "list_alerts_api_v1_alerts_history_get",
         "security": [
           {
@@ -717,11 +716,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AlertRead"
-                  },
-                  "title": "Response List Alerts Api V1 Alerts History Get"
+                  "$ref": "#/components/schemas/AlertListResponse"
                 }
               }
             }
@@ -808,6 +803,27 @@
         "summary": "Get Dashboard Stats",
         "description": "Get aggregated dashboard statistics.",
         "operationId": "get_dashboard_stats_api_v1_dashboard_stats_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "time_range",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(24h|7d|30d|all)$",
+              "default": "24h",
+              "title": "Time Range"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -818,16 +834,18 @@
                 }
               }
             }
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
           },
-          {
-            "APIKeyHeader": []
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        ]
+        }
       }
     },
     "/api/v1/connections": {
@@ -1175,9 +1193,7 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ConnectionTestRequest",
-                "default": {
-
-                }
+                "default": {}
               }
             }
           }
@@ -1302,7 +1318,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "$ref": "#/components/schemas/AssetType"
                 },
                 {
                   "type": "null"
@@ -1439,6 +1455,67 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AssetDetailRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{connection_id}/assets/bulk-create": {
+      "post": {
+        "tags": [
+          "connections & assets"
+        ],
+        "summary": "Bulk Create Assets",
+        "description": "Create multiple assets for this connection in one request.",
+        "operationId": "bulk_create_assets_api_v1_connections__connection_id__assets_bulk_create_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "connection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Connection Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetBulkCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetBulkCreateResponse"
                 }
               }
             }
@@ -1942,6 +2019,508 @@
                 "schema": {
                   "$ref": "#/components/schemas/ConnectionUsageStatsRead"
                 }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{connection_id}/environment": {
+      "get": {
+        "tags": [
+          "connections & assets"
+        ],
+        "summary": "Get Connection Environment Info",
+        "description": "Get detailed environment information (versions, tools) for the connector",
+        "operationId": "get_connection_environment_api_v1_connections__connection_id__environment_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "connection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Connection Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionEnvironmentInfo"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{connection_id}/environment/initialize": {
+      "post": {
+        "tags": [
+          "connections & assets"
+        ],
+        "summary": "Initialize environment",
+        "operationId": "initialize_environment_api_v1_connections__connection_id__environment_initialize_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "connection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Connection Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_initialize_environment_api_v1_connections__connection_id__environment_initialize_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{connection_id}/dependencies/{language}": {
+      "get": {
+        "tags": [
+          "connections & assets"
+        ],
+        "summary": "List installed packages",
+        "operationId": "list_dependencies_api_v1_connections__connection_id__dependencies__language__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "connection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Connection Id"
+            }
+          },
+          {
+            "name": "language",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Language"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{connection_id}/dependencies/{language}/install": {
+      "post": {
+        "tags": [
+          "connections & assets"
+        ],
+        "summary": "Install package",
+        "operationId": "install_dependency_api_v1_connections__connection_id__dependencies__language__install_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "connection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Connection Id"
+            }
+          },
+          {
+            "name": "language",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Language"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_install_dependency_api_v1_connections__connection_id__dependencies__language__install_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/connections/{connection_id}/dependencies/{language}/uninstall": {
+      "post": {
+        "tags": [
+          "connections & assets"
+        ],
+        "summary": "Uninstall package",
+        "operationId": "uninstall_dependency_api_v1_connections__connection_id__dependencies__language__uninstall_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "connection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Connection Id"
+            }
+          },
+          {
+            "name": "language",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Language"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_uninstall_dependency_api_v1_connections__connection_id__dependencies__language__uninstall_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/explorer/{connection_id}/execute": {
+      "post": {
+        "tags": [
+          "data exploration"
+        ],
+        "summary": "Execute Connection Query",
+        "description": "Execute a raw query against a connection.\nSupports SQL and NoSQL depending on the connector type.",
+        "operationId": "execute_connection_query_api_v1_explorer__connection_id__execute_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "connection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Connection Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/explorer/history": {
+      "get": {
+        "tags": [
+          "data exploration"
+        ],
+        "summary": "Get Query History",
+        "description": "Get execution history for the current user.",
+        "operationId": "get_query_history_api_v1_explorer_history_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HistoryItem"
+                  },
+                  "title": "Response Get Query History Api V1 Explorer History Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "data exploration"
+        ],
+        "summary": "Clear Query History",
+        "description": "Clear execution history for the current user.",
+        "operationId": "clear_query_history_api_v1_explorer_history_delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/explorer/{connection_id}/schema-metadata": {
+      "get": {
+        "tags": [
+          "data exploration"
+        ],
+        "summary": "Get Connection Schema Metadata",
+        "description": "Get full schema metadata for autocompletion.",
+        "operationId": "get_connection_schema_metadata_api_v1_explorer__connection_id__schema_metadata_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "connection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Connection Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
               }
             }
           },
@@ -2678,6 +3257,64 @@
         }
       }
     },
+    "/api/v1/pipelines/{pipeline_id}/watermarks/{asset_id}": {
+      "get": {
+        "tags": [
+          "pipelines"
+        ],
+        "summary": "Get Watermark State",
+        "description": "Get the current incremental sync state for a specific asset in this pipeline",
+        "operationId": "get_pipeline_watermark_api_v1_pipelines__pipeline_id__watermarks__asset_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          },
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "pipeline_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Pipeline Id"
+            }
+          },
+          {
+            "name": "asset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Asset Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/jobs": {
       "get": {
         "tags": [
@@ -2814,6 +3451,49 @@
         }
       }
     },
+    "/api/v1/jobs/{job_id}/run": {
+      "get": {
+        "tags": [
+          "jobs & runs"
+        ],
+        "summary": "Get Pipeline Run by Job ID",
+        "description": "Get the pipeline run associated with a specific job",
+        "operationId": "get_job_run_api_v1_jobs__job_id__run_get",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Job Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineRunDetailRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/jobs/{job_id}/cancel": {
       "post": {
         "tags": [
@@ -2838,9 +3518,7 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/JobCancelRequest",
-                "default": {
-
-                }
+                "default": {}
               }
             }
           }
@@ -2969,7 +3647,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/JobLogRead"
+                    "$ref": "#/components/schemas/UnifiedLogRead"
                   },
                   "title": "Response Get Job Logs Api V1 Jobs  Job Id  Logs Get"
                 }
@@ -3246,6 +3924,110 @@
         }
       }
     },
+    "/api/v1/runs/{run_id}/steps/{step_id}/data": {
+      "get": {
+        "tags": [
+          "jobs & runs"
+        ],
+        "summary": "Get Step Data Sample",
+        "description": "Fetch a slice of data processed by this node during the run.",
+        "operationId": "get_step_data_api_v1_runs__run_id__steps__step_id__data_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "step_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Step Id"
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(in|out)$",
+              "default": "out",
+              "title": "Direction"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/forensics/cache": {
+      "delete": {
+        "tags": [
+          "jobs & runs"
+        ],
+        "summary": "Clear Forensic Cache",
+        "description": "Manually purge all cached forensic Parquet files.",
+        "operationId": "clear_forensic_cache_api_v1_forensics_cache_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pipelines/{pipeline_id}/metrics": {
       "get": {
         "tags": [
@@ -3270,9 +4052,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-
-                }
+                "schema": {}
               }
             }
           },
@@ -3651,6 +4431,37 @@
         ],
         "title": "AlertLevel"
       },
+      "AlertListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AlertRead"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "AlertListResponse"
+      },
       "AlertRead": {
         "properties": {
           "id": {
@@ -3764,6 +4575,7 @@
       "AlertType": {
         "type": "string",
         "enum": [
+          "job_started",
           "job_failure",
           "job_success",
           "data_quality_failure",
@@ -4001,7 +4813,24 @@
         ],
         "title": "ApiKeyResponse"
       },
-      "AssetCreate": {
+      "AssetBulkCreate": {
+        "properties": {
+          "assets": {
+            "items": {
+              "$ref": "#/components/schemas/AssetBulkCreateItem"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Assets"
+          }
+        },
+        "type": "object",
+        "required": [
+          "assets"
+        ],
+        "title": "AssetBulkCreate"
+      },
+      "AssetBulkCreateItem": {
         "properties": {
           "name": {
             "type": "string",
@@ -4010,9 +4839,7 @@
             "title": "Name"
           },
           "asset_type": {
-            "type": "string",
-            "maxLength": 50,
-            "title": "Asset Type"
+            "$ref": "#/components/schemas/AssetType"
           },
           "fully_qualified_name": {
             "anyOf": [
@@ -4066,8 +4893,152 @@
             "title": "Config"
           },
           "tags": {
-            "additionalProperties": true,
-            "type": "object",
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
+          },
+          "row_count_estimate": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Count Estimate"
+          },
+          "size_bytes_estimate": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes Estimate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "asset_type"
+        ],
+        "title": "AssetBulkCreateItem"
+      },
+      "AssetBulkCreateResponse": {
+        "properties": {
+          "successful_creates": {
+            "type": "integer",
+            "title": "Successful Creates"
+          },
+          "failed_creates": {
+            "type": "integer",
+            "title": "Failed Creates"
+          },
+          "total_requested": {
+            "type": "integer",
+            "title": "Total Requested"
+          },
+          "failures": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Failures"
+          }
+        },
+        "type": "object",
+        "required": [
+          "successful_creates",
+          "failed_creates",
+          "total_requested"
+        ],
+        "title": "AssetBulkCreateResponse"
+      },
+      "AssetCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "asset_type": {
+            "$ref": "#/components/schemas/AssetType"
+          },
+          "fully_qualified_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fully Qualified Name"
+          },
+          "is_source": {
+            "type": "boolean",
+            "title": "Is Source",
+            "default": true
+          },
+          "is_destination": {
+            "type": "boolean",
+            "title": "Is Destination",
+            "default": false
+          },
+          "is_incremental_capable": {
+            "type": "boolean",
+            "title": "Is Incremental Capable",
+            "default": false
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 5000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Tags"
           },
           "row_count_estimate": {
@@ -4129,9 +5100,7 @@
             "title": "Name"
           },
           "asset_type": {
-            "type": "string",
-            "maxLength": 50,
-            "title": "Asset Type"
+            "$ref": "#/components/schemas/AssetType"
           },
           "fully_qualified_name": {
             "anyOf": [
@@ -4185,8 +5154,15 @@
             "title": "Config"
           },
           "tags": {
-            "additionalProperties": true,
-            "type": "object",
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Tags"
           },
           "row_count_estimate": {
@@ -4395,9 +5371,7 @@
             "title": "Name"
           },
           "asset_type": {
-            "type": "string",
-            "maxLength": 50,
-            "title": "Asset Type"
+            "$ref": "#/components/schemas/AssetType"
           },
           "fully_qualified_name": {
             "anyOf": [
@@ -4451,8 +5425,15 @@
             "title": "Config"
           },
           "tags": {
-            "additionalProperties": true,
-            "type": "object",
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Tags"
           },
           "row_count_estimate": {
@@ -4635,6 +5616,24 @@
         ],
         "title": "AssetSchemaVersionRead"
       },
+      "AssetType": {
+        "type": "string",
+        "enum": [
+          "table",
+          "view",
+          "collection",
+          "file",
+          "key_pattern",
+          "endpoint",
+          "stream",
+          "sql_query",
+          "nosql_query",
+          "python",
+          "shell",
+          "javascript"
+        ],
+        "title": "AssetType"
+      },
       "AssetUpdate": {
         "properties": {
           "name": {
@@ -4653,14 +5652,12 @@
           "asset_type": {
             "anyOf": [
               {
-                "type": "string",
-                "maxLength": 50
+                "$ref": "#/components/schemas/AssetType"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Asset Type"
+            ]
           },
           "fully_qualified_name": {
             "anyOf": [
@@ -4759,6 +5756,104 @@
         "type": "object",
         "title": "AssetUpdate"
       },
+      "Body_initialize_environment_api_v1_connections__connection_id__environment_initialize_post": {
+        "properties": {
+          "language": {
+            "type": "string",
+            "title": "Language"
+          }
+        },
+        "type": "object",
+        "required": [
+          "language"
+        ],
+        "title": "Body_initialize_environment_api_v1_connections__connection_id__environment_initialize_post"
+      },
+      "Body_install_dependency_api_v1_connections__connection_id__dependencies__language__install_post": {
+        "properties": {
+          "package": {
+            "type": "string",
+            "title": "Package"
+          }
+        },
+        "type": "object",
+        "required": [
+          "package"
+        ],
+        "title": "Body_install_dependency_api_v1_connections__connection_id__dependencies__language__install_post"
+      },
+      "Body_login_access_token_api_v1_auth_login_post": {
+        "properties": {
+          "grant_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^password$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Type"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "title": "Password"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": ""
+          },
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "client_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "format": "password",
+            "title": "Client Secret"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "Body_login_access_token_api_v1_auth_login_post"
+      },
+      "Body_uninstall_dependency_api_v1_connections__connection_id__dependencies__language__uninstall_post": {
+        "properties": {
+          "package": {
+            "type": "string",
+            "title": "Package"
+          }
+        },
+        "type": "object",
+        "required": [
+          "package"
+        ],
+        "title": "Body_uninstall_dependency_api_v1_connections__connection_id__dependencies__language__uninstall_post"
+      },
       "ConnectionCreate": {
         "properties": {
           "name": {
@@ -4783,8 +5878,15 @@
             "title": "Description"
           },
           "tags": {
-            "additionalProperties": true,
-            "type": "object",
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Tags"
           },
           "max_concurrent_connections": {
@@ -4840,8 +5942,15 @@
             "title": "Description"
           },
           "tags": {
-            "additionalProperties": true,
-            "type": "object",
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Tags"
           },
           "max_concurrent_connections": {
@@ -4967,6 +6076,155 @@
         ],
         "title": "ConnectionDetailRead"
       },
+      "ConnectionEnvironmentInfo": {
+        "properties": {
+          "python_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Python Version"
+          },
+          "platform": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Platform"
+          },
+          "pandas_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pandas Version"
+          },
+          "numpy_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Numpy Version"
+          },
+          "base_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Path"
+          },
+          "available_tools": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Available Tools"
+          },
+          "installed_packages": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Installed Packages"
+          },
+          "node_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node Version"
+          },
+          "npm_packages": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Npm Packages"
+          },
+          "initialized_languages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Initialized Languages"
+          },
+          "ruby_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ruby Version"
+          },
+          "powershell_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Powershell Version"
+          },
+          "perl_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Perl Version"
+          },
+          "gcc_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gcc Version"
+          },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details"
+          }
+        },
+        "type": "object",
+        "title": "ConnectionEnvironmentInfo"
+      },
       "ConnectionImpactRead": {
         "properties": {
           "pipeline_count": {
@@ -5035,8 +6293,15 @@
             "title": "Description"
           },
           "tags": {
-            "additionalProperties": true,
-            "type": "object",
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Tags"
           },
           "max_concurrent_connections": {
@@ -5320,6 +6585,24 @@
         ],
         "title": "ConnectionUsageStatsRead"
       },
+      "ConnectorHealth": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "count"
+        ],
+        "title": "ConnectorHealth"
+      },
       "ConnectorType": {
         "type": "string",
         "enum": [
@@ -5359,6 +6642,46 @@
         "title": "ConnectorType",
         "description": "Defines the protocol or system type to instantiate."
       },
+      "DashboardAlert": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "pipeline_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pipeline Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "message",
+          "level",
+          "created_at"
+        ],
+        "title": "DashboardAlert"
+      },
       "DashboardStats": {
         "properties": {
           "total_pipelines": {
@@ -5369,21 +6692,39 @@
             "type": "integer",
             "title": "Active Pipelines"
           },
-          "total_jobs_24h": {
-            "type": "integer",
-            "title": "Total Jobs 24H"
-          },
-          "success_rate_24h": {
-            "type": "number",
-            "title": "Success Rate 24H"
-          },
-          "avg_duration_24h": {
-            "type": "number",
-            "title": "Avg Duration 24H"
-          },
           "total_connections": {
             "type": "integer",
             "title": "Total Connections"
+          },
+          "connector_health": {
+            "items": {
+              "$ref": "#/components/schemas/ConnectorHealth"
+            },
+            "type": "array",
+            "title": "Connector Health",
+            "default": []
+          },
+          "total_jobs": {
+            "type": "integer",
+            "title": "Total Jobs"
+          },
+          "success_rate": {
+            "type": "number",
+            "title": "Success Rate"
+          },
+          "avg_duration": {
+            "type": "number",
+            "title": "Avg Duration"
+          },
+          "total_rows": {
+            "type": "integer",
+            "title": "Total Rows",
+            "default": 0
+          },
+          "total_bytes": {
+            "type": "integer",
+            "title": "Total Bytes",
+            "default": 0
           },
           "throughput": {
             "items": {
@@ -5405,21 +6746,78 @@
             },
             "type": "array",
             "title": "Recent Activity"
+          },
+          "system_health": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SystemHealth"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "top_failing_pipelines": {
+            "items": {
+              "$ref": "#/components/schemas/FailingPipeline"
+            },
+            "type": "array",
+            "title": "Top Failing Pipelines",
+            "default": []
+          },
+          "slowest_pipelines": {
+            "items": {
+              "$ref": "#/components/schemas/SlowestPipeline"
+            },
+            "type": "array",
+            "title": "Slowest Pipelines",
+            "default": []
+          },
+          "recent_alerts": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardAlert"
+            },
+            "type": "array",
+            "title": "Recent Alerts",
+            "default": []
           }
         },
         "type": "object",
         "required": [
           "total_pipelines",
           "active_pipelines",
-          "total_jobs_24h",
-          "success_rate_24h",
-          "avg_duration_24h",
           "total_connections",
+          "total_jobs",
+          "success_rate",
+          "avg_duration",
           "throughput",
           "pipeline_distribution",
           "recent_activity"
         ],
         "title": "DashboardStats"
+      },
+      "FailingPipeline": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "failure_count": {
+            "type": "integer",
+            "title": "Failure Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "failure_count"
+        ],
+        "title": "FailingPipeline"
       },
       "HTTPValidationError": {
         "properties": {
@@ -5433,6 +6831,69 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HistoryItem": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "execution_time_ms": {
+            "type": "integer",
+            "title": "Execution Time Ms"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row Count"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "connection_name": {
+            "type": "string",
+            "title": "Connection Name"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "query",
+          "status",
+          "execution_time_ms",
+          "row_count",
+          "created_at",
+          "connection_name",
+          "created_by"
+        ],
+        "title": "HistoryItem"
       },
       "JobCancelRequest": {
         "properties": {
@@ -5481,65 +6942,6 @@
           "offset"
         ],
         "title": "JobListResponse"
-      },
-      "JobLogRead": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "job_id": {
-            "type": "integer",
-            "title": "Job Id"
-          },
-          "level": {
-            "type": "string",
-            "title": "Level"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message"
-          },
-          "metadata_payload": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Metadata Payload"
-          },
-          "timestamp": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Timestamp"
-          },
-          "source": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "job_id",
-          "level",
-          "message",
-          "metadata_payload",
-          "timestamp",
-          "source"
-        ],
-        "title": "JobLogRead"
       },
       "JobRead": {
         "properties": {
@@ -5791,6 +7193,24 @@
             "title": "Max Parallel Runs",
             "default": 1
           },
+          "max_retries": {
+            "type": "integer",
+            "maximum": 10,
+            "minimum": 0,
+            "title": "Max Retries",
+            "default": 3
+          },
+          "retry_strategy": {
+            "$ref": "#/components/schemas/RetryStrategy",
+            "default": "fixed"
+          },
+          "retry_delay_seconds": {
+            "type": "integer",
+            "maximum": 3600,
+            "minimum": 0,
+            "title": "Retry Delay Seconds",
+            "default": 60
+          },
           "execution_timeout_seconds": {
             "anyOf": [
               {
@@ -5884,6 +7304,24 @@
             "title": "Max Parallel Runs",
             "default": 1
           },
+          "max_retries": {
+            "type": "integer",
+            "maximum": 10,
+            "minimum": 0,
+            "title": "Max Retries",
+            "default": 3
+          },
+          "retry_strategy": {
+            "$ref": "#/components/schemas/RetryStrategy",
+            "default": "fixed"
+          },
+          "retry_delay_seconds": {
+            "type": "integer",
+            "maximum": 3600,
+            "minimum": 0,
+            "title": "Retry Delay Seconds",
+            "default": 60
+          },
           "execution_timeout_seconds": {
             "anyOf": [
               {
@@ -5968,6 +7406,16 @@
             "title": "Deleted At"
           },
           "published_version": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PipelineVersionRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "latest_version": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/PipelineVersionRead"
@@ -6189,12 +7637,34 @@
             ],
             "title": "Destination Asset Id"
           },
+          "connection_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connection Id"
+          },
           "max_retries": {
             "type": "integer",
             "maximum": 10,
             "minimum": 0,
             "title": "Max Retries",
             "default": 3
+          },
+          "retry_strategy": {
+            "$ref": "#/components/schemas/RetryStrategy",
+            "default": "fixed"
+          },
+          "retry_delay_seconds": {
+            "type": "integer",
+            "maximum": 3600,
+            "minimum": 0,
+            "title": "Retry Delay Seconds",
+            "default": 60
           },
           "timeout_seconds": {
             "anyOf": [
@@ -6289,12 +7759,34 @@
             ],
             "title": "Destination Asset Id"
           },
+          "connection_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connection Id"
+          },
           "max_retries": {
             "type": "integer",
             "maximum": 10,
             "minimum": 0,
             "title": "Max Retries",
             "default": 3
+          },
+          "retry_strategy": {
+            "$ref": "#/components/schemas/RetryStrategy",
+            "default": "fixed"
+          },
+          "retry_delay_seconds": {
+            "type": "integer",
+            "maximum": 3600,
+            "minimum": 0,
+            "title": "Retry Delay Seconds",
+            "default": 60
           },
           "timeout_seconds": {
             "anyOf": [
@@ -6439,6 +7931,24 @@
             "title": "Max Parallel Runs",
             "default": 1
           },
+          "max_retries": {
+            "type": "integer",
+            "maximum": 10,
+            "minimum": 0,
+            "title": "Max Retries",
+            "default": 3
+          },
+          "retry_strategy": {
+            "$ref": "#/components/schemas/RetryStrategy",
+            "default": "fixed"
+          },
+          "retry_delay_seconds": {
+            "type": "integer",
+            "maximum": 3600,
+            "minimum": 0,
+            "title": "Retry Delay Seconds",
+            "default": 60
+          },
           "execution_timeout_seconds": {
             "anyOf": [
               {
@@ -6560,6 +8070,11 @@
             "type": "integer",
             "title": "Job Id"
           },
+          "total_nodes": {
+            "type": "integer",
+            "title": "Total Nodes",
+            "default": 0
+          },
           "total_extracted": {
             "type": "integer",
             "title": "Total Extracted"
@@ -6637,6 +8152,16 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PipelineVersionRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "step_runs": {
             "items": {
@@ -6722,6 +8247,11 @@
           "job_id": {
             "type": "integer",
             "title": "Job Id"
+          },
+          "total_nodes": {
+            "type": "integer",
+            "title": "Total Nodes",
+            "default": 0
           },
           "total_extracted": {
             "type": "integer",
@@ -7077,6 +8607,42 @@
             ],
             "title": "Max Parallel Runs"
           },
+          "max_retries": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 10,
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Retries"
+          },
+          "retry_strategy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RetryStrategy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retry_delay_seconds": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3600,
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retry Delay Seconds"
+          },
           "execution_timeout_seconds": {
             "anyOf": [
               {
@@ -7367,6 +8933,85 @@
         ],
         "title": "PipelineVersionSummary"
       },
+      "QueryRequest": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit",
+            "default": 100
+          },
+          "offset": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Offset",
+            "default": 0
+          },
+          "params": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Params"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query"
+        ],
+        "title": "QueryRequest"
+      },
+      "QueryResponse": {
+        "properties": {
+          "results": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Columns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "results",
+          "count",
+          "columns"
+        ],
+        "title": "QueryResponse"
+      },
       "RecentActivity": {
         "properties": {
           "id": {
@@ -7518,6 +9163,29 @@
         ],
         "title": "SchemaDiscoveryResponse"
       },
+      "SlowestPipeline": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "avg_duration": {
+            "type": "number",
+            "title": "Avg Duration"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "avg_duration"
+        ],
+        "title": "SlowestPipeline"
+      },
       "StepLogRead": {
         "properties": {
           "id": {
@@ -7592,8 +9260,7 @@
             "title": "Node Id"
           },
           "operator_type": {
-            "type": "string",
-            "title": "Operator Type"
+            "$ref": "#/components/schemas/OperatorType"
           },
           "status": {
             "$ref": "#/components/schemas/OperatorRunStatus"
@@ -7601,6 +9268,32 @@
           "order_index": {
             "type": "integer",
             "title": "Order Index"
+          },
+          "retry_count": {
+            "type": "integer",
+            "title": "Retry Count"
+          },
+          "source_asset_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Asset Id"
+          },
+          "destination_asset_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Asset Id"
           },
           "records_in": {
             "type": "integer",
@@ -7654,6 +9347,18 @@
               }
             ],
             "title": "Memory Mb"
+          },
+          "sample_data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample Data"
           },
           "error_message": {
             "anyOf": [
@@ -7715,6 +9420,7 @@
           "operator_type",
           "status",
           "order_index",
+          "retry_count",
           "records_in",
           "records_out",
           "records_filtered",
@@ -7723,6 +9429,7 @@
           "duration_seconds",
           "cpu_percent",
           "memory_mb",
+          "sample_data",
           "error_message",
           "error_type",
           "started_at",
@@ -7730,6 +9437,29 @@
           "created_at"
         ],
         "title": "StepRunRead"
+      },
+      "SystemHealth": {
+        "properties": {
+          "cpu_percent": {
+            "type": "number",
+            "title": "Cpu Percent"
+          },
+          "memory_usage_mb": {
+            "type": "number",
+            "title": "Memory Usage Mb"
+          },
+          "active_workers": {
+            "type": "integer",
+            "title": "Active Workers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cpu_percent",
+          "memory_usage_mb",
+          "active_workers"
+        ],
+        "title": "SystemHealth"
       },
       "ThroughputDataPoint": {
         "properties": {
@@ -7745,6 +9475,16 @@
           "failure_count": {
             "type": "integer",
             "title": "Failure Count"
+          },
+          "rows_processed": {
+            "type": "integer",
+            "title": "Rows Processed",
+            "default": 0
+          },
+          "bytes_processed": {
+            "type": "integer",
+            "title": "Bytes Processed",
+            "default": 0
           }
         },
         "type": "object",
@@ -7772,6 +9512,87 @@
           "token_type"
         ],
         "title": "Token"
+      },
+      "UnifiedLogRead": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "level": {
+            "type": "string",
+            "title": "Level"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "metadata_payload": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata Payload"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "step_run_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step Run Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "default": "log"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "level",
+          "message",
+          "metadata_payload",
+          "timestamp",
+          "source"
+        ],
+        "title": "UnifiedLogRead"
       },
       "UserCreate": {
         "properties": {
@@ -7811,25 +9632,6 @@
           "password"
         ],
         "title": "UserCreate"
-      },
-      "UserLogin": {
-        "properties": {
-          "username": {
-            "type": "string",
-            "format": "email",
-            "title": "Username"
-          },
-          "password": {
-            "type": "string",
-            "title": "Password"
-          }
-        },
-        "type": "object",
-        "required": [
-          "username",
-          "password"
-        ],
-        "title": "UserLogin"
       },
       "UserRead": {
         "properties": {
@@ -7953,9 +9755,7 @@
         "type": "oauth2",
         "flows": {
           "password": {
-            "scopes": {
-
-            },
+            "scopes": {},
             "tokenUrl": "/api/v1/auth/login"
           }
         }

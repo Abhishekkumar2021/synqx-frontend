@@ -41,7 +41,12 @@ api.interceptors.response.use(
         
         // Handle 401 Unauthorized (Session Expired)
         if (response && response.status === 401) {
-            if (!window.location.pathname.includes('/login')) {
+            const publicRoutes = ['/login', '/register', '/', '/docs'];
+            const isPublicRoute = publicRoutes.some(route => 
+                window.location.pathname === route || window.location.pathname.startsWith('/docs/')
+            );
+
+            if (!isPublicRoute) {
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
                 toast.error('Session expired. Please login again.');
