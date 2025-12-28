@@ -13,6 +13,7 @@ import { Bell, Check, Info, AlertTriangle, AlertCircle, CheckCircle2 } from 'luc
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useAuth } from '@/hooks/useAuth';
 
 export const NotificationsBell: React.FC = () => {
     const queryClient = useQueryClient();
