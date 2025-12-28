@@ -56,48 +56,11 @@ export const NODE_DEFINITIONS: { category: string; items: OperatorDefinition[] }
                 ]
             },
             {
-                label: "REST API Extractor",
-                type: "source",
-                opClass: "rest_api",
-                icon: Database,
-                desc: "Ingest data from a REST API endpoint",
-                fields: [
-                    {
-                        name: 'data_key', label: 'Response Data Key', type: 'text', configKey: 'data_key', 
-                        placeholder: 'data.items', 
-                        tooltip: 'Dot-notation path to the array of records in the JSON response. E.g., if response is { "result": { "users": [...] } }, use "result.users".' 
-                    },
-                    {
-                        name: 'pagination_type', label: 'Pagination', type: 'select', configKey: 'pagination_type', 
-                        options: [
-                            { label: 'None', value: 'none' },
-                            { label: 'Limit/Offset', value: 'limit_offset' },
-                            { label: 'Page Number', value: 'page_number' }
-                        ],
-                        tooltip: 'The method used by the API to navigate through large datasets.'
-                    }
-                ]
-            },
-            {
                 label: "Loader (Sink)", 
                 type: "sink", 
                 opClass: "loader", 
                 icon: HardDriveUpload, 
                 desc: "Load data into a destination connection" 
-            },
-            {
-                label: "PostgreSQL Loader",
-                type: "sink",
-                opClass: "postgresql",
-                icon: HardDriveUpload,
-                desc: "Load data into a PostgreSQL table",
-                fields: [
-                    {
-                        name: 'db_schema', label: 'Target Schema', type: 'text', configKey: 'db_schema', 
-                        placeholder: 'public',
-                        tooltip: 'The database schema where the target table resides. Defaults to "public".'
-                    }
-                ]
             }
         ]
     },
