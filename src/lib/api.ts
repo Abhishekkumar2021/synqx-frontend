@@ -669,8 +669,13 @@ export interface DashboardStats {
     recent_alerts: DashboardAlert[];
 }
 
-export const getDashboardStats = async (timeRange: string = '24h') => {
-    const { data } = await api.get<DashboardStats>('/dashboard/stats', { params: { time_range: timeRange } });
+export const getDashboardStats = async (timeRange: string = '24h', startDate?: string, endDate?: string) => {
+    const params: any = { time_range: timeRange };
+    if (timeRange === 'custom' && startDate) {
+        params.start_date = startDate;
+        if (endDate) params.end_date = endDate;
+    }
+    const { data } = await api.get<DashboardStats>('/dashboard/stats', { params });
     return data;
 };
 
