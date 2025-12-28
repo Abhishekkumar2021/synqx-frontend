@@ -12,6 +12,7 @@ interface StatsCardProps {
     trendUp?: boolean;
     icon: LucideIcon;
     active?: boolean;
+    variant?: 'primary' | 'success' | 'warning' | 'info' | 'destructive';
     className?: string;
 }
 
@@ -26,74 +27,93 @@ export const StatsCard: React.FC<StatsCardProps> = ({
     trendUp,
     icon: Icon,
     active,
+    variant = 'primary',
     className
-}) => (
-    <MotionCard
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        whileHover={{ y: -4, transition: { duration: 0.2 } }}
-        className={cn(
-            "relative overflow-hidden rounded-[2rem] border transition-colors duration-300",
-            // Base Colors (Glass Effect)
-            "bg-card/40 backdrop-blur-md border-border/50",
-            // Active State
-            active
-                ? "border-primary/40 shadow-xl shadow-primary/10 bg-primary/5"
-                : "hover:border-primary/20 hover:bg-card/60 hover:shadow-lg hover:shadow-black/5",
-            className
-        )}
-    >
-        <CardContent className="p-6 md:p-8 relative z-10">
-            {/* Header */}
-            <div className="flex items-center justify-between space-y-0 pb-5">
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">{title}</p>
-                <div className={cn(
-                    "p-3 rounded-2xl border transition-all duration-300 group-hover:scale-110 shadow-sm",
-                    active
-                        ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
-                        : "bg-muted/50 border-border text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 group-hover:border-primary/20"
-                )}>
-                    <Icon className="h-5 w-5" />
-                </div>
-            </div>
+}) => {
+    const variantConfig = {
+        primary: "text-primary bg-primary/10 border-primary/20",
+        success: "text-success bg-success/10 border-success/20",
+        warning: "text-warning bg-warning/10 border-warning/20",
+        info: "text-info bg-info/10 border-info/20",
+        destructive: "text-destructive bg-destructive/10 border-destructive/20",
+    };
 
-            {/* Value & Trends */}
-            <div className="flex flex-col gap-2">
-                <h3 
-                    className="text-4xl font-bold tracking-tighter tabular-nums text-foreground"
-                >
-                    {value}
-                </h3>
+    const activeConfig = {
+        primary: "border-primary/40 bg-primary/5 shadow-primary/10",
+        success: "border-success/40 bg-success/5 shadow-success/10",
+        warning: "border-warning/40 bg-warning/5 shadow-warning/10",
+        info: "border-info/40 bg-info/5 shadow-info/10",
+        destructive: "border-destructive/40 bg-destructive/5 shadow-destructive/10",
+    };
 
-                {(trend || subtext) && (
-                    <div className="flex items-center gap-2 text-xs font-semibold mt-1">
-                        {trend && (
-                            <span className={cn(
-                                "flex items-center px-2 py-1 rounded-md border",
-                                trendUp
-                                    ? "text-success bg-success/10 border-success/20"
-                                    : "text-destructive bg-destructive/10 border-destructive/20"
-                            )}>
-                                {trendUp ? <TrendingUp className="mr-1.5 h-3 w-3" /> : <TrendingDown className="mr-1.5 h-3 w-3" />}
-                                {trend}
-                            </span>
-                        )}
-                        {subtext && <span className="text-muted-foreground/70 font-medium truncate">{subtext}</span>}
+    return (
+        <MotionCard
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className={cn(
+                "relative overflow-hidden border transition-all duration-300 metric-card",
+                active && activeConfig[variant],
+                className
+            )}
+        >
+            <CardContent className="p-6 md:p-8 relative z-10">
+                {/* Header */}
+                <div className="flex items-center justify-between space-y-0 pb-5">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{title}</p>
+                    <div className={cn(
+                        "p-2.5 rounded-xl border transition-all duration-300 group-hover:scale-110 shadow-sm",
+                        active
+                            ? `bg-${variant} text-${variant}-foreground border-${variant} shadow-lg shadow-${variant}/20`
+                            : variantConfig[variant]
+                    )}>
+                        <Icon className="h-5 w-5" />
                     </div>
-                )}
-            </div>
-        </CardContent>
+                </div>
 
-        {/* --- Decorative Elements --- */}
+                {/* Value & Trends */}
+                <div className="flex flex-col gap-1">
+                    <h3 
+                        className="text-4xl font-black tracking-tighter tabular-nums text-foreground"
+                    >
+                        {value}
+                    </h3>
 
-        {/* Hover Glow Gradient */}
-        <div className="absolute -top-20 -right-20 h-60 w-60 bg-primary/20 blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-full" />
+                    {(trend || subtext) && (
+                        <div className="flex items-center gap-2 text-[10px] font-bold mt-2">
+                            {trend && (
+                                <span className={cn(
+                                    "flex items-center px-2 py-0.5 rounded-full border uppercase tracking-wider",
+                                    trendUp
+                                        ? "text-success bg-success/10 border-success/20"
+                                        : "text-destructive bg-destructive/10 border-destructive/20"
+                                )}>
+                                    {trendUp ? <TrendingUp className="mr-1 h-3 w-3" /> : <TrendingDown className="mr-1 h-3 w-3" />}
+                                    {trend}
+                                </span>
+                            )}
+                            {subtext && <span className="text-muted-foreground/60 font-bold uppercase tracking-widest truncate">{subtext}</span>}
+                        </div>
+                    )}
+                </div>
+            </CardContent>
 
-        {/* Bottom Active Line */}
-        {active && (
-            <div className="absolute bottom-0 left-0 w-full h-[3px] bg-linear-to-r from-transparent via-primary to-transparent opacity-80 shadow-[0_-2px_10px_rgba(var(--primary),0.5)]"></div>
-        )}
-    </MotionCard>
-);
+            {/* --- Decorative Elements --- */}
+
+            {/* Hover Glow Gradient */}
+            <div className={cn(
+                "absolute -top-20 -right-20 h-60 w-60 blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none rounded-full",
+                `bg-${variant}/20`
+            )} />
+
+            {/* Bottom Active Line */}
+            {active && (
+                <div className={cn(
+                    "absolute bottom-0 left-0 w-full h-[3px] bg-linear-to-r from-transparent via-current to-transparent opacity-80",
+                    `text-${variant}`
+                )}></div>
+            )}
+        </MotionCard>
+    );
+};

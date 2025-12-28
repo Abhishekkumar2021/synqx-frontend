@@ -16,7 +16,7 @@ export const RecentActivityTable: React.FC<RecentActivityTableProps> = ({ jobs }
     const navigate = useNavigate();
 
     return (
-        <Card className="col-span-full border border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl rounded-[2.5rem] overflow-hidden flex flex-col h-full">
+        <Card className="col-span-full border-none bg-transparent shadow-none rounded-none flex flex-col h-full">
             <CardHeader className="flex flex-row items-center justify-between py-5 px-6 border-b border-border/40 bg-muted/5 shrink-0">
                 <div className="space-y-1">
                     <CardTitle className="text-xl font-black tracking-tight flex items-center gap-3">

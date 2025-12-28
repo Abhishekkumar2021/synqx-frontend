@@ -87,7 +87,7 @@ export const PipelineHealthChart: React.FC<PipelineHealthChartProps> = ({ data, 
 
     return (
 
-        <Card className="flex flex-col h-full border border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden rounded-[2.5rem]">
+        <Card className="flex flex-col h-full border-none bg-transparent shadow-none overflow-hidden rounded-none">
 
             <CardHeader className="px-8 pt-8 pb-2 relative z-10">
 

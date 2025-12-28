@@ -9,7 +9,7 @@ interface SlowestPipelinesProps {
 
 export const SlowestPipelines: React.FC<SlowestPipelinesProps> = ({ pipelines }) => {
     return (
-        <Card className="h-full border-border/40 bg-background/50 backdrop-blur-xl shadow-sm overflow-hidden">
+        <Card className="h-full border-none bg-transparent shadow-none rounded-none overflow-hidden">
             <CardHeader className="pb-3 border-b border-border/40 bg-muted/20">
                 <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
                     <Timer className="h-4 w-4 text-orange-500" />

@@ -20,7 +20,7 @@ export const DashboardAlertsFeed: React.FC<DashboardAlertsFeedProps> = ({ alerts
     };
 
     return (
-        <Card className="h-full border-border/40 bg-background/50 backdrop-blur-xl shadow-sm overflow-hidden flex flex-col">
+        <Card className="h-full border-none bg-transparent shadow-none overflow-hidden rounded-none flex flex-col">
             <CardHeader className="pb-3 border-b border-border/40 bg-muted/20 shrink-0">
                 <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
                     <Bell className="h-4 w-4 text-primary" />

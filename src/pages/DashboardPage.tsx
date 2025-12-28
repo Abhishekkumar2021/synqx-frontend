@@ -31,6 +31,9 @@ import { useDashboardTelemetry } from '@/hooks/useDashboardTelemetry';
 import { useZenMode } from '@/context/ZenContext';
 import { cn, formatNumber } from '@/lib/utils';
 import { motion, type Variants } from 'framer-motion';
+import { DateRangePicker } from '@/components/features/dashboard/DateRangePicker';
+import type { DateRange } from 'react-day-picker';
+import { subDays } from 'date-fns';
 
 const formatBytes = (bytes: number, decimals = 2) => {
     if (!+bytes) return '0 Bytes'
@@ -41,6 +44,8 @@ const formatBytes = (bytes: number, decimals = 2) => {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`
 }
 
+
+
 export const DashboardPage: React.FC = () => {
     // Enable real-time dashboard updates via WebSockets
     useDashboardTelemetry();
@@ -48,18 +53,28 @@ export const DashboardPage: React.FC = () => {
 
     const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
     const [timeRange, setTimeRange] = useState('24h');
+    const [customRange, setCustomRange] = useState<DateRange | undefined>({
+        from: subDays(new Date(), 7),
+        to: new Date(),
+    });
 
     // 1. Single API Call
     const { data: stats, isLoading } = useQuery({ 
-        queryKey: ['dashboard', timeRange], 
-        queryFn: () => getDashboardStats(timeRange),
+        queryKey: ['dashboard', timeRange, customRange?.from?.toISOString(), customRange?.to?.toISOString()], 
+        queryFn: () => getDashboardStats(
+            timeRange, 
+            timeRange === 'custom' ? customRange?.from?.toISOString() : undefined,
+            timeRange === 'custom' ? customRange?.to?.toISOString() : undefined
+        ),
     });
 
     // 2. Chart Data Transformation
     const throughputData = React.useMemo(() => {
         if (!stats?.throughput) return [];
         return stats.throughput.map(p => ({
-            name: timeRange === '24h' ? format(parseISO(p.timestamp), 'HH:mm') : format(parseISO(p.timestamp), 'MMM dd'),
+            name: (timeRange === '24h' || (timeRange === 'custom' && stats.throughput.length <= 48)) 
+                ? format(parseISO(p.timestamp), 'HH:mm') 
+                : format(parseISO(p.timestamp), 'MMM dd'),
             success: p.success_count,
             failed: p.failure_count,
             rows: p.rows_processed,
@@ -112,6 +127,7 @@ export const DashboardPage: React.FC = () => {
             case '7d': return 'Last 7 Days';
             case '30d': return 'Last 30 Days';
             case 'all': return 'All Time';
+            case 'custom': return 'Custom Range';
             default: return tr;
         }
     };
@@ -159,17 +175,27 @@ export const DashboardPage: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-4">
                     <Select value={timeRange} onValueChange={setTimeRange}>
-                        <SelectTrigger className="w-48 rounded-xl h-10 font-medium">
+                        <SelectTrigger className={cn(
+                            "rounded-xl h-10 font-medium w-48"
+                        )}>
                             <CalendarDays className="mr-2 h-4 w-4 opacity-50" />
                             <SelectValue placeholder="Select Range" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="rounded-xl">
                             <SelectItem value="24h">Last 24 Hours</SelectItem>
                             <SelectItem value="7d">Last 7 Days</SelectItem>
                             <SelectItem value="30d">Last 30 Days</SelectItem>
                             <SelectItem value="all">All Time</SelectItem>
+                            <SelectItem value="custom">Custom Range</SelectItem>
                         </SelectContent>
                     </Select>
+
+                    {timeRange === 'custom' && (
+                        <DateRangePicker 
+                            date={customRange}
+                            setDate={setCustomRange}
+                        />
+                    )}
 
                     <Button 
                         size="lg" 
@@ -195,24 +221,28 @@ export const DashboardPage: React.FC = () => {
                             trendUp={!!(stats?.success_rate && stats.success_rate > 95)}
                             icon={CheckCircle2}
                             active={true}
+                            variant="success"
                         />
                         <StatsCard
                             title="Data Volume"
                             value={formatBytes(stats?.total_bytes || 0)}
                             subtext={`${formatNumber(stats?.total_rows)} Rows processed`}
                             icon={Zap}
+                            variant="info"
                         />
                         <StatsCard
                             title="Connectivity"
                             value={stats?.total_connections || 0}
                             subtext={connectionSubtext}
                             icon={Network}
+                            variant="warning"
                         />
                         <StatsCard
                             title="Pipeline Status"
                             value={stats?.active_pipelines || 0}
                             subtext={`From ${stats?.total_pipelines} total pipelines`}
                             icon={Workflow}
+                            variant="primary"
                         />
                     </>
                 )}
@@ -224,18 +254,22 @@ export const DashboardPage: React.FC = () => {
                 {/* --- Left Column (Charts & Data) --- */}
                 <div className="lg:col-span-8 space-y-8">
                     {/* Throughput Chart */}
-                    <motion.div variants={item} className="h-[450px]">
+                    <motion.div variants={item} className="h-[450px] metric-card p-0! overflow-hidden border-border/40">
                         <ExecutionThroughputChart data={throughputData} />
                     </motion.div>
 
                     {/* Performance Widgets Grid */}
-                    <motion.div variants={item} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <TopFailingPipelines pipelines={stats?.top_failing_pipelines || []} />
-                        <SlowestPipelines pipelines={stats?.slowest_pipelines || []} />
-                    </motion.div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <motion.div variants={item} className="metric-card p-0! overflow-hidden border-border/40">
+                            <TopFailingPipelines pipelines={stats?.top_failing_pipelines || []} />
+                        </motion.div>
+                        <motion.div variants={item} className="metric-card p-0! overflow-hidden border-border/40">
+                            <SlowestPipelines pipelines={stats?.slowest_pipelines || []} />
+                        </motion.div>
+                    </div>
 
                     {/* Recent Activity Table */}
-                    <motion.div variants={item}>
+                    <motion.div variants={item} className="metric-card p-0! overflow-hidden border-border/40">
                         <RecentActivityTable jobs={recentJobs} />
                     </motion.div>
                 </div>
@@ -243,12 +277,12 @@ export const DashboardPage: React.FC = () => {
                 {/* --- Right Column (Sidebar Widgets) --- */}
                 <div className="lg:col-span-4 space-y-8">
                     {/* System Health */}
-                    <motion.div variants={item} className="h-[450px]">
+                    <motion.div variants={item} className="h-[450px] metric-card p-0! overflow-hidden border-border/40">
                         <SystemHealthMonitor data={stats?.system_health} />
                     </motion.div>
 
                     {/* Pipeline Health Pie */}
-                    <motion.div variants={item} className="h-[500px]">
+                    <motion.div variants={item} className="h-[500px] metric-card p-0! overflow-hidden border-border/40">
                         <PipelineHealthChart
                             data={distributionData}
                             totalPipelines={stats?.total_pipelines || 0}
@@ -256,7 +290,7 @@ export const DashboardPage: React.FC = () => {
                     </motion.div>
 
                     {/* Alerts Feed */}
-                    <motion.div variants={item} className="h-[500px] flex flex-col">
+                    <motion.div variants={item} className="h-[500px] flex flex-col metric-card p-0! overflow-hidden border-border/40">
                         <DashboardAlertsFeed alerts={stats?.recent_alerts || []} />
                     </motion.div>
                 </div>

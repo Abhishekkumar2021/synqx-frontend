@@ -23,7 +23,7 @@ export const SystemHealthMonitor: React.FC<SystemHealthMonitorProps> = ({ data }
     };
 
     return (
-        <Card className="h-full border-border/40 bg-background/50 backdrop-blur-xl shadow-sm flex flex-col">
+        <Card className="h-full border-none bg-transparent shadow-none rounded-none flex flex-col">
             <CardHeader className="pb-2 shrink-0">
                 <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
                     <Activity className="h-4 w-4" />
