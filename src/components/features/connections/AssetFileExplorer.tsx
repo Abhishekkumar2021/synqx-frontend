@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo, useState, useCallback } from 'react';
 import {
-    Folder, File, ChevronRight, Home, 
+    Folder, File, ChevronRight, Home,
     FileJson, FileText, Database, HardDrive,
-    Search, Filter, ArrowLeft, 
-    FileSpreadsheet, FileCode, Clock, Info
+    Search, ArrowLeft,
+    FileSpreadsheet, FileCode, Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface AssetFileExplorerProps {
-    assets: any[]; 
+    assets: any[];
     selectedAssets?: Set<string>;
     onToggleAsset?: (name: string, checked: boolean) => void;
     onToggleAll?: (checked: boolean) => void;
@@ -25,20 +25,20 @@ interface AssetFileExplorerProps {
 
 type FileSystemNode = {
     name: string;
-    path: string; 
+    path: string;
     type: 'directory' | 'file';
-    asset?: any; 
+    asset?: any;
     children?: Record<string, FileSystemNode>;
 };
 
-export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({ 
-    assets, 
-    selectedAssets = new Set(), 
+export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
+    assets,
+    selectedAssets = new Set(),
     onToggleAsset,
     onToggleAll,
     readOnly = false
 }) => {
-    const [currentPath, setCurrentPath] = useState<string>("");    const [searchQuery, setSearchQuery] = useState("");
+    const [currentPath, setCurrentPath] = useState<string>(""); const [searchQuery, setSearchQuery] = useState("");
 
     // Build Tree Structure
     const fileSystem = useMemo(() => {
@@ -47,13 +47,13 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
         assets.forEach(asset => {
             const rawPath = (asset.fully_qualified_name || asset.name).replace(/\\/g, '/');
             const parts = rawPath.split('/').filter(Boolean);
-            
+
             let currentLevel = root;
-            
+
             parts.forEach((part: string | number, index: number) => {
                 const isLast = index === parts.length - 1;
                 const pathSoFar = parts.slice(0, index + 1).join('/');
-                
+
                 if (!currentLevel.children) currentLevel.children = {};
 
                 if (!currentLevel.children[part]) {
@@ -65,10 +65,10 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                         asset: isLast ? asset : undefined
                     };
                 }
-                
+
                 if (!isLast && currentLevel.children[part].type === 'file') {
-                     currentLevel.children[part].type = 'directory';
-                     currentLevel.children[part].children = currentLevel.children[part].children || {};
+                    currentLevel.children[part].type = 'directory';
+                    currentLevel.children[part].children = currentLevel.children[part].children || {};
                 }
 
                 currentLevel = currentLevel.children[part];
@@ -93,7 +93,7 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
     };
 
     const currentNode = getCurrentNode(currentPath);
-    
+
     // Helper to get all file names under a node recursively
     const getAllFilesUnderNode = useCallback((node: FileSystemNode): string[] => {
         let results: string[] = [];
@@ -112,9 +112,9 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
     const items = useMemo(() => {
         if (!currentNode?.children) return [];
         let allItems = Object.values(currentNode.children);
-        
+
         if (searchQuery) {
-            allItems = allItems.filter(item => 
+            allItems = allItems.filter(item =>
                 item.name.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
@@ -146,12 +146,12 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
     };
 
     // Selection Logic
-    const allFilesUnderCurrent = useMemo(() => 
+    const allFilesUnderCurrent = useMemo(() =>
         currentNode ? getAllFilesUnderNode(currentNode) : []
-    , [currentNode, getAllFilesUnderNode]);
+        , [currentNode, getAllFilesUnderNode]);
 
     const selectedFilesUnderCurrent = allFilesUnderCurrent.filter(name => selectedAssets.has(name));
-    
+
     const isAllSelected = allFilesUnderCurrent.length > 0 && selectedFilesUnderCurrent.length === allFilesUnderCurrent.length;
     const isIndeterminate = selectedFilesUnderCurrent.length > 0 && selectedFilesUnderCurrent.length < allFilesUnderCurrent.length;
 
@@ -182,18 +182,18 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                 {/* --- Modern Explorer Toolbar --- */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 p-4 bg-muted/20 border-b border-border/40 shrink-0">
                     <div className="flex items-center gap-1">
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
+                        <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => setCurrentPath("")}
                             className={cn("h-8 w-8 rounded-lg", !currentPath && "bg-background shadow-sm text-primary")}
                         >
                             <Home className="h-4 w-4" />
                         </Button>
                         <div className="h-4 w-px bg-border/60 mx-1" />
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
+                        <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-8 w-8 rounded-lg"
                             onClick={handleNavigateUp}
                             disabled={!currentPath}
@@ -213,7 +213,7 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                                 return (
                                     <React.Fragment key={path}>
                                         <ChevronRight className="h-3 w-3 text-muted-foreground/30 shrink-0" />
-                                        <button 
+                                        <button
                                             onClick={() => setCurrentPath(path)}
                                             className="px-2 py-0.5 rounded-md hover:bg-primary/10 hover:text-primary transition-all text-xs font-bold whitespace-nowrap"
                                         >
@@ -229,16 +229,13 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                     <div className="flex items-center gap-2">
                         <div className="relative group">
                             <Search className="z-20 absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                            <Input 
-                                placeholder="Search current folder..." 
+                            <Input
+                                placeholder="Search current folder..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="h-9 pl-8 w-full sm:w-[200px] bg-background/50 border-border/40 focus:ring-primary/20 text-xs font-medium rounded-lg"
                             />
                         </div>
-                        <Button variant="outline" size="icon" className="h-9 w-9 rounded-lg border-border/40 bg-background/50">
-                            <Filter className="h-3.5 w-3.5" />
-                        </Button>
                     </div>
                 </div>
 
@@ -267,7 +264,7 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                                         <TableRow className="hover:bg-transparent border-none">
                                             {!readOnly && (
                                                 <TableHead className="w-12 pl-6">
-                                                    <Checkbox 
+                                                    <Checkbox
                                                         checked={isAllSelected ? true : (isIndeterminate ? "indeterminate" : false)}
                                                         onCheckedChange={(c) => handleToggleCurrentFolder(!!c)}
                                                         disabled={allFilesUnderCurrent.length === 0}
@@ -282,7 +279,7 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                                     </TableHeader>
                                     <TableBody>
                                         {items.map((item) => (
-                                            <TableRow 
+                                            <TableRow
                                                 key={item.path}
                                                 className={cn(
                                                     "group transition-all duration-200 border-b border-border/20 cursor-default",
@@ -293,7 +290,7 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                                                 {!readOnly && (
                                                     <TableCell className="pl-6 py-3" onClick={(e) => e.stopPropagation()}>
                                                         {item.type === 'file' ? (
-                                                            <Checkbox 
+                                                            <Checkbox
                                                                 checked={selectedAssets.has(item.asset.name)}
                                                                 onCheckedChange={(c) => onToggleAsset?.(item.asset.name, !!c)}
                                                                 className="data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-transform duration-200 group-hover:scale-110"
@@ -301,9 +298,9 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                                                         ) : (
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
-                                                                    <Button 
-                                                                        variant="ghost" 
-                                                                        size="icon" 
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
                                                                         className="h-6 w-6 rounded-md hover:bg-primary/10 hover:text-primary transition-all p-0 group/btn"
                                                                         onClick={(e) => handleToggleFolderRecursive(e, item)}
                                                                     >
@@ -366,14 +363,9 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                                                                 (item.asset.size_bytes / 1024).toFixed(1) + ' KB'
                                                             ) : '-'}
                                                         </span>
-                                                        {item.type === 'file' && (
-                                                            <div className="flex items-center gap-1 text-[9px] text-muted-foreground/40 font-bold uppercase">
-                                                                <Clock className="h-2.5 w-2.5" /> 
-                                                                Recent
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 </TableCell>
+
                                             </TableRow>
                                         ))}
                                     </TableBody>
@@ -384,40 +376,43 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                 </div>
 
                 {/* --- Status Bar --- */}
-                <div className="bg-muted/30 border-t border-border/40 p-2.5 px-6 flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-foreground/60">{items.length} Elements in view</span>
-                        </div>
-                        <div className="h-3 w-px bg-border/60" />
-                        <span className="text-[10px] font-bold text-muted-foreground/50 truncate max-w-[200px] sm:max-w-none">
-                            LOCATION: {currentPath || "ROOT_CONTEXT"}
-                        </span>
-                    </div>
+                <div className="bg-muted/10 border-t border-border/40 p-2 px-4 flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-background/50 border border-border/40">
+                            <div className="w-1 h-1 rounded-full bg-primary animate-pulse" />
+                            <span className="text-[9px] font-black uppercase tracking-tighter text-foreground/70">{items.length} Items</span>
+                        </div>
+                        <div className="h-3 w-px bg-border/40" />
+                        <div className="flex items-center gap-1.5 max-w-[150px] sm:max-w-xs overflow-hidden">
+                            <Folder className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                            <span className="text-[9px] font-bold text-muted-foreground/60 truncate uppercase tracking-tight">
+                                {currentPath || "ROOT"}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
                         {!readOnly && (
                             <>
-                                <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    className="h-6 px-3 text-[9px] font-black uppercase tracking-tighter hover:bg-primary/10 hover:text-primary transition-all gap-1.5"
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-[9px] font-bold uppercase tracking-tight hover:bg-primary/5 hover:text-primary transition-all gap-1"
                                     onClick={handleToggleGlobal}
                                 >
-                                    {selectedAssets.size === assets.length ? 'Deselect All' : 'Select All Assets'}
+                                    {selectedAssets.size === assets.length ? 'Clear Selection' : 'Select All'}
                                 </Button>
-                                <Badge variant="secondary" className="text-[9px] h-5 font-black uppercase bg-primary/10 text-primary border-none">
+                                <div className="h-5 px-2 flex items-center rounded-full bg-primary/10 text-primary border border-primary/20 text-[9px] font-black uppercase tracking-tighter">
                                     {selectedAssets.size} Selected
-                                </Badge>
+                                </div>
                             </>
                         )}
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-6 w-6 rounded-md hover:bg-background shadow-none opacity-40 hover:opacity-100 transition-opacity">
-                                    <Info className="h-3.5 w-3.5" />
+                                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg hover:bg-background shadow-none opacity-40 hover:opacity-100 transition-opacity">
+                                    <Info className="h-3 w-3" />
                                 </Button>
                             </TooltipTrigger>
-                            <TooltipContent side="top" className="text-[10px] font-bold uppercase tracking-widest p-2 bg-background border-border/60 shadow-xl">
+                            <TooltipContent side="top" className="text-[9px] font-bold uppercase tracking-widest p-2 bg-background border-border/60 shadow-xl">
                                 Assets are filtered by supported extensions
                             </TooltipContent>
                         </Tooltip>

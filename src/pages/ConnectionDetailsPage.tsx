@@ -732,7 +732,7 @@ const AssetsTabContent = ({
                                 )}
                             </div>
                             {viewMode === 'explorer' && isFileBased ? (
-                                <div className="h-[400px]">
+                                <div className="h-[425px]">
                                     <AssetFileExplorer 
                                         assets={filteredDiscovered}
                                         selectedAssets={selectedDiscovered}
@@ -832,7 +832,7 @@ const AssetsTabContent = ({
                         </div>
                     ) : filteredAssets.length > 0 ? (
                         viewMode === 'explorer' && isFileBased ? (
-                            <div className="h-[500px]">
+                            <div className="h-[425px]">
                                 <AssetFileExplorer 
                                     assets={filteredAssets}
                                     readOnly={true}
