@@ -53,6 +53,16 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from '@/components/ui/label';
 import { format, formatDistanceToNow } from 'date-fns';
 import { FilePreview } from './FilePreview';
@@ -76,6 +86,10 @@ export const LiveFileExplorer: React.FC<LiveFileExplorerProps> = ({ connectionId
     const [isDragging, setIsDragging] = useState(false);
     const [previewFile, setPreviewFile] = useState<any | null>(null);
     const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+    
+    // Delete Confirmation State
+    const [itemToDelete, setItemToDelete] = useState<any | null>(null);
+    const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
     
     // Advanced UI State
     const [sortField, setSortField] = useState<SortField>('name');
@@ -159,33 +173,25 @@ export const LiveFileExplorer: React.FC<LiveFileExplorerProps> = ({ connectionId
         }
     };
 
-    const handleDelete = async (item: any) => {
-        toast.custom((t) => (
-            <div className="bg-background border border-border p-4 rounded-xl shadow-xl flex flex-col gap-3 min-w-[300px] animate-in fade-in zoom-in duration-300">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-destructive/10 text-destructive">
-                        <Trash2 className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-sm text-foreground">Delete Item?</h4>
-                        <p className="text-xs text-muted-foreground">Are you sure you want to delete <span className="font-mono">{item.name}</span>?</p>
-                    </div>
-                </div>
-                <div className="flex items-center justify-end gap-2">
-                    <Button variant="ghost" size="sm" className="h-8 text-xs font-bold" onClick={() => toast.dismiss(t)}>Cancel</Button>
-                    <Button variant="destructive" size="sm" className="h-8 text-xs font-bold" onClick={async () => {
-                        toast.dismiss(t);
-                        try {
-                            await deleteRemoteFile(connectionId, item.path);
-                            toast.success("Deleted successfully");
-                            fetchFiles(currentPath);
-                        } catch (error: any) {
-                            toast.error("Delete failed", { description: error.message });
-                        }
-                    }}>Confirm Delete</Button>
-                </div>
-            </div>
-        ), { duration: 5000 });
+    const handleDelete = (item: any) => {
+        setItemToDelete(item);
+        setIsDeleteAlertOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!itemToDelete) return;
+        
+        const loadingToast = toast.loading(`Purging ${itemToDelete.name}...`);
+        try {
+            await deleteRemoteFile(connectionId, itemToDelete.path);
+            toast.success("Resource successfully purged", { id: loadingToast });
+            fetchFiles(currentPath);
+        } catch (error: any) {
+            toast.error("Purge failed", { id: loadingToast, description: error.message });
+        } finally {
+            setItemToDelete(null);
+            setIsDeleteAlertOpen(false);
+        }
     };
 
     const handleUploadFiles = async (uploadedFiles: FileList | null) => {
@@ -773,6 +779,38 @@ export const LiveFileExplorer: React.FC<LiveFileExplorerProps> = ({ connectionId
                         </form>
                     </DialogContent>
                 </Dialog>
+
+                {/* --- Delete Confirmation Alert Dialog --- */}
+                <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+                    <AlertDialogContent className="rounded-[2.5rem] border-border/60 glass-panel shadow-2xl backdrop-blur-3xl p-0 overflow-hidden max-w-md">
+                        <div className="p-8 pb-4">
+                            <AlertDialogHeader>
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="p-4 rounded-2xl bg-destructive/10 text-destructive border border-destructive/20 shadow-inner">
+                                        <Trash2 className="h-6 w-6" />
+                                    </div>
+                                    <AlertDialogTitle className="text-xl font-black uppercase tracking-tight">
+                                        Irreversible Action
+                                    </AlertDialogTitle>
+                                </div>
+                                <AlertDialogDescription className="text-sm font-bold text-muted-foreground uppercase opacity-70 leading-relaxed">
+                                    You are about to permanently delete <span className="text-destructive font-mono lowercase px-1 bg-destructive/5 rounded">{itemToDelete?.name}</span>. This resource cannot be recovered once purged.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                        </div>
+                        <AlertDialogFooter className="bg-muted/30 p-6 flex items-center gap-3">
+                            <AlertDialogCancel className="rounded-xl h-11 px-6 font-black text-[10px] uppercase tracking-widest border-border/40 bg-background/50 hover:bg-background transition-all mt-0 sm:mt-0">
+                                Abort Operation
+                            </AlertDialogCancel>
+                            <AlertDialogAction 
+                                onClick={confirmDelete}
+                                className="rounded-xl h-11 px-8 font-black text-[10px] uppercase tracking-widest bg-destructive hover:bg-destructive/90 text-white transition-all hover:scale-[1.02] active:scale-[0.98] focus-visible:ring-destructive/50 border border-destructive/20"
+                            >
+                                Confirm Purge
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
 
                 {/* --- Status Bar --- */}
                 <div className="bg-muted/10 border-t border-border/40 p-3 px-6 flex items-center justify-between shrink-0">
