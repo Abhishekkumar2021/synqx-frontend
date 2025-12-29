@@ -1,9 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useQuery } from '@tanstack/react-query';
 import { getConnectionImpact, getConnectionUsageStats } from '@/lib/api';
-import ConfigurationTabContent from './ConfigurationTabContent';
+import { ConfigurationTabContent } from './ConfigurationTabContent';
 
-const ConnectionConfigStats = ({ connection, connectionId }: { connection: any; connectionId: number }) => {
-    // Fetch Impact Analysis
+export const ConnectionConfigStats = ({ connection, connectionId }: { connection: any; connectionId: number }) => {
     const {
         data: impactData,
         isLoading: loadingImpact
@@ -13,7 +13,6 @@ const ConnectionConfigStats = ({ connection, connectionId }: { connection: any; 
         enabled: !!connection,
     });
 
-    // Fetch Usage Stats
     const {
         data: usageStats,
         isLoading: loadingUsageStats
@@ -33,5 +32,3 @@ const ConnectionConfigStats = ({ connection, connectionId }: { connection: any; 
         />
     );
 };
-
-export default ConnectionConfigStats;
