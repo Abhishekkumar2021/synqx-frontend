@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/set-state-in-effect */
 import React, { useState, useEffect, useMemo } from 'react';
 import {
     Table as TableIcon, Eye, MoreHorizontal, RefreshCw, FileJson, Terminal,
@@ -6,7 +6,6 @@ import {
     Calendar, HardDrive, Shield, Activity, Copy, Check, Maximize2, Minimize2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem,
     DropdownMenuLabel, DropdownMenuTrigger, DropdownMenuSeparator

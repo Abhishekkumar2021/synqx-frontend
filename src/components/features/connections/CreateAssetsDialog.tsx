@@ -31,6 +31,7 @@ interface CreateAssetsDialogProps {
 type FormValues = {
     assets: {
         name: string;
+        fully_qualified_name?: string;
         asset_type: string;
         usageType: 'source' | 'destination';
         query?: string;
@@ -47,6 +48,7 @@ const CONNECTOR_ASSET_TYPES: Partial<Record<ConnectorType, AssetType[]>> = {
     [ConnectorType.MSSQL]: [AssetType.TABLE, AssetType.VIEW, AssetType.SQL_QUERY],
     [ConnectorType.ORACLE]: [AssetType.TABLE, AssetType.VIEW, AssetType.SQL_QUERY],
     [ConnectorType.SQLITE]: [AssetType.TABLE, AssetType.VIEW, AssetType.SQL_QUERY],
+    [ConnectorType.DUCKDB]: [AssetType.TABLE, AssetType.VIEW, AssetType.SQL_QUERY],
     [ConnectorType.SNOWFLAKE]: [AssetType.TABLE, AssetType.VIEW, AssetType.SQL_QUERY],
     [ConnectorType.BIGQUERY]: [AssetType.TABLE, AssetType.VIEW, AssetType.SQL_QUERY],
     [ConnectorType.REDSHIFT]: [AssetType.TABLE, AssetType.VIEW, AssetType.SQL_QUERY],
@@ -64,6 +66,11 @@ const CONNECTOR_ASSET_TYPES: Partial<Record<ConnectorType, AssetType[]>> = {
     [ConnectorType.SFTP]: [AssetType.FILE],
     [ConnectorType.REST_API]: [AssetType.API_ENDPOINT],
     [ConnectorType.GRAPHQL]: [AssetType.API_ENDPOINT],
+    [ConnectorType.GOOGLE_SHEETS]: [AssetType.TABLE],
+    [ConnectorType.AIRTABLE]: [AssetType.TABLE],
+    [ConnectorType.SALESFORCE]: [AssetType.TABLE],
+    [ConnectorType.HUBSPOT]: [AssetType.TABLE],
+    [ConnectorType.STRIPE]: [AssetType.TABLE],
     [ConnectorType.KAFKA]: [AssetType.STREAM],
     [ConnectorType.RABBITMQ]: [AssetType.STREAM],
     [ConnectorType.CUSTOM_SCRIPT]: [
@@ -71,6 +78,7 @@ const CONNECTOR_ASSET_TYPES: Partial<Record<ConnectorType, AssetType[]>> = {
         AssetType.SHELL_SCRIPT,
         AssetType.JAVASCRIPT_SCRIPT
     ],
+    [ConnectorType.SINGER_TAP]: [AssetType.TABLE],
 };
 
 const DEFAULT_ASSET_TYPES = [AssetType.TABLE, AssetType.FILE];
@@ -146,9 +154,9 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                     finalName = '/' + finalName;
                 }
 
-                if ([AssetType.SQL_QUERY, AssetType.NOSQL_QUERY].includes(asset.asset_type as AssetType)) {
+                if (([AssetType.SQL_QUERY, AssetType.NOSQL_QUERY] as string[]).includes(asset.asset_type)) {
                     config.query = asset.query;
-                } else if (QUERY_SCRIPT_TYPES.includes(asset.asset_type as AssetType)) {
+                } else if ((QUERY_SCRIPT_TYPES as string[]).includes(asset.asset_type)) {
                     config.code = asset.query;
                     config.language = asset.asset_type;
                 }
@@ -158,7 +166,7 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                 if (asset.usageType === 'destination') {
                     config.write_mode = asset.write_mode;
                 }
-                const asset_payload: any = {
+                return {
                     name: finalName,
                     fully_qualified_name: asset.fully_qualified_name?.trim() || finalName,
                     asset_type: asset.asset_type,
@@ -186,7 +194,7 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
 
     const getQueryHelp = (type: string) => {
         if (type === AssetType.SQL_QUERY) return "Enter a valid SQL query.";
-        if ([AssetType.PYTHON_SCRIPT, AssetType.JAVASCRIPT_SCRIPT, AssetType.SHELL_SCRIPT].includes(type as AssetType))
+        if (([AssetType.PYTHON_SCRIPT, AssetType.JAVASCRIPT_SCRIPT, AssetType.SHELL_SCRIPT] as string[]).includes(type))
             return "Enter script code. Standard output must be valid JSON.";
         return "Enter a JSON object query.";
     };
@@ -223,7 +231,7 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                             <AnimatePresence initial={false}>
                                 {fields.map((field, index) => {
                                     const assetType = watchedAssets?.[index]?.asset_type;
-                                    const isQuery = QUERY_SCRIPT_TYPES.includes(assetType as AssetType);
+                                    const isQuery = (QUERY_SCRIPT_TYPES as string[]).includes(assetType);
                                     const isIncremental = watchedAssets?.[index]?.is_incremental_capable;
                                     const usageType = watchedAssets?.[index]?.usageType;
 
@@ -262,7 +270,7 @@ export const CreateAssetsDialog: React.FC<CreateAssetsDialogProps> = ({ connecti
                                                         render={({ field: f }) => (
                                                             <Select onValueChange={(val) => { 
                                                                 f.onChange(val); 
-                                                                if (QUERY_SCRIPT_TYPES.includes(val as AssetType)) {
+                                                                if ((QUERY_SCRIPT_TYPES as string[]).includes(val)) {
                                                                     setValue(`assets.${index}.usageType`, 'source');
                                                                 }
                                                             }} defaultValue={f.value}>

@@ -728,7 +728,7 @@ export const PipelineCanvas: React.FC = () => {
                             <Button 
                                 className="h-10 rounded-2xl px-5 gap-2.5 bg-primary text-primary-foreground font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all hover:-translate-y-0.5"
                             >
-                                <Plus className="h-4 w-4 stroke-[3]" /> Add Operator
+                                <Plus className="h-4 w-4 stroke-3" /> Add Operator
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent 
@@ -798,7 +798,7 @@ export const PipelineCanvas: React.FC = () => {
 
           {/* Properties Inspector */}
           <div className={cn(
-              "absolute top-0 right-0 w-full md:w-[450px] h-full glass-panel !rounded-none shadow-[0_0_100px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden z-[100] transition-all duration-700 cubic-bezier(0.32, 0.72, 0, 1) border-l border-border/20",
+              "absolute top-0 right-0 w-full md:w-[450px] h-full glass-panel rounded-none! shadow-[0_0_100px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden z-100 transition-all duration-700 cubic-bezier(0.32, 0.72, 0, 1) border-l border-border/20",
               selectedNode ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"
           )}>
               {selectedNode && (

@@ -67,7 +67,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ConfigField } from '@/components/features/connections/ConfigField';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PackageAutocomplete } from '@/components/common/PackageAutocomplete';
-import { installDependency, initializeEnvironment } from '@/lib/api';
+import { installDependency, initializeEnvironment, uninstallDependency } from '@/lib/api';
 
 const PYTHON_PACKAGES = [
     'pandas', 'numpy', 'scipy', 'scikit-learn', 'requests', 'beautifulsoup4', 'faker', 'sqlalchemy',
@@ -91,6 +91,7 @@ const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
 
     const [activeTab, setActiveTab] = useState<'general' | 'python' | 'shell' | 'node'>('general');
     const [installing, setInstalling] = useState(false);
+    const [uninstalling, setUninstalling] = useState<string | null>(null);
     const [initializing, setInitializing] = useState(false);
     const [pkgName, setPkgName] = useState("");
 
@@ -106,6 +107,19 @@ const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
             toast.error(e.response?.data?.detail || "Installation failed");
         } finally {
             setInstalling(false);
+        }
+    };
+
+    const handleUninstall = async (language: string, pkg: string) => {
+        setUninstalling(pkg);
+        try {
+            await uninstallDependency(connectionId, language, pkg);
+            toast.success(`Uninstalled ${pkg}`);
+            refetch();
+        } catch (e: any) {
+            toast.error(e.response?.data?.detail || "Uninstallation failed");
+        } finally {
+            setUninstalling(null);
         }
     };
 
@@ -251,7 +265,7 @@ const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
                                                 <FileCode className="h-4 w-4" />
                                                 <span className="text-[10px] font-bold uppercase tracking-widest">Python Version</span>
                                             </div>
-                                            <span className="text-xl font-black">{envInfo.python_version.split(' ')[0]}</span>
+                                            <span className="text-xl font-black">{envInfo.python_version.replace('Python ', '').split(' ')[0]}</span>
                                         </div>
                                     )}
                                     {envInfo.node_version && (
@@ -336,9 +350,20 @@ const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
                                                 <span className="text-xs font-bold truncate group-hover:text-primary transition-colors">{pkg}</span>
                                                 <span className="text-[9px] text-muted-foreground font-mono">{String(ver)}</span>
                                             </div>
-                                            <Badge variant="outline" className="h-5 text-[9px] bg-muted/50 font-bold border-border/50">
-                                                pypi
-                                            </Badge>
+                                            <div className="flex items-center gap-2">
+                                                <Badge variant="outline" className="h-5 text-[9px] bg-muted/50 font-bold border-border/50">
+                                                    pypi
+                                                </Badge>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-6 w-6 rounded-md opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
+                                                    onClick={() => handleUninstall('python', pkg)}
+                                                    disabled={!!uninstalling}
+                                                >
+                                                    {uninstalling === pkg ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                                </Button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -382,9 +407,20 @@ const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
                                                 <span className="text-xs font-bold truncate group-hover:text-emerald-600 transition-colors">{pkg}</span>
                                                 <span className="text-[9px] text-muted-foreground font-mono">{String(ver)}</span>
                                             </div>
-                                            <Badge variant="outline" className="h-5 text-[9px] bg-muted/50 font-bold border-border/50">
-                                                npm
-                                            </Badge>
+                                            <div className="flex items-center gap-2">
+                                                <Badge variant="outline" className="h-5 text-[9px] bg-muted/50 font-bold border-border/50">
+                                                    npm
+                                                </Badge>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="h-6 w-6 rounded-md opacity-0 group-hover:opacity-100 hover:text-destructive hover:bg-destructive/10 transition-all"
+                                                    onClick={() => handleUninstall('node', pkg)}
+                                                    disabled={!!uninstalling}
+                                                >
+                                                    {uninstalling === pkg ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                                </Button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label'; // Use primitive Label for robustness
 import {
-    ShieldCheck, Lock, RefreshCw, CheckCircle2, Server, ArrowLeft
+    ShieldCheck, Lock, RefreshCw, CheckCircle2, Server, ArrowLeft, Search, 
+    LayoutGrid, List as ListIcon
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -48,7 +49,19 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
     const isEditMode = !!initialData;
     const [step, setStep] = useState<'select' | 'configure'>('select');
     const [selectedType, setSelectedType] = useState<string | null>(initialData?.connector_type || null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [activeCategory, setActiveCategory] = useState<string>('All');
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const queryClient = useQueryClient();
+
+    const categories = ['All', 'Database', 'Warehouse', 'File', 'API', 'Generic'];
+
+    const filteredConnectors = Object.entries(CONNECTOR_META).filter(([_, meta]) => {
+        const matchesSearch = meta.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                             meta.description.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesCategory = activeCategory === 'All' || meta.category === activeCategory;
+        return matchesSearch && matchesCategory;
+    });
 
     useEffect(() => {
         if (initialData?.connector_type) {
@@ -123,41 +136,183 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
     if (step === 'select' && !isEditMode) {
         return (
             <div className="flex flex-col h-full bg-background">
-                <DialogHeader className="px-8 py-6 border-b border-border/40 shrink-0 bg-muted/10">
-                    <DialogTitle className="text-xl font-bold">Select a Connector</DialogTitle>
-                    <DialogDescription>Choose your data source or destination to proceed.</DialogDescription>
-                </DialogHeader>
-
-                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {Object.entries(CONNECTOR_META).map(([key, meta]) => (
-                            <button
-                                key={key}
-                                onClick={() => handleSelect(key)}
-                                className={cn(
-                                    "group relative flex flex-col items-center gap-4 p-6 rounded-[1.5rem] text-center overflow-hidden transition-all duration-300",
-                                    "border border-border/50 bg-card hover:bg-muted/50 hover:border-primary/30 hover:shadow-lg hover:-translate-y-1"
-                                )}
-                            >
-                                <div className={cn(
-                                    "p-5 rounded-2xl border shadow-sm transition-transform duration-300 group-hover:scale-110",
-                                    meta.color.replace('text-', 'text-opacity-80 text-'), // Use text color, but apply bg opacity if needed
-                                    "bg-background border-border/50"
-                                )}>
-                                    <SafeIcon icon={meta.icon} className="h-8 w-8" />
-                                </div>
-                                <div className="space-y-1 z-10">
-                                    <h4 className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">{meta.name}</h4>
-                                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold opacity-70">{meta.category}</span>
-                                </div>
-                                {meta.popular && (
-                                    <span className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-bold bg-primary/10 text-primary border border-primary/20">
-                                        HOT
-                                    </span>
-                                )}
-                            </button>
-                        ))}
+                <header className="px-8 py-5 border-b border-border/40 shrink-0 bg-muted/5 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-[0.03] pointer-events-none select-none">
+                        <Server className="h-20 w-20 rotate-12" />
                     </div>
+                    
+                    <div className="relative z-20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="space-y-0.5">
+                            <DialogTitle className="text-xl font-bold tracking-tight">Select a Connector</DialogTitle>
+                            <DialogDescription className="text-xs font-medium text-muted-foreground leading-relaxed">
+                                Choose from 30+ native protocols to begin data integration.
+                            </DialogDescription>
+                        </div>
+                    </div>
+
+                    <div className="relative z-30 flex flex-col lg:flex-row items-center gap-4 mt-5">
+                        <div className="relative flex-1 w-full group">
+                            <Search className="z-20 absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                            <Input 
+                                placeholder="Search connectors..." 
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="h-9 pl-9 rounded-lg bg-background border-border/60 focus:ring-primary/20 transition-all shadow-xs text-xs"
+                            />
+                        </div>
+                        
+                        <div className="flex items-center gap-3 w-full lg:w-auto">
+                            <nav className="flex items-center gap-1 p-1 bg-muted/30 rounded-lg border border-border/40 overflow-x-auto no-scrollbar relative z-40">
+                                {categories.map((cat) => (
+                                    <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setActiveCategory(cat);
+                                        }}
+                                        className={cn(
+                                            "px-3 py-1 rounded-md text-[9px] font-black uppercase tracking-wider transition-all whitespace-nowrap cursor-pointer relative z-50",
+                                            activeCategory === cat 
+                                                ? "bg-primary text-primary-foreground shadow-sm" 
+                                                : "text-muted-foreground hover:bg-background hover:text-foreground"
+                                        )}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </nav>
+
+                            <div className="flex items-center gap-1 p-1 bg-muted/30 rounded-lg border border-border/40 shrink-0 relative z-40">
+                                <button
+                                    type="button"
+                                    onClick={() => setViewMode('grid')}
+                                    className={cn(
+                                        "p-1 rounded-md transition-all cursor-pointer relative z-50",
+                                        viewMode === 'grid' ? "bg-background text-primary shadow-xs" : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    <LayoutGrid className="h-3.5 w-3.5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setViewMode('list')}
+                                    className={cn(
+                                        "p-1 rounded-md transition-all cursor-pointer relative z-50",
+                                        viewMode === 'list' ? "bg-background text-primary shadow-xs" : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    <ListIcon className="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                    {filteredConnectors.length > 0 ? (
+                        viewMode === 'grid' ? (
+                            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                {filteredConnectors.map(([key, meta]) => (
+                                    <button
+                                        key={key}
+                                        onClick={() => handleSelect(key)}
+                                        className={cn(
+                                            "group relative flex flex-col items-start gap-5 p-6 rounded-[2rem] text-left transition-all duration-500",
+                                            "border border-border/40 bg-card/50 hover:bg-muted/30 hover:border-primary/40 hover:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] hover:-translate-y-1.5 backdrop-blur-sm"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "h-14 w-14 rounded-2xl flex items-center justify-center border shadow-sm transition-all duration-500 group-hover:scale-110 group-hover:shadow-md bg-background",
+                                            meta.color.replace('text-', 'text-opacity-90 text-'),
+                                            "border-border/40"
+                                        )}>
+                                            <SafeIcon icon={meta.icon} className="h-7 w-7" />
+                                        </div>
+                                        
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="font-bold text-sm tracking-tight text-foreground group-hover:text-primary transition-colors">{meta.name}</h4>
+                                                {meta.popular && (
+                                                    <div className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 text-[8px] font-black uppercase tracking-tighter">
+                                                        Popular
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <p className="text-[11px] text-muted-foreground line-clamp-2 leading-relaxed font-medium opacity-80">
+                                                {meta.description}
+                                            </p>
+                                        </div>
+
+                                        <div className="mt-auto pt-2 flex items-center justify-between w-full">
+                                            <span className="text-[9px] text-muted-foreground/60 uppercase tracking-widest font-black">{meta.category}</span>
+                                            <div className="h-6 w-6 rounded-full bg-primary/0 group-hover:bg-primary/10 flex items-center justify-center transition-all">
+                                                <ArrowLeft className="h-3 w-3 text-primary rotate-180 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                {filteredConnectors.map(([key, meta]) => (
+                                    <button
+                                        key={key}
+                                        onClick={() => handleSelect(key)}
+                                        className={cn(
+                                            "group flex items-center gap-6 p-4 rounded-2xl text-left transition-all duration-300",
+                                            "border border-border/40 bg-card/50 hover:bg-muted/30 hover:border-primary/40 hover:shadow-sm backdrop-blur-sm"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "h-12 w-12 rounded-xl flex items-center justify-center border shadow-xs transition-all duration-300 group-hover:scale-105 bg-background",
+                                            meta.color.replace('text-', 'text-opacity-90 text-'),
+                                            "border-border/40"
+                                        )}>
+                                            <SafeIcon icon={meta.icon} className="h-6 w-6" />
+                                        </div>
+                                        
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-3">
+                                                <h4 className="font-bold text-sm tracking-tight text-foreground group-hover:text-primary transition-colors">{meta.name}</h4>
+                                                {meta.popular && (
+                                                    <div className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 text-[8px] font-black uppercase tracking-tighter">
+                                                        Popular
+                                                    </div>
+                                                )}
+                                                <span className="text-[9px] text-muted-foreground/40 uppercase tracking-widest font-black ml-auto">{meta.category}</span>
+                                            </div>
+                                            <p className="text-[11px] text-muted-foreground truncate leading-relaxed font-medium opacity-80 mt-0.5">
+                                                {meta.description}
+                                            </p>
+                                        </div>
+
+                                        <div className="h-8 w-8 rounded-xl bg-primary/0 group-hover:bg-primary/10 flex items-center justify-center transition-all">
+                                            <ArrowLeft className="h-4 w-4 text-primary rotate-180 opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full py-20 text-center animate-in fade-in duration-500">
+                            <div className="h-20 w-20 rounded-full bg-muted/20 flex items-center justify-center mb-6">
+                                <Search className="h-8 w-8 text-muted-foreground/30" />
+                            </div>
+                            <h3 className="text-xl font-bold text-foreground">No connectors found</h3>
+                            <p className="text-muted-foreground mt-2 max-w-xs font-medium">
+                                We couldn't find any connectors matching "{searchQuery}". Try a different search term or category.
+                            </p>
+                            <Button 
+                                variant="outline" 
+                                className="mt-8 rounded-xl px-6"
+                                onClick={() => { setSearchQuery(''); setActiveCategory('All'); }}
+                            >
+                                Clear filters
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </div>
         );
