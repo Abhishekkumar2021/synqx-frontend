@@ -8,6 +8,7 @@ interface StatsCardProps {
     title: string;
     value: string | number;
     subtext?: string;
+    subtextSize?: string;
     trend?: string;
     trendUp?: boolean;
     icon: LucideIcon;
@@ -23,6 +24,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
     title,
     value,
     subtext,
+    subtextSize,
     trend,
     trendUp,
     icon: Icon,
@@ -58,42 +60,49 @@ export const StatsCard: React.FC<StatsCardProps> = ({
                 className
             )}
         >
-            <CardContent className="p-6 md:p-8 relative z-10">
+            <CardContent className="p-5 md:p-6 relative z-10">
                 {/* Header */}
-                <div className="flex items-center justify-between space-y-0 pb-5">
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{title}</p>
+                <div className="flex items-center justify-between space-y-0 pb-4">
+                    <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em]">{title}</p>
                     <div className={cn(
-                        "p-2.5 rounded-xl border transition-all duration-300 group-hover:scale-110 shadow-sm",
+                        "p-2 rounded-xl border transition-all duration-500 group-hover:scale-110 shadow-sm",
                         active
                             ? `bg-${variant} text-${variant}-foreground border-${variant} shadow-lg shadow-${variant}/20`
                             : variantConfig[variant]
                     )}>
-                        <Icon className="h-5 w-5" />
+                        <Icon className="h-4 w-4" />
                     </div>
                 </div>
 
                 {/* Value & Trends */}
                 <div className="flex flex-col gap-1">
                     <h3 
-                        className="text-4xl font-black tracking-tighter tabular-nums text-foreground"
+                        className="text-3xl md:text-4xl font-black tracking-tighter tabular-nums text-foreground leading-none"
                     >
                         {value}
                     </h3>
 
                     {(trend || subtext) && (
-                        <div className="flex items-center gap-2 text-[10px] font-bold mt-2">
+                        <div className="flex items-center gap-2 text-[10px] mt-3">
                             {trend && (
                                 <span className={cn(
-                                    "flex items-center px-2 py-0.5 rounded-full border uppercase tracking-wider",
+                                    "flex items-center px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider shadow-sm",
                                     trendUp
                                         ? "text-success bg-success/10 border-success/20"
                                         : "text-destructive bg-destructive/10 border-destructive/20"
                                 )}>
-                                    {trendUp ? <TrendingUp className="mr-1 h-3 w-3" /> : <TrendingDown className="mr-1 h-3 w-3" />}
+                                    {trendUp ? <TrendingUp className="mr-1 h-2.5 w-2.5" /> : <TrendingDown className="mr-1 h-2.5 w-2.5" />}
                                     {trend}
                                 </span>
                             )}
-                            {subtext && <span className="text-muted-foreground/60 font-bold uppercase tracking-widest truncate">{subtext}</span>}
+                            {subtext && (
+                                <span className={cn(
+                                    "text-muted-foreground font-bold tracking-tight opacity-70 truncate",
+                                    subtextSize || "text-[10px]"
+                                )}>
+                                    {subtext}
+                                </span>
+                            )}
                         </div>
                     )}
                 </div>

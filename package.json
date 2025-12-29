@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.2.8",
+    "@fontsource-variable/mona-sans": "^5.2.8",
     "@hookform/resolvers": "^5.2.2",
     "@mdx-js/react": "^3.1.1",
     "@mdx-js/rollup": "^3.1.1",

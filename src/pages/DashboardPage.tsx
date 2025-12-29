@@ -227,6 +227,7 @@ export const DashboardPage: React.FC = () => {
                             title="Data Volume"
                             value={formatBytes(stats?.total_bytes || 0)}
                             subtext={`${formatNumber(stats?.total_rows)} Rows processed`}
+                            subtextSize="text-[12px]"
                             icon={Zap}
                             variant="info"
                         />
@@ -234,6 +235,7 @@ export const DashboardPage: React.FC = () => {
                             title="Connectivity"
                             value={stats?.total_connections || 0}
                             subtext={connectionSubtext}
+                            subtextSize="text-[12px]"
                             icon={Network}
                             variant="warning"
                         />
@@ -241,6 +243,7 @@ export const DashboardPage: React.FC = () => {
                             title="Pipeline Status"
                             value={stats?.active_pipelines || 0}
                             subtext={`From ${stats?.total_pipelines} total pipelines`}
+                            subtextSize="text-[12px]"
                             icon={Workflow}
                             variant="primary"
                         />

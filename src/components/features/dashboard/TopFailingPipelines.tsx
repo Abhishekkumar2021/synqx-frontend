@@ -12,8 +12,8 @@ interface TopFailingPipelinesProps {
 export const TopFailingPipelines: React.FC<TopFailingPipelinesProps> = ({ pipelines }) => {
     return (
         <Card className="h-full border-none bg-transparent shadow-none rounded-none overflow-hidden">
-            <CardHeader className="pb-3 border-b border-border/40 bg-muted/20">
-                <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
+            <CardHeader className="pb-4 border-b border-border/40 bg-muted/20 px-6 pt-6">
+                <CardTitle className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-destructive" />
                     Top Failing Pipelines
                 </CardTitle>

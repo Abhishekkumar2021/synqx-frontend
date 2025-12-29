@@ -24,9 +24,9 @@ export const SystemHealthMonitor: React.FC<SystemHealthMonitorProps> = ({ data }
 
     return (
         <Card className="h-full border-none bg-transparent shadow-none rounded-none flex flex-col">
-            <CardHeader className="pb-2 shrink-0">
-                <CardTitle className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
-                    <Activity className="h-4 w-4" />
+            <CardHeader className="pb-4 shrink-0 px-6 pt-6">
+                <CardTitle className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" />
                     System Health
                 </CardTitle>
             </CardHeader>
