@@ -432,10 +432,24 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                                     <Label className="text-sm font-semibold mb-2 block">{field.label}</Label>
                                                     <FormControl>
                                                         {field.type === 'select' ? (
-                                                            <Select onValueChange={f.onChange} defaultValue={f.value}>
-                                                                <SelectTrigger className="h-10 rounded-lg bg-background"><SelectValue /></SelectTrigger>
+                                                            <Select 
+                                                                onValueChange={(val) => {
+                                                                    // Convert string back to boolean/number if necessary
+                                                                    if (val === 'true') f.onChange(true);
+                                                                    else if (val === 'false') f.onChange(false);
+                                                                    else f.onChange(val);
+                                                                }} 
+                                                                value={String(f.value ?? '')}
+                                                            >
+                                                                <SelectTrigger className="h-10 rounded-lg bg-background">
+                                                                    <SelectValue placeholder="Select an option" />
+                                                                </SelectTrigger>
                                                                 <SelectContent>
-                                                                    {field.options?.map((o: any) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                                                                    {field.options?.map((o: any) => (
+                                                                        <SelectItem key={String(o.value)} value={String(o.value)}>
+                                                                            {o.label}
+                                                                        </SelectItem>
+                                                                    ))}
                                                                 </SelectContent>
                                                             </Select>
                                                         ) : field.type === 'textarea' ? (
@@ -449,6 +463,7 @@ export const CreateConnectionDialog: React.FC<CreateConnectionDialogProps> = ({ 
                                                                 <Input
                                                                     {...f}
                                                                     type={field.type}
+                                                                    min={field.min}
                                                                     placeholder={field.placeholder}
                                                                     className={cn("h-10 rounded-lg bg-background", field.type === 'password' && 'pl-10')}
                                                                 />

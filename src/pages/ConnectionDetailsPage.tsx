@@ -23,11 +23,11 @@ import {
     ShieldCheck, AlertTriangle,
     Clock, Activity,
     Layers,
-    Key, Server, Settings2, 
+    Server, Settings2, 
     MoreVertical, Trash2, Pencil, 
     CheckCircle2, Download, Plus,
     Sparkles, Terminal, Cpu, FileCode,
-    LayoutGrid, List, Copy, Wifi, Globe, Shield
+    LayoutGrid, List, Copy, Wifi, Globe, Shield, Folder
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -68,6 +68,8 @@ import { ConfigField } from '@/components/features/connections/ConfigField';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PackageAutocomplete } from '@/components/common/PackageAutocomplete';
 import { installDependency, initializeEnvironment, uninstallDependency } from '@/lib/api';
+import { AssetFileExplorer } from '@/components/features/connections/AssetFileExplorer';
+import { CONNECTOR_META } from '@/lib/connector-definitions';
 
 const PYTHON_PACKAGES = [
     'pandas', 'numpy', 'scipy', 'scikit-learn', 'requests', 'beautifulsoup4', 'faker', 'sqlalchemy',
@@ -298,7 +300,7 @@ const EnvironmentInfo = ({ connectionId }: { connectionId: number }) => {
                                                 size="sm" 
                                                 className="h-8 gap-2 text-[10px] font-bold"
                                                 onClick={() => {
-                                                    navigator.clipboard.writeText(envInfo.base_path);
+                                                    navigator.clipboard.writeText(envInfo.base_path || '');
                                                     toast.success("Path copied");
                                                 }}
                                             >
@@ -481,9 +483,14 @@ const AssetsTabContent = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [selectedDiscovered, setSelectedDiscovered] = useState<Set<string>>(new Set());
-    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+    const [viewMode, setViewMode] = useState<'list' | 'grid' | 'explorer'>('list');
     
     const queryClient = useQueryClient();
+
+    const isFileBased = useMemo(() => {
+        const type = String(connectorType).toLowerCase();
+        return CONNECTOR_META[type]?.category === 'File';
+    }, [connectorType]);
 
     const filteredAssets = useMemo(() => {
         if (!assets) return [];
@@ -521,6 +528,8 @@ const AssetsTabContent = ({
             setSelectedDiscovered(new Set());
         }
     };
+
+
 
     const bulkImportMutation = useMutation({
         mutationFn: async ({ assetNames, asDestination }: { assetNames: string[], asDestination: boolean }) => {
@@ -616,6 +625,20 @@ const AssetsTabContent = ({
                             >
                                 <LayoutGrid className="h-3.5 w-3.5" />
                             </Button>
+                            {isFileBased && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={cn(
+                                        "h-7 w-7 rounded-md transition-all",
+                                        viewMode === 'explorer' ? "bg-primary/10 text-primary shadow-sm" : "text-muted-foreground hover:bg-muted"
+                                    )}
+                                    onClick={() => setViewMode('explorer')}
+                                    title="File Explorer View"
+                                >
+                                    <Folder className="h-3.5 w-3.5" />
+                                </Button>
+                            )}
                         </div>
                         <Button
                             onClick={onDiscover}
@@ -708,7 +731,16 @@ const AssetsTabContent = ({
                                     </Badge>
                                 )}
                             </div>
-                            {viewMode === 'list' ? (
+                            {viewMode === 'explorer' && isFileBased ? (
+                                <div className="h-[400px]">
+                                    <AssetFileExplorer 
+                                        assets={filteredDiscovered}
+                                        selectedAssets={selectedDiscovered}
+                                        onToggleAsset={handleSelectDiscovered}
+                                        onToggleAll={handleSelectAllDiscovered}
+                                    />
+                                </div>
+                            ) : viewMode === 'list' ? (
                                 <Table wrapperClassName="rounded-none border-none shadow-none">
                                     <TableHeader className="bg-muted/30 border-b border-border/20">
                                         <TableRow className="hover:bg-transparent border-none">
@@ -799,7 +831,14 @@ const AssetsTabContent = ({
                             ))}
                         </div>
                     ) : filteredAssets.length > 0 ? (
-                        viewMode === 'list' ? (
+                        viewMode === 'explorer' && isFileBased ? (
+                            <div className="h-[500px]">
+                                <AssetFileExplorer 
+                                    assets={filteredAssets}
+                                    readOnly={true}
+                                />
+                            </div>
+                        ) : viewMode === 'list' ? (
                             <Table wrapperClassName="rounded-none border-none shadow-none">
                                 <TableHeader className="bg-muted/20 border-b border-border/20">
                                     <TableRow className="hover:bg-transparent border-none">
@@ -970,7 +1009,7 @@ const ConfigurationTabContent = ({
                                 <div className="grid gap-5 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                                     <div className="space-y-1.5">
                                         <label className="text-[10px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 px-1">Access Credentials</label>
-                                        <div className="h-[44px] flex items-center justify-between px-4 rounded-xl border border-border/40 bg-muted/5 backdrop-blur-sm">
+                                        <div className="h-11 flex items-center justify-between px-4 rounded-xl border border-border/40 bg-muted/5 backdrop-blur-sm">
                                             <div className="font-mono text-xs tracking-[0.4em] text-foreground/20">••••••••</div>
                                             <Badge variant="outline" className="text-[8px] bg-emerald-500/5 text-emerald-600 dark:text-emerald-500 border-emerald-500/20 font-black px-1.5 py-0 uppercase">
                                                 Encrypted

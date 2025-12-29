@@ -289,6 +289,9 @@ export const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
             { name: "aws_access_key_id", label: "Access Key ID", type: "text" },
             { name: "aws_secret_access_key", label: "Secret Access Key", type: "password" },
             { name: "endpoint_url", label: "Custom Endpoint URL", type: "text", placeholder: "https://s3.amazonaws.com" },
+            { name: "recursive", label: "Recursive Search", type: "select", options: [{label: "Yes", value: true}, {label: "No", value: false}], defaultValue: true },
+            { name: "max_depth", label: "Max Depth (None for unlimited)", type: "number", min: 0, dependency: { field: "recursive", value: true } },
+            { name: "exclude_patterns", label: "Exclude Patterns", type: "text", placeholder: "e.g. logs, temp, backup" }
         ]
     },
     gcs: {
@@ -297,6 +300,9 @@ export const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
             { name: "project_id", label: "GCP Project ID", type: "text" },
             { name: "credentials_json", label: "Service Account JSON", type: "textarea", placeholder: "{ ... }" },
             { name: "credentials_path", label: "Key File Path", type: "text" },
+            { name: "recursive", label: "Recursive Search", type: "select", options: [{label: "Yes", value: true}, {label: "No", value: false}], defaultValue: true },
+            { name: "max_depth", label: "Max Depth (None for unlimited)", type: "number", dependency: { field: "recursive", value: true } },
+            { name: "exclude_patterns", label: "Exclude Patterns", type: "text", placeholder: "e.g. cache, tmp" }
         ]
     },
     azure_blob: {
@@ -305,6 +311,9 @@ export const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
             { name: "account_name", label: "Storage Account Name", type: "text" },
             { name: "account_key", label: "Storage Account Key", type: "password" },
             { name: "connection_string", label: "Connection String (Optional override)", type: "password" },
+            { name: "recursive", label: "Recursive Search", type: "select", options: [{label: "Yes", value: true}, {label: "No", value: false}], defaultValue: true },
+            { name: "max_depth", label: "Max Depth (None for unlimited)", type: "number", dependency: { field: "recursive", value: true } },
+            { name: "exclude_patterns", label: "Exclude Patterns", type: "text", placeholder: "e.g. archive, hidden" }
         ]
     },
     sftp: {
@@ -316,6 +325,9 @@ export const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
             { name: "private_key", label: "Private Key (PEM)", type: "textarea", placeholder: "-----BEGIN RSA PRIVATE KEY-----\n..." },
             { name: "private_key_passphrase", label: "Key Passphrase", type: "password" },
             { name: "base_path", label: "Base Path", type: "text", defaultValue: "/" },
+            { name: "recursive", label: "Recursive Search", type: "select", options: [{label: "Yes", value: true}, {label: "No", value: false}], defaultValue: true },
+            { name: "max_depth", label: "Max Depth (None for unlimited)", type: "number", dependency: { field: "recursive", value: true } },
+            { name: "exclude_patterns", label: "Exclude Patterns", type: "text", placeholder: "e.g. .git, node_modules" }
         ]
     },
     ftp: {
@@ -325,6 +337,8 @@ export const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
             { name: "username", label: "Username", type: "text", required: true },
             { name: "password", label: "Password", type: "password", required: true },
             { name: "base_path", label: "Base Path", type: "text", defaultValue: "/" },
+            { name: "recursive", label: "Recursive Search", type: "select", options: [{label: "Yes", value: true}, {label: "No", value: false}], defaultValue: true },
+            { name: "exclude_patterns", label: "Exclude Patterns", type: "text", placeholder: "e.g. logs, tmp" }
         ]
     },
     kafka: {
@@ -443,7 +457,10 @@ export const CONNECTOR_CONFIG_SCHEMAS: Record<string, any> = {
     },
     local_file: { 
         fields: [
-            { name: "base_path", label: "Base Path", type: "text", required: true, placeholder: "/data/files" }
+            { name: "base_path", label: "Base Path", type: "text", required: true, placeholder: "/data/files" },
+            { name: "recursive", label: "Recursive Search", type: "select", options: [{label: "Yes", value: true}, {label: "No", value: false}], defaultValue: true },
+            { name: "max_depth", label: "Max Depth (None for unlimited)", type: "number", min: 0, dependency: { field: "recursive", value: true } },
+            { name: "exclude_patterns", label: "Exclude Patterns", type: "text", placeholder: "e.g. node_modules, logs, .git" }
         ] 
     },
     custom_script: {
