@@ -4,7 +4,10 @@ import {
     Folder, File, ChevronRight, Home,
     FileJson, FileText, Database, HardDrive,
     Search, ArrowLeft,
-    FileSpreadsheet, FileCode, Info
+    FileSpreadsheet, FileCode, Info,
+    LayoutGrid, List,
+    SortAsc, SortDesc, Filter,
+    Layers, Hash, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -14,6 +17,14 @@ import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { 
+    DropdownMenu, 
+    DropdownMenuContent, 
+    DropdownMenuItem, 
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 
 interface AssetFileExplorerProps {
     assets: any[];
@@ -31,6 +42,10 @@ type FileSystemNode = {
     children?: Record<string, FileSystemNode>;
 };
 
+type SortField = 'name' | 'size' | 'format';
+type SortOrder = 'asc' | 'desc';
+type GroupBy = 'none' | 'type';
+
 export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
     assets,
     selectedAssets = new Set(),
@@ -38,7 +53,15 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
     onToggleAll,
     readOnly = false
 }) => {
-    const [currentPath, setCurrentPath] = useState<string>(""); const [searchQuery, setSearchQuery] = useState("");
+    const [currentPath, setCurrentPath] = useState<string>("");
+    const [searchQuery, setSearchQuery] = useState("");
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+    // Advanced UI State
+    const [sortField, setSortField] = useState<SortField>('name');
+    const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+    const [groupBy, setGroupBy] = useState<GroupBy>('type');
+    const [filterType] = useState<'all' | 'directory' | 'file'>('all');
 
     // Build Tree Structure
     const fileSystem = useMemo(() => {
@@ -113,17 +136,40 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
         if (!currentNode?.children) return [];
         let allItems = Object.values(currentNode.children);
 
+        // 1. Filter by search query
         if (searchQuery) {
             allItems = allItems.filter(item =>
                 item.name.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
 
+        // 2. Filter by type
+        if (filterType !== 'all') {
+            allItems = allItems.filter(item => item.type === filterType);
+        }
+
+        // 3. Sort & Group
         return allItems.sort((a, b) => {
-            if (a.type === b.type) return a.name.localeCompare(b.name);
-            return a.type === 'directory' ? -1 : 1;
+            // Grouping logic
+            if (groupBy === 'type') {
+                if (a.type !== b.type) {
+                    return a.type === 'directory' ? -1 : 1;
+                }
+            }
+
+            // Primary sort field
+            let comparison = 0;
+            if (sortField === 'name') {
+                comparison = a.name.localeCompare(b.name);
+            } else if (sortField === 'size') {
+                comparison = (a.asset?.size_bytes || 0) - (b.asset?.size_bytes || 0);
+            } else if (sortField === 'format') {
+                comparison = (a.asset?.format || '').localeCompare(b.asset?.format || '');
+            }
+
+            return sortOrder === 'asc' ? comparison : -comparison;
         });
-    }, [currentNode, searchQuery]);
+    }, [currentNode, searchQuery, sortField, sortOrder, groupBy, filterType]);
 
     const handleNavigateUp = () => {
         if (!currentPath) return;
@@ -227,6 +273,81 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
 
                     {/* --- Search & Action --- */}
                     <div className="flex items-center gap-2">
+                        <div className="flex items-center bg-background/50 border border-border/40 rounded-lg p-0.5">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn("h-8 w-8 rounded-md transition-all", viewMode === 'list' ? "bg-background shadow-sm text-primary" : "text-muted-foreground")}
+                                onClick={() => setViewMode('list')}
+                            >
+                                <List className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn("h-8 w-8 rounded-md transition-all", viewMode === 'grid' ? "bg-background shadow-sm text-primary" : "text-muted-foreground")}
+                                onClick={() => setViewMode('grid')}
+                            >
+                                <LayoutGrid className="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
+                        
+                        <div className="h-4 w-px bg-border/60 mx-1" />
+
+                        {/* Advanced Filters & Sorting */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-9 px-3 gap-2 rounded-lg border-border/40 bg-background/50 text-xs font-bold">
+                                    <Filter className="h-3.5 w-3.5" />
+                                    View
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/60 shadow-xl p-1">
+                                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest px-2 py-1.5 opacity-50">Sort By</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => setSortField('name')} className="rounded-lg text-xs font-bold gap-2.5">
+                                    <FileText className={cn("h-4 w-4", sortField === 'name' ? "text-primary" : "opacity-40")} />
+                                    Name
+                                    {sortField === 'name' && (sortOrder === 'asc' ? <SortAsc className="h-3 w-3 ml-auto opacity-40" /> : <SortDesc className="h-3 w-3 ml-auto opacity-40" />)}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setSortField('size')} className="rounded-lg text-xs font-bold gap-2.5">
+                                    <Hash className={cn("h-4 w-4", sortField === 'size' ? "text-primary" : "opacity-40")} />
+                                    Size
+                                    {sortField === 'size' && (sortOrder === 'asc' ? <SortAsc className="h-3 w-3 ml-auto opacity-40" /> : <SortDesc className="h-3 w-3 ml-auto opacity-40" />)}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setSortField('format')} className="rounded-lg text-xs font-bold gap-2.5">
+                                    <Database className={cn("h-4 w-4", sortField === 'format' ? "text-primary" : "opacity-40")} />
+                                    Format
+                                    {sortField === 'format' && (sortOrder === 'asc' ? <SortAsc className="h-3 w-3 ml-auto opacity-40" /> : <SortDesc className="h-3 w-3 ml-auto opacity-40" />)}
+                                </DropdownMenuItem>
+                                
+                                <DropdownMenuSeparator className="bg-border/40 my-1" />
+                                
+                                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest px-2 py-1.5 opacity-50">Order</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => setSortOrder('asc')} className="rounded-lg text-xs font-bold gap-2.5">
+                                    <SortAsc className={cn("h-4 w-4", sortOrder === 'asc' ? "text-primary" : "opacity-40")} />
+                                    Ascending
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setSortOrder('desc')} className="rounded-lg text-xs font-bold gap-2.5">
+                                    <SortDesc className={cn("h-4 w-4", sortOrder === 'desc' ? "text-primary" : "opacity-40")} />
+                                    Descending
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator className="bg-border/40 my-1" />
+
+                                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest px-2 py-1.5 opacity-50">Group By</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => setGroupBy('type')} className="rounded-lg text-xs font-bold gap-2.5">
+                                    <Layers className={cn("h-4 w-4", groupBy === 'type' ? "text-primary" : "opacity-40")} />
+                                    File Type
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setGroupBy('none')} className="rounded-lg text-xs font-bold gap-2.5">
+                                    <X className={cn("h-4 w-4", groupBy === 'none' ? "text-primary" : "opacity-40")} />
+                                    None
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <div className="h-4 w-px bg-border/60 mx-1" />
+                        
                         <div className="relative group">
                             <Search className="z-20 absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                             <Input
@@ -258,7 +379,7 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                                     <h3 className="text-sm font-bold text-foreground">No assets found</h3>
                                     <p className="text-xs text-muted-foreground mt-1">This directory is empty or doesn't match filters.</p>
                                 </div>
-                            ) : (
+                            ) : viewMode === 'list' ? (
                                 <Table wrapperClassName="rounded-none border-none">
                                     <TableHeader className="bg-muted/10 sticky top-0 z-30 backdrop-blur-md border-b border-border/40">
                                         <TableRow className="hover:bg-transparent border-none">
@@ -282,13 +403,13 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                                             <TableRow
                                                 key={item.path}
                                                 className={cn(
-                                                    "group transition-all duration-200 border-b border-border/20 cursor-default",
+                                                    "group transition-all duration-200 border-b border-border/20 cursor-default h-14",
                                                     item.type === 'directory' ? "cursor-pointer hover:bg-primary/3" : "hover:bg-muted/30"
                                                 )}
                                                 onClick={() => item.type === 'directory' && setCurrentPath(item.path)}
                                             >
                                                 {!readOnly && (
-                                                    <TableCell className="pl-6 py-3" onClick={(e) => e.stopPropagation()}>
+                                                    <TableCell className="pl-6 py-2" onClick={(e) => e.stopPropagation()}>
                                                         {item.type === 'file' ? (
                                                             <Checkbox
                                                                 checked={selectedAssets.has(item.asset.name)}
@@ -322,7 +443,7 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                                                         )}
                                                     </TableCell>
                                                 )}
-                                                <TableCell className={cn("py-3", readOnly && "pl-6")}>
+                                                <TableCell className={cn("py-2", readOnly && "pl-6")}>
                                                     <div className="flex items-center gap-3.5">
                                                         <div className={cn(
                                                             "p-2 rounded-lg transition-all duration-300 group-hover:shadow-sm",
@@ -345,7 +466,7 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                                                         </div>
                                                     </div>
                                                 </TableCell>
-                                                <TableCell className="text-center py-3">
+                                                <TableCell className="text-center py-2">
                                                     {item.type === 'directory' ? (
                                                         <Badge variant="outline" className="h-5 text-[8px] font-black uppercase tracking-widest border-blue-500/20 text-blue-600 dark:text-blue-400 bg-blue-500/5">
                                                             FOLDER
@@ -356,7 +477,7 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                                                         </Badge>
                                                     )}
                                                 </TableCell>
-                                                <TableCell className="text-right pr-6 py-3">
+                                                <TableCell className="text-right pr-6 py-2">
                                                     <div className="flex flex-col items-end">
                                                         <span className="text-xs font-black font-mono text-foreground/70 tracking-tight">
                                                             {item.asset?.size_bytes ? (
@@ -365,11 +486,76 @@ export const AssetFileExplorer: React.FC<AssetFileExplorerProps> = ({
                                                         </span>
                                                     </div>
                                                 </TableCell>
-
                                             </TableRow>
                                         ))}
                                     </TableBody>
                                 </Table>
+                            ) : (
+                                <div className="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                                    {items.map((item) => {
+                                        const isSelected = item.type === 'file' ? selectedAssets.has(item.asset.name) : getAllFilesUnderNode(item).every(f => selectedAssets.has(f));
+                                        const isPartial = item.type === 'directory' && !isSelected && getAllFilesUnderNode(item).some(f => selectedAssets.has(f));
+
+                                        return (
+                                            <motion.div
+                                                layout
+                                                initial={{ opacity: 0, scale: 0.9 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                key={item.path}
+                                                className={cn(
+                                                    "group relative flex flex-col items-center p-4 rounded-2xl border transition-all duration-300 cursor-pointer",
+                                                    item.type === 'directory' ? "hover:bg-primary/5 hover:border-primary/20 border-transparent" : "hover:bg-muted/30 border-transparent",
+                                                    isSelected && "bg-primary/5 border-primary/30"
+                                                )}
+                                                onClick={() => item.type === 'directory' ? setCurrentPath(item.path) : onToggleAsset?.(item.asset.name, !isSelected)}
+                                            >
+                                                {!readOnly && (
+                                                    <div className="absolute top-2 left-2 z-10" onClick={(e) => e.stopPropagation()}>
+                                                        {item.type === 'file' ? (
+                                                            <Checkbox
+                                                                checked={isSelected}
+                                                                onCheckedChange={(c) => onToggleAsset?.(item.asset.name, !!c)}
+                                                                className="h-4 w-4 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                                                            />
+                                                        ) : (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-6 w-6 rounded-md hover:bg-primary/10 p-0"
+                                                                onClick={(e) => handleToggleFolderRecursive(e, item)}
+                                                            >
+                                                                <div className={cn(
+                                                                    "w-4 h-4 rounded border border-border flex items-center justify-center transition-all",
+                                                                    isSelected && "bg-primary border-primary",
+                                                                    isPartial && "border-primary"
+                                                                )}>
+                                                                    <div className={cn(
+                                                                        "w-1 h-1 rounded-full transition-colors",
+                                                                        (isSelected || isPartial) ? "bg-primary-foreground" : "bg-border"
+                                                                    )} />
+                                                                </div>
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                <div className={cn(
+                                                    "w-16 h-16 rounded-2xl flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 shadow-sm",
+                                                    item.type === 'directory' ? "bg-blue-500/10 text-blue-600" : "bg-muted/50 text-foreground/60",
+                                                    isSelected && "bg-primary/20 text-primary"
+                                                )}>
+                                                    {React.cloneElement(getIcon(item) as React.ReactElement, { className: "h-8 w-8" })}
+                                                </div>
+                                                <span className="text-xs font-bold text-center truncate w-full px-1 mb-1">
+                                                    {item.name}
+                                                </span>
+                                                <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-tighter">
+                                                    {item.type === 'directory' ? 'Folder' : (item.asset?.size_bytes ? (item.asset.size_bytes / 1024).toFixed(1) + ' KB' : '-')}
+                                                </span>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </div>
                             )}
                         </motion.div>
                     </AnimatePresence>

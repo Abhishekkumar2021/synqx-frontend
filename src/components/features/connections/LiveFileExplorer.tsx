@@ -7,7 +7,10 @@ import {
     FileSpreadsheet, FileCode, Info,
     Download, Upload, Trash2, FolderPlus,
     RefreshCw, MoreVertical, HardDrive,
-    FileUp
+    FileUp, LayoutGrid, List,
+    SortAsc, SortDesc, Filter,
+    Layers, Calendar, Hash,
+    X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -29,6 +32,8 @@ import {
     DropdownMenu, 
     DropdownMenuContent, 
     DropdownMenuItem, 
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
     DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -56,6 +61,10 @@ interface LiveFileExplorerProps {
     connectionId: number;
 }
 
+type SortField = 'name' | 'size' | 'modified_at';
+type SortOrder = 'asc' | 'desc';
+type GroupBy = 'none' | 'type' | 'extension';
+
 export const LiveFileExplorer: React.FC<LiveFileExplorerProps> = ({ connectionId }) => {
     const [currentPath, setCurrentPath] = useState<string>("");
     const [searchQuery, setSearchQuery] = useState("");
@@ -66,6 +75,14 @@ export const LiveFileExplorer: React.FC<LiveFileExplorerProps> = ({ connectionId
     const [newFolderName, setNewFolderName] = useState("");
     const [isDragging, setIsDragging] = useState(false);
     const [previewFile, setPreviewFile] = useState<any | null>(null);
+    const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+    
+    // Advanced UI State
+    const [sortField, setSortField] = useState<SortField>('name');
+    const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+    const [groupBy, setGroupBy] = useState<GroupBy>('type');
+    const [filterType] = useState<'all' | 'directory' | 'file'>('all');
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchFiles = useCallback(async (path: string) => {
@@ -220,14 +237,47 @@ export const LiveFileExplorer: React.FC<LiveFileExplorerProps> = ({ connectionId
 
     const filteredItems = useMemo(() => {
         let result = [...files];
+        
+        // 1. Filter by search query
         if (searchQuery) {
             result = result.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase()));
         }
-        return result.sort((a, b) => {
-            if (a.type === b.type) return a.name.localeCompare(b.name);
-            return a.type === 'directory' ? -1 : 1;
+
+        // 2. Filter by type
+        if (filterType !== 'all') {
+            result = result.filter(f => f.type === filterType);
+        }
+
+        // 3. Sort
+        result.sort((a, b) => {
+            // Grouping logic (always prioritize directories if group by type)
+            if (groupBy === 'type') {
+                if (a.type !== b.type) {
+                    return a.type === 'directory' ? -1 : 1;
+                }
+            } else if (groupBy === 'extension') {
+                const extA = a.name.split('.').pop() || '';
+                const extB = b.name.split('.').pop() || '';
+                if (extA !== extB) {
+                    return extA.localeCompare(extB);
+                }
+            }
+
+            // Primary sort field
+            let comparison = 0;
+            if (sortField === 'name') {
+                comparison = a.name.localeCompare(b.name);
+            } else if (sortField === 'size') {
+                comparison = (a.size || 0) - (b.size || 0);
+            } else if (sortField === 'modified_at') {
+                comparison = (a.modified_at || 0) - (b.modified_at || 0);
+            }
+
+            return sortOrder === 'asc' ? comparison : -comparison;
         });
-    }, [files, searchQuery]);
+
+        return result;
+    }, [files, searchQuery, sortField, sortOrder, groupBy, filterType]);
 
     return (
         <TooltipProvider>
@@ -335,6 +385,82 @@ export const LiveFileExplorer: React.FC<LiveFileExplorerProps> = ({ connectionId
                                 className="h-9 pl-8 w-full sm:w-40 bg-background/50 border-border/40 focus:ring-primary/20 text-xs font-medium rounded-lg shadow-none"
                             />
                         </div>
+                        
+                        <div className="h-4 w-px bg-border/60 mx-1" />
+
+                        {/* Advanced Filters & Sorting */}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" size="sm" className="h-9 px-3 gap-2 rounded-lg border-border/40 bg-background/50 text-xs font-bold">
+                                    <Filter className="h-3.5 w-3.5" />
+                                    View
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56 rounded-xl border-border/60 shadow-xl p-1">
+                                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest px-2 py-1.5 opacity-50">Sort By</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => setSortField('name')} className="rounded-lg text-xs font-bold gap-2.5">
+                                    <FileText className={cn("h-4 w-4", sortField === 'name' ? "text-primary" : "opacity-40")} />
+                                    Name
+                                    {sortField === 'name' && (sortOrder === 'asc' ? <SortAsc className="h-3 w-3 ml-auto opacity-40" /> : <SortDesc className="h-3 w-3 ml-auto opacity-40" />)}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setSortField('size')} className="rounded-lg text-xs font-bold gap-2.5">
+                                    <Hash className={cn("h-4 w-4", sortField === 'size' ? "text-primary" : "opacity-40")} />
+                                    Size
+                                    {sortField === 'size' && (sortOrder === 'asc' ? <SortAsc className="h-3 w-3 ml-auto opacity-40" /> : <SortDesc className="h-3 w-3 ml-auto opacity-40" />)}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setSortField('modified_at')} className="rounded-lg text-xs font-bold gap-2.5">
+                                    <Calendar className={cn("h-4 w-4", sortField === 'modified_at' ? "text-primary" : "opacity-40")} />
+                                    Date Modified
+                                    {sortField === 'modified_at' && (sortOrder === 'asc' ? <SortAsc className="h-3 w-3 ml-auto opacity-40" /> : <SortDesc className="h-3 w-3 ml-auto opacity-40" />)}
+                                </DropdownMenuItem>
+                                
+                                <DropdownMenuSeparator className="bg-border/40 my-1" />
+                                
+                                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest px-2 py-1.5 opacity-50">Order</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => setSortOrder('asc')} className="rounded-lg text-xs font-bold gap-2.5">
+                                    <SortAsc className={cn("h-4 w-4", sortOrder === 'asc' ? "text-primary" : "opacity-40")} />
+                                    Ascending
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setSortOrder('desc')} className="rounded-lg text-xs font-bold gap-2.5">
+                                    <SortDesc className={cn("h-4 w-4", sortOrder === 'desc' ? "text-primary" : "opacity-40")} />
+                                    Descending
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator className="bg-border/40 my-1" />
+
+                                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest px-2 py-1.5 opacity-50">Group By</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => setGroupBy('type')} className="rounded-lg text-xs font-bold gap-2.5">
+                                    <Layers className={cn("h-4 w-4", groupBy === 'type' ? "text-primary" : "opacity-40")} />
+                                    File Type
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setGroupBy('none')} className="rounded-lg text-xs font-bold gap-2.5">
+                                    <X className={cn("h-4 w-4", groupBy === 'none' ? "text-primary" : "opacity-40")} />
+                                    None
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <div className="h-4 w-px bg-border/60 mx-1" />
+
+                        <div className="flex items-center bg-background/50 border border-border/40 rounded-lg p-0.5">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn("h-8 w-8 rounded-md transition-all", viewMode === 'list' ? "bg-background shadow-sm text-primary" : "text-muted-foreground")}
+                                onClick={() => setViewMode('list')}
+                            >
+                                <List className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className={cn("h-8 w-8 rounded-md transition-all", viewMode === 'grid' ? "bg-background shadow-sm text-primary" : "text-muted-foreground")}
+                                onClick={() => setViewMode('grid')}
+                            >
+                                <LayoutGrid className="h-3.5 w-3.5" />
+                            </Button>
+                        </div>
+
                         <div className="h-4 w-px bg-border/60 mx-1" />
                         
                         <input 
@@ -401,7 +527,7 @@ export const LiveFileExplorer: React.FC<LiveFileExplorerProps> = ({ connectionId
                                 <Upload className="h-3.5 w-3.5" /> Upload First File
                             </Button>
                         </div>
-                    ) : (
+                    ) : viewMode === 'list' ? (
                         <Table wrapperClassName="rounded-none border-none shadow-none">
                             <TableHeader className="bg-muted/10 sticky top-0 z-30 backdrop-blur-md border-b border-border/40">
                                 <TableRow className="hover:bg-transparent border-none">
@@ -512,8 +638,79 @@ export const LiveFileExplorer: React.FC<LiveFileExplorerProps> = ({ connectionId
                                     </TableRow>
                                 ))}
                             </TableBody>
-                                            </Table>
-                                        )}
+                        </Table>
+                    ) : (
+                        <div className="p-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                            {filteredItems.map((item) => (
+                                <motion.div
+                                    layout
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    key={item.path}
+                                    className={cn(
+                                        "group relative flex flex-col items-center p-4 rounded-2xl border border-transparent transition-all duration-300 hover:border-border/60 hover:bg-muted/30 cursor-pointer",
+                                        item.type === 'directory' && "hover:bg-primary/5 hover:border-primary/20"
+                                    )}
+                                    onClick={() => handleOpenFile(item)}
+                                >
+                                    <div className={cn(
+                                        "w-16 h-16 rounded-2xl flex items-center justify-center mb-3 transition-all duration-300 group-hover:scale-110 shadow-sm",
+                                        item.type === 'directory' ? "bg-blue-500/10 text-blue-600" : "bg-muted/50 text-foreground/60"
+                                    )}>
+                                        {React.cloneElement(getIcon(item) as React.ReactElement, { className: "h-8 w-8" })}
+                                    </div>
+                                    <span className="text-xs font-bold text-center truncate w-full px-1 mb-1">
+                                        {item.name}
+                                    </span>
+                                    <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-tighter">
+                                        {item.type === 'directory' ? 'Folder' : (item.size > 1024 * 1024 
+                                            ? (item.size / (1024 * 1024)).toFixed(1) + ' MB'
+                                            : (item.size / 1024).toFixed(1) + ' KB')}
+                                    </span>
+
+                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg bg-background/80 backdrop-blur-sm border border-border/40">
+                                                    <MoreVertical className="h-3.5 w-3.5 text-muted-foreground" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-48 rounded-xl border-border/60 shadow-xl p-1">
+                                                {item.type === 'directory' ? (
+                                                    <>
+                                                        <DropdownMenuItem onClick={() => setCurrentPath(item.path)} className="rounded-lg text-xs font-bold py-2.5 gap-2.5">
+                                                            <Folder className="h-4 w-4 text-primary" />
+                                                            Open Folder
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleDownloadDirectory(item)} className="rounded-lg text-xs font-bold py-2.5 gap-2.5">
+                                                            <Download className="h-4 w-4 text-primary" />
+                                                            Download as ZIP
+                                                        </DropdownMenuItem>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <DropdownMenuItem onClick={() => handleOpenFile(item)} className="rounded-lg text-xs font-bold py-2.5 gap-2.5">
+                                                            <FileUp className="h-4 w-4 text-primary" />
+                                                            Open / Preview
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem onClick={() => handleDownload(item)} className="rounded-lg text-xs font-bold py-2.5 gap-2.5">
+                                                            <Download className="h-4 w-4 text-emerald-500" />
+                                                            Download File
+                                                        </DropdownMenuItem>
+                                                    </>
+                                                )}
+                                                <div className="h-px bg-border/40 my-1" />
+                                                <DropdownMenuItem onClick={() => handleDelete(item)} className="rounded-lg text-xs font-bold py-2.5 gap-2.5 text-destructive focus:text-destructive focus:bg-destructive/10">
+                                                    <Trash2 className="h-4 w-4" />
+                                                    Delete Permanently
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    )}
                         
                                         {/* --- File Preview Overlay --- */}
                                         <AnimatePresence>
