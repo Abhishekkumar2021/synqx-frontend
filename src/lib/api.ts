@@ -534,6 +534,7 @@ export interface PipelineNode {
     order_index: number;
     source_asset_id?: number;
     destination_asset_id?: number;
+    connection_id?: number;
     max_retries?: number;
     timeout_seconds?: number;
     position?: { x: number; y: number }; 

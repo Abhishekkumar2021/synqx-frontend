@@ -25,14 +25,15 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { 
     Save, Play, ArrowLeft, Loader2, Layout, 
-    Rocket, Square, Pencil, MousePointer2, History as HistoryIcon,
-    ExternalLink, Trash2, Plus} from 'lucide-react';
+    Rocket, Square, Pencil, History as HistoryIcon,
+    ExternalLink, Trash2, Plus, Undo, Redo } from 'lucide-react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import dagre from 'dagre';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
+import { useUndoRedo } from '@/hooks/useUndoRedo';
 
 import { 
     DropdownMenu, 
@@ -119,6 +120,7 @@ export const PipelineCanvas: React.FC = () => {
   // State
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const { undo, redo, takeSnapshot, canUndo, canRedo } = useUndoRedo();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
@@ -241,15 +243,19 @@ export const PipelineCanvas: React.FC = () => {
 
   // --- Handlers ---
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge({ 
-        ...params, 
-        type: 'glow', 
-        animated: true, 
-    }, eds)),
-    [setEdges],
+    (params: Connection) => {
+        takeSnapshot(nodes, edges);
+        setEdges((eds) => addEdge({ 
+            ...params, 
+            type: 'glow', 
+            animated: true, 
+        }, eds));
+    },
+    [setEdges, nodes, edges, takeSnapshot],
   );
 
   const onAddNode = (type: string, operatorClass?: string, label?: string) => {
+      takeSnapshot(nodes, edges);
       const newNodeId = `node_${Date.now()}`;
       // Center the node somewhat in the view or randomize slightly
       const offset = Math.random() * 50; 
@@ -272,12 +278,87 @@ export const PipelineCanvas: React.FC = () => {
       });
   };
 
+  const onDuplicate = useCallback((node: Node) => {
+      takeSnapshot(nodes, edges);
+      const newNodeId = `node_${Date.now()}`;
+      const newNode: Node = {
+          ...node,
+          id: newNodeId,
+          position: { x: node.position.x + 50, y: node.position.y + 50 },
+          data: {
+              ...node.data,
+              label: `${node.data.label} (Copy)`,
+              status: 'idle'
+          },
+          selected: true
+      };
+      
+      setNodes((nds) => [...nds.map(n => ({...n, selected: false})), newNode]);
+      setSelectedNodeId(newNodeId);
+      toast.success("Operator Duplicated", {
+          description: `Created copy of ${node.data.label}`
+      });
+  }, [nodes, edges, takeSnapshot, setNodes]);
+
+  // Undo/Redo & Duplicate Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+        // Check if we are typing in an input (ignore shortcuts)
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+            return;
+        }
+
+        if ((event.metaKey || event.ctrlKey) && event.key === 'z') {
+            if (event.shiftKey) {
+                redo(nodes, edges, setNodes, setEdges);
+            } else {
+                undo(nodes, edges, setNodes, setEdges);
+            }
+            event.preventDefault();
+        } else if ((event.metaKey || event.ctrlKey) && event.key === 'y') {
+            redo(nodes, edges, setNodes, setEdges);
+            event.preventDefault();
+        } else if ((event.metaKey || event.ctrlKey) && event.key === 'd') {
+            if (selectedNodeId) {
+                const nodeToDuplicate = nodes.find(n => n.id === selectedNodeId);
+                if (nodeToDuplicate) {
+                    onDuplicate(nodeToDuplicate);
+                    event.preventDefault();
+                }
+            }
+        }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo, nodes, edges, setNodes, setEdges, selectedNodeId, onDuplicate]);
+
   const onLayout = useCallback(() => {
+      takeSnapshot(nodes, edges);
       const layouted = getLayoutedElements([...nodes], [...edges]);
       setNodes(layouted.nodes);
       setEdges(layouted.edges);
       setTimeout(() => window.requestAnimationFrame(() => fitView({ duration: 800, padding: 0.2 })), 10);
-  }, [nodes, edges, setNodes, setEdges, fitView]);
+  }, [nodes, edges, setNodes, setEdges, fitView, takeSnapshot]);
+
+  const onNodeDragStart = useCallback((event: React.MouseEvent, node: Node) => {
+      if (event.altKey) {
+          takeSnapshot(nodes, edges);
+          const newNodeId = `node_${Date.now()}`;
+          const newNode: Node = {
+              ...JSON.parse(JSON.stringify(node)),
+              id: newNodeId,
+              selected: false,
+              dragging: false,
+          };
+          setNodes((nds) => [...nds, newNode]);
+          toast.success("Operator Cloned", {
+              description: "Alt + Drag created a copy"
+          });
+      } else {
+          takeSnapshot(nodes, edges);
+      }
+  }, [nodes, edges, takeSnapshot, setNodes]);
 
   // --- Mutations ---
   const runMutation = useMutation({
@@ -567,6 +648,9 @@ export const PipelineCanvas: React.FC = () => {
             edgeTypes={edgeTypes}
             onNodeClick={(_, node) => setSelectedNodeId(node.id)}
             onPaneClick={() => setSelectedNodeId(null)}
+            onNodeDragStart={onNodeDragStart}
+            onNodesDelete={() => takeSnapshot(nodes, edges)}
+            onEdgesDelete={() => takeSnapshot(nodes, edges)}
             colorMode={flowTheme}
             minZoom={0.1}
             maxZoom={4}
@@ -600,18 +684,29 @@ export const PipelineCanvas: React.FC = () => {
                         />
             {/* FLOATING TOOLBOX PANEL */}
             <Panel position="top-center" className="mt-8 pointer-events-none">
-                <div className="flex items-center p-2 gap-2 glass-panel !rounded-[1.75rem] shadow-2xl pointer-events-auto border-border/20 bg-background/60 backdrop-blur-3xl transition-all hover:scale-[1.02] hover:shadow-primary/5 ring-1 ring-white/5">
+                <div className="flex items-center p-2 gap-2 glass-panel rounded-4xl! shadow-2xl pointer-events-auto border-border/20 bg-background/60 backdrop-blur-3xl transition-all duration-300 hover:scale-[1.02] hover:shadow-primary/20 hover:border-primary/30 hover:bg-background/80 ring-1 ring-white/5">
                     
                     {/* Primary Controls Group */}
                     <div className="flex items-center gap-1.5 pr-3 border-r border-border/10 mr-1">
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl hover:bg-primary/10 hover:text-primary transition-all group" onClick={() => setSelectedNodeId(null)}>
-                                        <MousePointer2 className="h-5 w-5 group-active:scale-90" />
+                                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl hover:bg-primary/10 hover:text-primary transition-all group" onClick={() => undo(nodes, edges, setNodes, setEdges)} disabled={!canUndo}>
+                                        <Undo className="h-5 w-5 group-active:scale-90" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Selection Tool</TooltipContent>
+                                <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-2xl hover:bg-primary/10 hover:text-primary transition-all group" onClick={() => redo(nodes, edges, setNodes, setEdges)} disabled={!canRedo}>
+                                        <Redo className="h-5 w-5 group-active:scale-90" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Redo (Ctrl+Y)</TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
 
@@ -638,56 +733,55 @@ export const PipelineCanvas: React.FC = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent 
                             align="center" 
-                            sideOffset={15}
-                            className="w-80 bg-background/60 backdrop-blur-3xl border-border/20 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] rounded-[2rem] p-3 ring-1 ring-white/10"
+                            sideOffset={10}
+                            className="w-64 bg-background/80 backdrop-blur-md border-border/20 shadow-xl rounded-xl p-1.5 ring-1 ring-white/10"
                         >
-                            <div className="px-3 py-3 mb-3">
+                            <div className="px-2 py-2 mb-1">
                                 <div className="relative group">
-                                    <Plus className="z-20 absolute left-3 top-3 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                                    <Plus className="z-20 absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                                     <Input 
-                                        placeholder="Search pipeline operators..." 
+                                        placeholder="Search..." 
                                         value={opSearch}
                                         onChange={(e) => setOpSearch(e.target.value)}
-                                        className="h-10 pl-10 rounded-xl bg-muted/30 border-none text-xs focus-visible:ring-2 focus-visible:ring-primary/20 transition-all"
+                                        className="h-8 pl-8 rounded-lg bg-muted/30 border-none text-xs focus-visible:ring-1 focus-visible:ring-primary/20 transition-all placeholder:text-[10px]"
                                         autoFocus
                                     />
                                 </div>
                             </div>
-                            <div className="max-h-[400px] overflow-y-auto custom-scrollbar px-1 space-y-4 pb-2">
+                            <div className="max-h-[300px] overflow-y-auto custom-scrollbar px-1 space-y-2 pb-1">
                                 {filteredDefinitions.length === 0 ? (
-                                    <div className="py-12 text-center flex flex-col items-center gap-3">
-                                        <div className="h-12 w-12 rounded-full bg-muted/20 flex items-center justify-center text-muted-foreground/30">
-                                            <Plus className="h-6 w-6 rotate-45" />
+                                    <div className="py-8 text-center flex flex-col items-center gap-2">
+                                        <div className="h-8 w-8 rounded-full bg-muted/20 flex items-center justify-center text-muted-foreground/30">
+                                            <Plus className="h-4 w-4 rotate-45" />
                                         </div>
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">No matching operators</span>
+                                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50">No matches</span>
                                     </div>
                                 ) : (
                                     filteredDefinitions.map((category, idx) => (
-                                        <div key={idx} className="space-y-1.5">
-                                            <div className="px-3 py-1 text-[9px] font-black uppercase tracking-[0.25em] text-primary/50 flex items-center gap-2">
-                                                <div className="h-px flex-1 bg-primary/10" />
+                                        <div key={idx} className="space-y-0.5">
+                                            <div className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-muted-foreground/40 flex items-center gap-2">
                                                 {category.category}
-                                                <div className="h-px flex-1 bg-primary/10" />
+                                                <div className="h-px flex-1 bg-border/20" />
                                             </div>
                                             {category.items.map((item, i) => (
                                                 <DropdownMenuItem 
                                                     key={i}
-                                                    className="group flex items-center gap-4 p-3 rounded-[1.25rem] focus:bg-primary/10 focus:text-primary cursor-pointer transition-all duration-300"
+                                                    className="group flex items-center gap-3 p-2 rounded-lg focus:bg-primary/5 focus:text-primary cursor-pointer transition-all duration-200"
                                                     onClick={() => onAddNode(item.type, (item as any).opClass, item.label)}
                                                 >
                                                     <div className={cn(
-                                                        "h-10 w-10 shrink-0 rounded-xl flex items-center justify-center border transition-all duration-500 group-hover:scale-110 group-hover:shadow-lg",
+                                                        "h-8 w-8 shrink-0 rounded-lg flex items-center justify-center border transition-all duration-300 group-hover:scale-105 group-hover:shadow-sm",
                                                         item.type === 'source' ? "bg-chart-1/10 border-chart-1/20 text-chart-1" :
                                                         item.type === 'sink' ? "bg-chart-2/10 border-chart-2/20 text-chart-2" :
                                                         item.type === 'validate' ? "bg-chart-4/10 border-chart-4/20 text-chart-4" :
                                                         ['join', 'union', 'merge'].includes(item.type) ? "bg-chart-5/10 border-chart-5/20 text-chart-5" :
                                                         "bg-chart-3/10 border-chart-3/20 text-chart-3"
                                                     )}>
-                                                        <item.icon className="h-5 w-5" />
+                                                        <item.icon className="h-4 w-4" />
                                                     </div>
                                                     <div className="flex flex-col gap-0.5 overflow-hidden">
-                                                        <span className="text-xs font-bold tracking-tight">{item.label}</span>
-                                                        <span className="text-[9px] text-muted-foreground/70 group-hover:text-primary/60 truncate leading-tight">{item.desc}</span>
+                                                        <span className="text-[11px] font-semibold tracking-tight">{item.label}</span>
+                                                        <span className="text-[9px] text-muted-foreground/60 group-hover:text-primary/60 truncate leading-none">{item.desc}</span>
                                                     </div>
                                                 </DropdownMenuItem>
                                             ))}
@@ -711,14 +805,17 @@ export const PipelineCanvas: React.FC = () => {
                 <NodeProperties 
                     node={selectedNode} 
                     onUpdate={(id, newData) => {
+                        takeSnapshot(nodes, edges);
                         setNodes(nds => nds.map(n => n.id === id ? { ...n, data: { ...n.data, ...newData } } : n));
                         setSelectedNodeId(null);
                     }}
                     onDelete={(id) => {
+                        takeSnapshot(nodes, edges);
                         setNodes(nds => nds.filter(n => n.id !== id));
                         setEdges(eds => eds.filter(e => e.source !== id && e.target !== id));
                         setSelectedNodeId(null);
                     }}
+                    onDuplicate={onDuplicate}
                     onClose={() => setSelectedNodeId(null)}
                 />
               )}

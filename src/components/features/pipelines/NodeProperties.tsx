@@ -7,9 +7,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import {
     X, Trash2, Save, Code, Sliders,
-    Database, HardDriveUpload,
-    Info, HelpCircle, Activity,
-    ShieldCheck, Clock
+    Database, 
+    Info, HelpCircle, Copy
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +55,7 @@ interface NodePropertiesProps {
     onClose: () => void;
     onUpdate: (id: string, data: any) => void;
     onDelete: (id: string) => void;
+    onDuplicate: (node: Node) => void;
 }
 
 const HelpIcon = ({ content }: { content?: string }) => {
@@ -81,7 +81,7 @@ const HelpIcon = ({ content }: { content?: string }) => {
     );
 };
 
-export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, onUpdate, onDelete }) => {
+export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, onUpdate, onDelete, onDuplicate }) => {
     const { register, handleSubmit, setValue, watch, reset, control, formState: { errors } } = useForm<any>();
     const [activeTab, setActiveTab] = useState('settings');
 
@@ -513,6 +513,17 @@ export const NodeProperties: React.FC<NodePropertiesProps> = ({ node, onClose, o
                             <Save size={14} className="mr-2" /> Save Config
                         </Button>
                         
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button type="button" variant="secondary" size="icon" onClick={() => onDuplicate(node)} className="h-10 w-10 rounded-xl hover:bg-background/80 hover:text-primary">
+                                        <Copy size={16} />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">Duplicate Node</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button type="button" variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10">
