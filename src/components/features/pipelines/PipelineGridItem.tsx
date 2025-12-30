@@ -199,7 +199,7 @@ export const PipelineGridItem: React.FC<PipelineGridItemProps> = ({ pipeline, on
                     {/* Schedule Badge */}
                     <div className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground/80 bg-muted/40 px-2.5 py-1 rounded-lg border border-border/20">
                         <Calendar className="h-3 w-3 opacity-60" />
-                        <span className="truncate max-w-[80px]">{pipeline.schedule_cron || 'Manual'}</span>
+                        <span className="truncate max-w-[80px] font-mono">{pipeline.schedule_cron || 'Manual'}</span>
                     </div>
 
                     {/* Quick Run Button */}

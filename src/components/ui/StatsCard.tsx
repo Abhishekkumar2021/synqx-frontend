@@ -63,7 +63,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
             <CardContent className="p-5 md:p-6 relative z-10">
                 {/* Header */}
                 <div className="flex items-center justify-between space-y-0 pb-4">
-                    <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.2em]">{title}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.2em]">{title}</p>
                     <div className={cn(
                         "p-2 rounded-xl border transition-all duration-500 group-hover:scale-110 shadow-sm",
                         active
@@ -75,9 +75,9 @@ export const StatsCard: React.FC<StatsCardProps> = ({
                 </div>
 
                 {/* Value & Trends */}
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-0.5">
                     <h3 
-                        className="text-3xl md:text-4xl font-black tracking-tighter tabular-nums text-foreground leading-none"
+                        className="text-3xl md:text-4xl font-bold tracking-tighter tabular-nums text-foreground leading-[0.9]"
                     >
                         {value}
                     </h3>
@@ -86,7 +86,7 @@ export const StatsCard: React.FC<StatsCardProps> = ({
                         <div className="flex items-center gap-2 text-[10px] mt-3">
                             {trend && (
                                 <span className={cn(
-                                    "flex items-center px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider shadow-sm",
+                                    "flex items-center px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wider shadow-sm",
                                     trendUp
                                         ? "text-success bg-success/10 border-success/20"
                                         : "text-destructive bg-destructive/10 border-destructive/20"

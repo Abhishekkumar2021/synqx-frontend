@@ -100,10 +100,10 @@ export const JobsPage: React.FC = () => {
                         <HistoryIcon className="h-7 w-7 text-primary" />
                     </div>
                     <div className="space-y-1">
-                        <h2 className="text-3xl font-black tracking-tight text-foreground">
+                        <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-foreground">
                             Execution Forensic
                         </h2>
-                        <p className="text-sm text-muted-foreground font-semibold uppercase tracking-widest opacity-70">
+                        <p className="text-sm md:text-base text-muted-foreground font-medium pl-1">
                             Real-time pipeline monitoring & log inspection
                         </p>
                     </div>

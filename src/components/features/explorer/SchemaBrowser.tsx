@@ -194,7 +194,7 @@ export const SchemaBrowser: React.FC<SchemaBrowserProps> = ({ connectionId, onAc
                                             "h-3.5 w-3.5 shrink-0 transition-opacity",
                                             expandedTables.has(table) ? "opacity-100" : "opacity-30 group-hover/table:opacity-100"
                                         )} />
-                                        <span className="truncate flex-1 italic tracking-tighter">{table}</span>
+                                        <span className="truncate flex-1 font-mono italic tracking-tighter">{table}</span>
                                         <span className="text-[9px] font-mono font-black opacity-20 group-hover/table:opacity-100 transition-opacity">
                                             {columns.length}
                                         </span>

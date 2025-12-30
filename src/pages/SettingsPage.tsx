@@ -119,10 +119,10 @@ export const SettingsPage: React.FC = () => {
 
             {/* --- Page Header --- */}
             <div className="flex flex-col gap-2 border-b border-border/50 pb-6 relative z-10">
-                <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+                <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-foreground flex items-center gap-3">
                     Settings
                 </h2>
-                <p className="text-muted-foreground text-lg">
+                <p className="text-sm md:text-base text-muted-foreground font-medium pl-1">
                     Manage your workspace preferences, API access, and security configurations.
                 </p>
             </div>

@@ -163,7 +163,7 @@ export const DashboardPage: React.FC = () => {
             {/* --- Header & Navigation --- */}
             <motion.div variants={item} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 px-1">
                 <div className="space-y-1.5">
-                    <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+                    <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-foreground flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 backdrop-blur-md shadow-sm">
                             <Activity className="h-5 w-5 text-primary" />
                         </div>

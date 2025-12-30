@@ -592,7 +592,7 @@ export const ExplorerPage: React.FC = () => {
                         quickSuggestions: true,
                         readOnly: !isSupported,
                         scrollBeyondLastLine: false,
-                        fontFamily: 'JetBrains Mono, Menlo, monospace'
+                        fontFamily: '"Geist Mono Variable", Menlo, monospace'
                     }}
                 />
             </div>
@@ -703,10 +703,26 @@ export const ExplorerPage: React.FC = () => {
     );
 
     return (
-        <div className="h-full flex flex-col relative overflow-hidden animate-in fade-in duration-700 bg-background rounded-3xl border border-border/40 shadow-2xl">
+        <div className="h-full flex flex-col gap-6 md:gap-8 animate-in fade-in duration-700">
             <PageMeta title="Explorer" />
 
-            <AnimatePresence>
+            {/* --- Standardized Page Header --- */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between shrink-0 gap-4 md:gap-0 px-1">
+                <div className="space-y-1.5">
+                    <h2 className="text-3xl md:text-4xl font-bold tracking-tighter text-foreground flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-2xl ring-1 ring-border/50 backdrop-blur-md shadow-sm">
+                            <SquareTerminal className="h-6 w-6 text-primary" />
+                        </div>
+                        Data Explorer
+                    </h2>
+                    <p className="text-sm md:text-base text-muted-foreground font-medium pl-1">
+                        Interact with your datasets using high-performance raw queries.
+                    </p>
+                </div>
+            </div>
+
+            <div className="flex-1 min-h-0 flex flex-col relative overflow-hidden bg-background rounded-3xl border border-border/40 shadow-2xl">
+                <AnimatePresence>
                 {maximizedView === 'editor' && <MaximizePortal>{renderEditor()}</MaximizePortal>}
                 {maximizedView === 'results' && <MaximizePortal >{renderResults()}</MaximizePortal>}
                 {showHistory && (
@@ -753,6 +769,7 @@ export const ExplorerPage: React.FC = () => {
                     </ResizablePanelGroup>
                 </ResizablePanel>
             </ResizablePanelGroup>
+        </div>
         </div>
     );
 };

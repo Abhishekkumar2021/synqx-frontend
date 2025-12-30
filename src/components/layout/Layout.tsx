@@ -115,7 +115,7 @@ export const Layout: React.FC<LayoutProps> = () => {
                     <Link
                         to="/"
                         className={cn(
-                            "flex h-24 items-center transition-all duration-500 overflow-hidden shrink-0 hover:opacity-80 transition-opacity",
+                            "flex h-24 items-center transition-all duration-500 overflow-hidden shrink-0 hover:opacity-80",
                             isSidebarCollapsed ? "justify-center px-0" : "px-8 gap-4"
                         )}
                     >

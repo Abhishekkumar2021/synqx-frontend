@@ -235,8 +235,8 @@ export const ConnectionDetailsPage: React.FC = () => {
                                 <span className="font-semibold text-foreground/70">{connection.connector_type}</span>
                             </span>
                             <span className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
-                            <span className="flex items-center gap-1.5 font-mono">
-                                ID: <span className="font-bold text-foreground/70">{connection.id}</span>
+                            <span className="flex items-center gap-1.5 font-medium text-xs">
+                                ID: <span className="font-bold font-mono text-foreground/70">{connection.id}</span>
                             </span>
                             <span className="w-1.5 h-1.5 rounded-full bg-border shrink-0" />
                             <span className="flex items-center gap-1.5">

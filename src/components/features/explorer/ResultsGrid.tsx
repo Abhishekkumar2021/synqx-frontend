@@ -588,7 +588,7 @@ const DataTableCell = ({ value, density }: { value: any, density: Density }) => 
                         {String(value)}
                     </Badge>
                 ) : typeof value === 'number' ? (
-                    <span className="text-[13px] font-mono font-bold text-indigo-600 dark:text-indigo-400 tracking-tighter">{value.toLocaleString()}</span>
+                    <span className="text-[13px] font-mono font-bold text-primary tracking-tighter">{value.toLocaleString()}</span>
                 ) : (
                      <span className={cn(
                         "font-medium text-foreground/80 tracking-tight leading-relaxed line-clamp-2",

@@ -8,7 +8,7 @@ export const NavGroup = ({ children, title, collapsed }: { children: React.React
                 <motion.h4
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="px-3 mb-3 text-xs font-bold uppercase tracking-wider text-muted-foreground/60 whitespace-nowrap overflow-hidden"
+                    className="px-4 mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 whitespace-nowrap overflow-hidden"
                 >
                     {title}
                 </motion.h4>
